@@ -16,7 +16,7 @@ export class EmailService {
   private readonly siteName: string;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3001';
+    this.baseUrl = process.env.NEXT_PUBLIC_WEB_URL === "http://localhost:3000" ? "https://wm985.top" : process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.top';
     this.siteName = process.env.NEXT_PUBLIC_PROJECT_NAME || 'pc-t';
   }
 
