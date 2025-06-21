@@ -19,9 +19,27 @@ interface PongResponse {
 }
 
 // 轻量级保活端点 - 用于外部监控服务
-export async function GET() {
-  // 使用简洁的console.log避免结构化日志的冗长输出 此处不适用logger
-  console.log("---保活成功Ping-Success");
+export async function GET(request: Request) {
+  // 获取请求信息用于区分来源
+  const userAgent = request.headers.get('user-agent') || 'Unknown';
+  const ip = request.headers.get('x-forwarded-for') ||
+             request.headers.get('x-real-ip') ||
+             'Unknown';
+
+  // 判断请求来源
+  const isUptimeRobot = userAgent.toLowerCase().includes('uptimerobot');
+  const isManualRequest = userAgent.toLowerCase().includes('httpie') ||
+                         userAgent.toLowerCase().includes('curl') ||
+                         userAgent.toLowerCase().includes('postman');
+
+  let source = 'Unknown';
+  if (isUptimeRobot) source = 'UptimeRobot';
+  else if (isManualRequest) source = 'Manual';
+  else source = 'Other';
+
+  // 记录详细的请求信息
+  console.log(`---保活成功Ping-Success | 来源: ${source} | IP: ${ip} | UA: ${userAgent}`);
+
   return Response.json({
     status: "alive",
     timestamp: new Date().toISOString(),
