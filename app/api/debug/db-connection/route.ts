@@ -78,15 +78,16 @@ export async function GET() {
       debugInfo.recommendations.push("数据库延迟较高，建议检查网络质量");
     }
     
-    if (connectionStats.connectionAttempts > 5) {
-      debugInfo.recommendations.push("连接重试次数较多，建议检查网络稳定性");
-    }
+    // 注释掉connectionAttempts相关代码，因为getConnectionStats()中没有这个属性
+    // if (connectionStats.connectionAttempts > 5) {
+    //   debugInfo.recommendations.push("连接重试次数较多，建议检查网络稳定性");
+    // }
 
-    log.info("数据库连接调试信息获取完成", { 
+    log.info("数据库连接调试信息获取完成", {
       healthy: health.healthy,
       latency: health.latency,
-      connectionAttempts: connectionStats.connectionAttempts,
-      endpoint: "/api/debug/db-connection" 
+      // connectionAttempts: connectionStats.connectionAttempts,
+      endpoint: "/api/debug/db-connection"
     });
 
     return respData(debugInfo);
