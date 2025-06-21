@@ -20,7 +20,8 @@ interface PongResponse {
 
 // 轻量级保活端点 - 用于外部监控服务
 export async function GET() {
-  log.info("----保活成功Ping-Success");
+  // 使用简洁的console.log避免结构化日志的冗长输出 此处不适用logger
+  console.log("---保活成功Ping-Success");
   return Response.json({
     status: "alive",
     timestamp: new Date().toISOString(),
