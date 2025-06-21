@@ -10,6 +10,7 @@ import { findEmailUser } from "@/models/user";
 import { getClientIp } from "@/lib/ip";
 import { EMAIL_VERIFICATION } from "@/lib/constants";
 import { log } from "@/lib/logger";
+import { isValidEmail } from "@/lib/email-validator";
 
 // 限制发送频率的内存存储（生产环境建议使用Redis）
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -93,8 +94,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证邮箱格式
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!isValidEmail(email)) {
       return NextResponse.json(
         { error: "邮箱格式不正确" },
         { status: 400 }

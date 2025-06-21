@@ -6,6 +6,7 @@ import { Order } from "@/types/order";
 import Stripe from "stripe";
 import { findUserByUuid } from "@/models/user";
 import { getSnowId } from "@/lib/hash";
+import { log } from "@/lib/logger";
 
 export async function POST(req: Request) {
   try {
@@ -169,7 +170,7 @@ export async function POST(req: Request) {
       session_id: stripe_session_id,
     });
   } catch (e: any) {
-    console.log("checkout failed: ", e);
+    log.error("checkout failed", e as Error, { function: 'checkout' });
     return respErr("checkout failed: " + e.message);
   }
 }

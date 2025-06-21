@@ -10,6 +10,7 @@ import { getOneYearLaterTimestr } from "@/lib/time";
 import { emailService } from "@/services/email";
 import { DEFAULT_AVATAR_URL, PASSWORD_CONFIG } from "@/lib/constants";
 import { log } from "@/lib/logger";
+import { isValidEmail } from "@/lib/email-validator";
 import bcrypt from "bcrypt";
 
 export async function POST(request: NextRequest) {
@@ -59,8 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证邮箱格式
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!isValidEmail(email)) {
       return NextResponse.json(
         { error: "邮箱格式不正确" },
         { status: 400 }

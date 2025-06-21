@@ -31,13 +31,13 @@ export async function saveUser(user: User) {
         emailService.sendWelcomeEmail(user.email, user.nickname || undefined)
           .then((success) => {
             if (success) {
-              console.log(`欢迎邮件发送成功: ${user.email}`);
+              log.info("欢迎邮件发送成功", { email: user.email });
             } else {
-              console.log(`欢迎邮件发送失败: ${user.email}`);
+              log.warn("欢迎邮件发送失败", { email: user.email });
             }
           })
           .catch((error) => {
-            console.error(`欢迎邮件发送异常: ${user.email}`, error);
+            log.error("欢迎邮件发送异常", error, { email: user.email });
           });
       }
     } else {
@@ -48,7 +48,7 @@ export async function saveUser(user: User) {
 
     return user;
   } catch (e) {
-    console.log("save user failed: ", e);
+    log.error("save user failed", e as Error, { email: user.email });
     throw e;
   }
 }

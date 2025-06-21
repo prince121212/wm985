@@ -3,7 +3,7 @@
  * Email Sending API Route
  */
 
-import { respData, respErr } from "@/lib/resp";
+import { respData, respErr, respInvalidParams } from "@/lib/resp";
 import { sendEmailServer, testEmailServiceServer } from "@/lib/email-server";
 import { EmailType } from "@/types/email";
 import { getUserUuid, getUserEmail } from "@/services/user";
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     if (restrictToRegisteredUsers) {
       const recipientUser = await findUserByEmail(to);
       if (!recipientUser) {
-        return respErr("收件人邮箱未注册，请关闭用户限制选项或确认邮箱地址正确");
+        return respInvalidParams("收件人邮箱未注册，请关闭用户限制选项或确认邮箱地址正确");
       }
     }
 

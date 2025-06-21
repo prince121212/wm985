@@ -11,6 +11,7 @@ import { findUserByUuid } from "@/models/user";
 import { getFirstPaidOrderByUserUuid } from "@/models/order";
 import { getIsoTimestr } from "@/lib/time";
 import { getSnowId } from "@/lib/hash";
+import { log } from "@/lib/logger";
 
 export enum CreditsTransType {
   NewUser = "new_user", // initial credits for new user
@@ -30,16 +31,20 @@ export async function getUserCredits(user_uuid: string): Promise<UserCredits> {
   };
 
   try {
-    console.log("[getUserCredits] 开始获取用户积分, UUID:", user_uuid);
+    log.debug("开始获取用户积分", { user_uuid, function: 'getUserCredits' });
 
     const first_paid_order = await getFirstPaidOrderByUserUuid(user_uuid);
     if (first_paid_order) {
       user_credits.is_recharged = true;
-      console.log("[getUserCredits] 用户已充值");
+      log.debug("用户已充值", { user_uuid, function: 'getUserCredits' });
     }
 
     const credits = await getUserValidCredits(user_uuid);
-    console.log("[getUserCredits] 获取有效积分记录:", credits?.length || 0, "条");
+    log.debug("获取有效积分记录", {
+      user_uuid,
+      creditsCount: credits?.length || 0,
+      function: 'getUserCredits'
+    });
 
     if (credits) {
       credits.forEach((v: Credit) => {
@@ -55,10 +60,16 @@ export async function getUserCredits(user_uuid: string): Promise<UserCredits> {
       user_credits.is_pro = true;
     }
 
-    console.log("[getUserCredits] 积分计算完成:", user_credits);
+    log.info("积分计算完成", {
+      user_uuid,
+      left_credits: user_credits.left_credits,
+      is_pro: user_credits.is_pro,
+      is_recharged: user_credits.is_recharged,
+      function: 'getUserCredits'
+    });
     return user_credits;
   } catch (e) {
-    console.error("[getUserCredits] 获取用户积分失败, UUID:", user_uuid, "错误:", e);
+    log.error("获取用户积分失败", e as Error, { user_uuid, function: 'getUserCredits' });
     return user_credits;
   }
 }
@@ -105,7 +116,7 @@ export async function decreaseCredits({
     };
     await insertCredit(new_credit);
   } catch (e) {
-    console.log("decrease credits failed: ", e);
+    log.error("扣减积分失败", e as Error, { user_uuid, trans_type, credits, function: 'decreaseCredits' });
     throw e;
   }
 }
@@ -135,7 +146,7 @@ export async function increaseCredits({
     };
     await insertCredit(new_credit);
   } catch (e) {
-    console.log("increase credits failed: ", e);
+    log.error("增加积分失败", e as Error, { user_uuid, trans_type, credits, function: 'increaseCredits' });
     throw e;
   }
 }
@@ -156,7 +167,12 @@ export async function updateCreditForOrder(order: Order) {
       order_no: order.order_no,
     });
   } catch (e) {
-    console.log("update credit for order failed: ", e);
+    log.error("更新订单积分失败", e as Error, {
+      order_no: order.order_no,
+      user_uuid: order.user_uuid,
+      credits: order.credits,
+      function: 'updateCreditForOrder'
+    });
     throw e;
   }
 }

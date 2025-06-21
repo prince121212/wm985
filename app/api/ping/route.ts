@@ -6,6 +6,7 @@ import {
 import { respData, respInvalidParams, respUnauthorized, respErr, ErrorCode } from "@/lib/resp";
 
 import { getUserUuid } from "@/services/user";
+import { log } from "@/lib/logger";
 
 // 定义请求体类型
 interface PingRequest {
@@ -17,6 +18,17 @@ interface PongResponse {
   pong: string;
 }
 
+// 轻量级保活端点 - 用于外部监控服务
+export async function GET() {
+  return Response.json({
+    status: "alive",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    version: "1.6.0" // 从package.json获取
+  });
+}
+
+// 原有的POST端点 - 用于用户功能测试
 export async function POST(req: Request) {
   try {
     const body: PingRequest = await req.json();
@@ -49,7 +61,7 @@ export async function POST(req: Request) {
 
     return respData(response);
   } catch (e) {
-    console.error("ping test failed:", e);
+    log.error("Ping测试失败", e as Error, { endpoint: "/api/ping" });
     return respErr("测试失败，请稍后再试", ErrorCode.INTERNAL_ERROR);
   }
 }

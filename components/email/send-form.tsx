@@ -69,8 +69,8 @@ export function EmailSendForm({ onSuccess, defaultType, defaultTo }: EmailSendFo
 
       const result = await response.json();
 
-      if (result.success) {
-        toast.success('邮件发送成功');
+      if (result.code === 0 && result.data?.success) {
+        toast.success(result.data.message || '邮件发送成功');
         // 重置表单
         setFormData({
           type: EmailType.CUSTOM,
@@ -101,9 +101,9 @@ export function EmailSendForm({ onSuccess, defaultType, defaultTo }: EmailSendFo
 
       const result = await response.json();
 
-      if (result.success) {
-        toast.success('邮件服务测试完成');
-        console.log('测试结果:', result.result);
+      if (result.code === 0 && result.data?.success) {
+        toast.success(result.data.message || '邮件服务测试完成');
+        console.log('测试结果:', result.data.result);
       } else {
         toast.error(result.message || '邮件服务测试失败');
       }

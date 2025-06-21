@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { handleOrderSession } from "@/services/order";
 import { respOk } from "@/lib/resp";
+import { log } from "@/lib/logger";
 
 export async function POST(req: Request) {
   try {
@@ -25,7 +26,11 @@ export async function POST(req: Request) {
       stripeWebhookSecret
     );
 
-    console.log("stripe notify event: ", event);
+    log.info("stripe notify event received", {
+      eventType: event.type,
+      eventId: event.id,
+      function: 'stripe-notify'
+    });
 
     switch (event.type) {
       case "checkout.session.completed": {
@@ -36,12 +41,16 @@ export async function POST(req: Request) {
       }
 
       default:
-        console.log("not handle event: ", event.type);
+        log.info("unhandled stripe event", {
+          eventType: event.type,
+          eventId: event.id,
+          function: 'stripe-notify'
+        });
     }
 
     return respOk();
   } catch (e: any) {
-    console.log("stripe notify failed: ", e);
+    log.error("stripe notify failed", e as Error, { function: 'stripe-notify' });
     return Response.json(
       { error: `handle stripe notify failed: ${e.message}` },
       { status: 500 }

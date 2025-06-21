@@ -10,6 +10,7 @@ import Stripe from "stripe";
 import { updateAffiliateForOrder } from "./affiliate";
 import { emailService } from "./email";
 import { findUserByUuid } from "@/models/user";
+import { log } from "@/lib/logger";
 
 export async function handleOrderSession(session: Stripe.Checkout.Session) {
   try {
@@ -58,26 +59,27 @@ export async function handleOrderSession(session: Stripe.Checkout.Session) {
         })
           .then((success) => {
             if (success) {
-              console.log(`订单确认邮件发送成功: ${emailTo} - ${order_no}`);
+              log.info("订单确认邮件发送成功", { emailTo, order_no, function: 'handleOrderSession' });
             } else {
-              console.log(`订单确认邮件发送失败: ${emailTo} - ${order_no}`);
+              log.warn("订单确认邮件发送失败", { emailTo, order_no, function: 'handleOrderSession' });
             }
           })
           .catch((error) => {
-            console.error(`订单确认邮件发送异常: ${emailTo} - ${order_no}`, error);
+            log.error("订单确认邮件发送异常", error, { emailTo, order_no, function: 'handleOrderSession' });
           });
       }
     }
 
-    console.log(
-      "handle order session successed: ",
+    log.info("订单处理成功", {
       order_no,
       paid_at,
       paid_email,
-      paid_detail
-    );
+      user_uuid: order.user_uuid,
+      credits: order.credits,
+      function: 'handleOrderSession'
+    });
   } catch (e) {
-    console.log("handle order session failed: ", e);
+    log.error("handle order session failed", e as Error, { function: 'handleOrderSession' });
     throw e;
   }
 }
