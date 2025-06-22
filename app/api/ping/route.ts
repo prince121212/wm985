@@ -18,8 +18,8 @@ interface PongResponse {
   pong: string;
 }
 
-// 轻量级保活端点 - 用于外部监控服务
-export async function GET(request: Request) {
+// 共享的ping逻辑
+function handlePingRequest(request: Request) {
   // 获取请求信息用于区分来源
   const userAgent = request.headers.get('user-agent') || 'Unknown';
   const ip = request.headers.get('x-forwarded-for') ||
@@ -40,11 +40,33 @@ export async function GET(request: Request) {
   // 记录详细的请求信息
   console.log(`---保活成功Ping-Success | 来源: ${source} | IP: ${ip} | UA: ${userAgent}`);
 
-  return Response.json({
+  return {
     status: "alive",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     version: "1.6.0" // 从package.json获取
+  };
+}
+
+// 轻量级保活端点 - 用于外部监控服务 (GET)
+export async function GET(request: Request) {
+  const responseData = handlePingRequest(request);
+  return Response.json(responseData);
+}
+
+// 轻量级保活端点 - 用于外部监控服务 (HEAD)
+export async function HEAD(request: Request) {
+  const responseData = handlePingRequest(request);
+
+  // HEAD请求只返回响应头，不返回响应体
+  return new Response(null, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Status': responseData.status,
+      'X-Timestamp': responseData.timestamp,
+      'X-Version': responseData.version,
+    },
   });
 }
 
