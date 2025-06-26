@@ -69,25 +69,37 @@ export async function POST(req: Request) {
       fileType: file.type,
     });
 
-    // 上传到R2存储（不再使用回退机制）
+    // 上传到R2存储（启用图片优化）
     const storage = newStorage();
     const uploadResult = await storage.uploadFile({
       body: buffer,
       key,
       contentType: file.type,
       disposition: "inline",
+      optimize: true,
+      quality: 85,
+      maxWidth: 512,
+      maxHeight: 512,
+      format: 'webp',
     });
 
     log.info("头像上传成功", {
       user_uuid,
-      filename: uploadResult.filename,
-      url: uploadResult.url,
+      filename: uploadResult.Key.split("/").pop(),
+      url: uploadResult.publicUrl,
+      originalSize: uploadResult.originalSize,
+      optimizedSize: uploadResult.optimizedSize,
     });
 
     return respData({
-      url: uploadResult.url,
-      filename: uploadResult.filename,
-      message: "头像上传成功"
+      url: uploadResult.publicUrl,
+      filename: uploadResult.Key.split("/").pop(),
+      message: "头像上传成功",
+      optimization: {
+        originalSize: uploadResult.originalSize,
+        optimizedSize: uploadResult.optimizedSize,
+        compressionRatio: uploadResult.compressionRatio,
+      },
     });
 
   } catch (error) {

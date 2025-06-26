@@ -1,5 +1,8 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import { Upload } from "@aws-sdk/lib-storage";
+import { log } from "@/lib/logger";
+import sharp from "sharp";
+import { createHash } from "crypto";
 
 // 原本仅支持AWS S3，现在支持其他存储服务 先尝试接入腾讯云COS
 interface StorageConfig {
@@ -9,8 +12,141 @@ interface StorageConfig {
   secretKey: string;
 }
 
+interface UploadOptions {
+  body: Buffer;
+  key: string;
+  contentType?: string;
+  bucket?: string;
+  onProgress?: (progress: number) => void;
+  disposition?: "inline" | "attachment";
+  // 新增优化选项
+  optimize?: boolean;
+  quality?: number;
+  maxWidth?: number;
+  maxHeight?: number;
+  format?: 'webp' | 'avif' | 'jpeg' | 'png';
+  enableCDN?: boolean;
+}
+
+interface UploadResult {
+  Key: string;
+  Location: string;
+  publicUrl: string;
+  cdnUrl?: string;
+  originalSize: number;
+  optimizedSize?: number;
+  compressionRatio?: number;
+}
+
 export function newStorage(config?: StorageConfig) {
   return new Storage(config);
+}
+
+// 图片优化工具函数
+export class ImageOptimizer {
+  static async optimizeImage(
+    buffer: Buffer,
+    options: {
+      quality?: number;
+      maxWidth?: number;
+      maxHeight?: number;
+      format?: 'webp' | 'avif' | 'jpeg' | 'png';
+    } = {}
+  ): Promise<{ buffer: Buffer; format: string; originalSize: number; optimizedSize: number }> {
+    const { quality = 80, maxWidth = 1920, maxHeight = 1080, format = 'webp' } = options;
+    const originalSize = buffer.length;
+
+    try {
+      let sharpInstance = sharp(buffer);
+
+      // 获取图片信息
+      const metadata = await sharpInstance.metadata();
+
+      // 调整尺寸（如果需要）
+      if (metadata.width && metadata.height) {
+        if (metadata.width > maxWidth || metadata.height > maxHeight) {
+          sharpInstance = sharpInstance.resize(maxWidth, maxHeight, {
+            fit: 'inside',
+            withoutEnlargement: true
+          });
+        }
+      }
+
+      // 根据格式进行优化
+      let optimizedBuffer: Buffer;
+      let outputFormat = format;
+
+      switch (format) {
+        case 'webp':
+          optimizedBuffer = await sharpInstance
+            .webp({ quality, effort: 6 })
+            .toBuffer();
+          break;
+        case 'avif':
+          optimizedBuffer = await sharpInstance
+            .avif({ quality, effort: 9 })
+            .toBuffer();
+          break;
+        case 'jpeg':
+          optimizedBuffer = await sharpInstance
+            .jpeg({ quality, progressive: true, mozjpeg: true })
+            .toBuffer();
+          break;
+        case 'png':
+          optimizedBuffer = await sharpInstance
+            .png({ quality, progressive: true, compressionLevel: 9 })
+            .toBuffer();
+          break;
+        default:
+          // 默认使用WebP
+          optimizedBuffer = await sharpInstance
+            .webp({ quality, effort: 6 })
+            .toBuffer();
+          outputFormat = 'webp';
+      }
+
+      const optimizedSize = optimizedBuffer.length;
+
+      log.info("图片优化完成", {
+        originalSize,
+        optimizedSize,
+        compressionRatio: ((originalSize - optimizedSize) / originalSize * 100).toFixed(2) + '%',
+        format: outputFormat,
+        quality
+      });
+
+      return {
+        buffer: optimizedBuffer,
+        format: outputFormat,
+        originalSize,
+        optimizedSize
+      };
+
+    } catch (error) {
+      log.warn("图片优化失败，使用原始图片", { error: error as Error, originalSize });
+      return {
+        buffer,
+        format: 'original',
+        originalSize,
+        optimizedSize: originalSize
+      };
+    }
+  }
+
+  static isImageFile(contentType: string): boolean {
+    return contentType.startsWith('image/');
+  }
+
+  static getOptimalFormat(contentType: string): 'webp' | 'avif' | 'jpeg' | 'png' {
+    // 根据原始格式选择最优的输出格式
+    if (contentType.includes('png')) {
+      return 'webp'; // PNG转WebP通常有更好的压缩率
+    }
+    if (contentType.includes('gif')) {
+      return 'webp'; // GIF转WebP支持动画且压缩更好
+    }
+    return 'webp'; // 默认使用WebP
+  }
 }
 
 export class Storage {
@@ -56,26 +192,25 @@ export class Storage {
     });
   }
 
-  async uploadFile({
-    body,
-    key,
-    contentType,
-    bucket,
-    onProgress,
-    disposition = "inline",
-  }: {
-    body: Buffer;
-    key: string;
-    contentType?: string;
-    bucket?: string;
-    onProgress?: (progress: number) => void;
-    disposition?: "inline" | "attachment";
-  }) {
-    if (!bucket) {
-      bucket = process.env.STORAGE_BUCKET || "";
-    }
+  async uploadFile(options: UploadOptions): Promise<UploadResult> {
+    const {
+      body,
+      key: originalKey,
+      contentType,
+      bucket,
+      onProgress,
+      disposition = "inline",
+      optimize = true,
+      quality = 80,
+      maxWidth = 1920,
+      maxHeight = 1080,
+      format,
+      enableCDN = true
+    } = options;
 
-    if (!bucket) {
+    let key = originalKey; // 使用let声明，允许重新赋值
+    const bucketName = bucket || process.env.STORAGE_BUCKET || "";
+    if (!bucketName) {
       throw new Error("Bucket is required. Please set STORAGE_BUCKET environment variable.");
     }
 
@@ -87,15 +222,71 @@ export class Storage {
       throw new Error("File body cannot be empty");
     }
 
+    const originalSize = body.length;
+    let uploadBuffer = body;
+    let finalContentType = contentType;
+    let optimizedSize = originalSize;
+    let compressionRatio = 0;
+
+    // 图片优化处理
+    if (optimize && contentType && ImageOptimizer.isImageFile(contentType)) {
+      try {
+        const optimizeFormat = format || ImageOptimizer.getOptimalFormat(contentType);
+        const optimizeResult = await ImageOptimizer.optimizeImage(body, {
+          quality,
+          maxWidth,
+          maxHeight,
+          format: optimizeFormat
+        });
+
+        uploadBuffer = optimizeResult.buffer;
+        optimizedSize = optimizeResult.optimizedSize;
+        compressionRatio = ((originalSize - optimizedSize) / originalSize) * 100;
+
+        // 更新文件扩展名和Content-Type
+        if (optimizeResult.format !== 'original') {
+          const keyParts = key.split('.');
+          if (keyParts.length > 1) {
+            keyParts[keyParts.length - 1] = optimizeResult.format;
+            key = keyParts.join('.');
+          }
+          finalContentType = `image/${optimizeResult.format}`;
+        }
+
+        log.info("文件优化成功", {
+          key,
+          originalSize,
+          optimizedSize,
+          compressionRatio: compressionRatio.toFixed(2) + '%',
+          format: optimizeResult.format
+        });
+
+      } catch (error) {
+        log.warn("文件优化失败，使用原始文件", { error: error as Error, key });
+      }
+    }
+
     try {
+      // 生成文件哈希用于缓存控制
+      const fileHash = createHash('md5').update(uploadBuffer).digest('hex');
+
       const upload = new Upload({
         client: this.s3,
         params: {
-          Bucket: bucket,
+          Bucket: bucketName,
           Key: key,
-          Body: body,
+          Body: uploadBuffer,
           ContentDisposition: disposition,
-          ...(contentType && { ContentType: contentType }),
+          ContentType: finalContentType,
+          // 添加缓存控制头
+          CacheControl: 'public, max-age=31536000', // 1年缓存
+          // 添加ETag用于缓存验证
+          Metadata: {
+            'original-size': originalSize.toString(),
+            'optimized-size': optimizedSize.toString(),
+            'file-hash': fileHash,
+            'upload-time': new Date().toISOString(),
+          },
         },
       });
 
@@ -114,13 +305,19 @@ export class Storage {
       }
 
       // 构建公共访问URL
-      let publicUrl = res.Location;
+      let publicUrl = res.Location || '';
+      let cdnUrl: string | undefined;
 
       // 优先使用STORAGE_PUBLIC_URL（Cloudflare R2公共域名）
       if (process.env.STORAGE_PUBLIC_URL && res.Key) {
         // 确保公共URL格式正确
         const baseUrl = process.env.STORAGE_PUBLIC_URL.replace(/\/$/, '');
         publicUrl = `${baseUrl}/${res.Key}`;
+
+        // 如果启用CDN，生成CDN URL
+        if (enableCDN) {
+          cdnUrl = publicUrl; // Cloudflare R2本身就是CDN
+        }
       }
       // 备用：使用STORAGE_DOMAIN（腾讯云COS等）
       else if (process.env.STORAGE_DOMAIN && res.Key) {
@@ -133,18 +330,33 @@ export class Storage {
         throw new Error("Failed to generate public URL for uploaded file");
       }
 
-      return {
-        location: res.Location,
-        bucket: res.Bucket,
-        key: res.Key,
-        filename: res.Key.split("/").pop(),
-        url: publicUrl,
+      const result: UploadResult = {
+        Key: res.Key,
+        Location: res.Location || publicUrl,
+        publicUrl,
+        originalSize,
+        optimizedSize,
+        compressionRatio: compressionRatio > 0 ? compressionRatio : undefined,
+        cdnUrl,
       };
+
+      log.info("文件上传成功", {
+        key: res.Key,
+        publicUrl,
+        cdnUrl,
+        originalSize,
+        optimizedSize,
+        compressionRatio: compressionRatio > 0 ? compressionRatio.toFixed(2) + '%' : undefined,
+      });
+
+      return result;
     } catch (error) {
+      log.error("文件上传失败", error as Error, { key, originalSize });
+
       // 提供更详细的错误信息
       if (error instanceof Error) {
         if (error.message.includes('NoSuchBucket')) {
-          throw new Error(`Storage bucket '${bucket}' does not exist`);
+          throw new Error(`Storage bucket '${bucketName}' does not exist`);
         }
         if (error.message.includes('AccessDenied')) {
           throw new Error('Storage access denied. Please check credentials and permissions');
@@ -153,7 +365,7 @@ export class Storage {
           throw new Error('Network error occurred while uploading to storage');
         }
       }
-      throw error;
+      throw new Error(`Upload failed: ${error}`);
     }
   }
 

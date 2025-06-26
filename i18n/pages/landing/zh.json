@@ -3,24 +3,29 @@
   "theme": "light",
   "header": {
     "brand": {
-      "title": "ShipAny",
+      "title": "文明资源站",
       "logo": {
         "src": "/logo.png",
-        "alt": "ShipAny"
+        "alt": "文明资源站"
       },
       "url": "/zh"
     },
     "nav": {
       "items": [
         {
-          "title": "功能特点",
-          "url": "/#feature",
-          "icon": "HiOutlineSparkles"
+          "title": "资源库",
+          "url": "/resources",
+          "icon": "HiOutlineCollection"
         },
         {
-          "title": "定价",
-          "url": "/#pricing",
-          "icon": "MdPayment"
+          "title": "分类",
+          "url": "/categories",
+          "icon": "HiOutlineFolder"
+        },
+        {
+          "title": "标签",
+          "url": "/tags",
+          "icon": "HiOutlineTag"
         },
         {
           "title": "更多资讯",
@@ -44,35 +49,16 @@
     "show_locale": true
   },
   "hero": {
-    "title": "几小时内快速构建 AI 创业项目，而不是几天",
-    "highlight_text": "快速构建",
-    "description": "ShipAny 是一个用于构建 AI SaaS 创业项目的 NextJS 模板。<br/>通过丰富的模板和组件快速启动。",
-    "announcement": {
-      "label": "2025",
-      "title": "🎉 新年快乐",
-      "url": "/#pricing"
-    },
-    "tip": "🎁 2025年前五折优惠",
-    "buttons": [
-      {
-        "title": "立即开始",
-        "icon": "RiFlashlightFill",
-        "url": "/#pricing",
-        "target": "_self",
-        "variant": "default"
-      },
-      {
-        "title": "加入 Discord",
-        "icon": "RiDiscordFill",
-        "url": "https://discord.gg/HQNnrzjZQS",
-        "target": "_blank",
-        "variant": "outline"
-      }
-    ],
-    "show_happy_users": true,
+    "title": "发现、分享、学习优质文化资源",
+    "highlight_text": "优质文化资源",
+    "description": "汇聚全球优质文化资源，为学习者和创作者提供丰富的知识宝库",
+
+    "buttons": [],
+    "show_happy_users": false,
     "show_badge": false
   },
   "branding": {
+    "disabled": true,
     "title": "ShipAny 建立在巨人的肩膀上",
     "items": [
       {
@@ -328,6 +314,7 @@
   },
   "stats": {
     "name": "stats",
+    "disabled": true,
     "label": "统计",
     "title": "用户喜爱 ShipAny",
     "description": "因为它易于使用且快速发布。",
@@ -459,6 +446,7 @@
   },
   "testimonial": {
     "name": "testimonial",
+    "disabled": true,
     "label": "用户评价",
     "title": "用户如何评价 ShipAny",
     "description": "听听使用 ShipAny 启动 AI 创业项目的开发者和创始人怎么说。",
@@ -548,6 +536,7 @@
   },
   "cta": {
     "name": "cta",
+    "disabled": true,
     "title": "启动您的第一个 AI SaaS 创业项目",
     "description": "从这里开始，使用 ShipAny 启动。",
     "buttons": [
@@ -568,33 +557,28 @@
   "footer": {
     "name": "footer",
     "brand": {
-      "title": "ShipAny",
-      "description": "ShipAny 是一个用于构建 AI SaaS 创业项目的 NextJS 模板。通过丰富的模板和组件快速启动。",
+      "title": "文明知识库",
+      "description": "文明知识库是一个专注于文明资源分享的平台。通过丰富的资源和分类快速获取知识。",
       "logo": {
         "src": "/logo.png",
-        "alt": "ShipAny"
+        "alt": "文明知识库"
       },
       "url": "/"
     },
-    "copyright": "© 2025 • ShipAny 保留所有权利。",
+    "copyright": "© 2025 • 文明知识库 保留所有权利。",
     "nav": {
       "items": [
         {
           "title": "关于",
           "children": [
             {
-              "title": "功能特点",
-              "url": "/#feature",
+              "title": "热门资源",
+              "url": "/resources?sort=popular",
               "target": "_self"
             },
             {
-              "title": "案例展示",
-              "url": "/#showcase",
-              "target": "_self"
-            },
-            {
-              "title": "定价",
-              "url": "/#pricing",
+              "title": "浏览分类",
+              "url": "/categories",
               "target": "_self"
             }
           ]
@@ -603,18 +587,8 @@
           "title": "资源",
           "children": [
             {
-              "title": "文档",
-              "url": "https://docs.shipany.ai",
-              "target": "_blank"
-            },
-            {
-              "title": "组件",
-              "url": "https://shipany.ai/components",
-              "target": "_blank"
-            },
-            {
-              "title": "模板",
-              "url": "https://shipany.ai/templates",
+              "title": "文明知识库",
+              "url": "https://wm985.top",
               "target": "_blank"
             }
           ]
@@ -623,18 +597,8 @@
           "title": "友情链接",
           "children": [
             {
-              "title": "ThinkAny",
-              "url": "https://thinkany.ai",
-              "target": "_blank"
-            },
-            {
-              "title": "HeyBeauty",
-              "url": "https://heybeauty.ai",
-              "target": "_blank"
-            },
-            {
-              "title": "Pagen",
-              "url": "https://pagen.so",
+              "title": "文明知识库",
+              "url": "https://wm985.top",
               "target": "_blank"
             }
           ]
@@ -644,27 +608,16 @@
     "social": {
       "items": [
         {
-          "title": "X",
-          "icon": "RiTwitterXFill",
-          "url": "https://x.com/shipanyai",
+          "title": "QQ",
+          "icon": "RiQqFill",
+          "url": "https://qm.qq.com/q/lfdZh1vQFG",
           "target": "_blank"
         },
-        {
-          "title": "Github",
-          "icon": "RiGithubFill",
-          "url": "https://github.com/shipanyai",
-          "target": "_blank"
-        },
-        {
-          "title": "Discord",
-          "icon": "RiDiscordFill",
-          "url": "https://discord.gg/HQNnrzjZQS",
-          "target": "_blank"
-        },
+
         {
           "title": "邮箱",
           "icon": "RiMailLine",
-          "url": "mailto:support@shipany.ai",
+          "url": "mailto:noreply@wm985.top",
           "target": "_self"
         }
       ]

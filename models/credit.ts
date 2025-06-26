@@ -57,7 +57,7 @@ export async function getUserValidCredits(
     .from("credits")
     .select("*")
     .eq("user_uuid", user_uuid)
-    .gte("expired_at", now)
+    .or(`expired_at.gte.${now},expired_at.is.null`)
     .order("expired_at", { ascending: true });
 
   if (error) {
@@ -76,6 +76,10 @@ export async function getCreditsByUserUuid(
   if (limit <= 0) limit = 50;
 
   const supabase = getSupabaseClient();
+
+  // 添加调试日志
+  console.log("getCreditsByUserUuid 查询参数:", { user_uuid, page, limit });
+
   const { data, error } = await supabase
     .from("credits")
     .select("*")
@@ -83,7 +87,11 @@ export async function getCreditsByUserUuid(
     .order("created_at", { ascending: false })
     .range((page - 1) * limit, page * limit - 1);
 
+  // 添加调试日志
+  console.log("getCreditsByUserUuid 查询结果:", { data, error, count: data?.length });
+
   if (error) {
+    console.error("getCreditsByUserUuid 查询错误:", error);
     return undefined;
   }
 

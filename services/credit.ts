@@ -18,6 +18,7 @@ export enum CreditsTransType {
   OrderPay = "order_pay", // user pay for credits
   SystemAdd = "system_add", // system add credits
   Ping = "ping", // cost for ping api
+  ResourceAccess = "resource_access", // cost for accessing paid resources
 }
 
 export enum CreditsAmount {
@@ -78,14 +79,16 @@ export async function decreaseCredits({
   user_uuid,
   trans_type,
   credits,
+  order_no: custom_order_no,
 }: {
   user_uuid: string;
   trans_type: CreditsTransType;
   credits: number;
+  order_no?: string;
 }) {
   try {
-    let order_no = "";
-    let expired_at = "";
+    let order_no = custom_order_no || "";
+    let expired_at: string | null = null;
     let left_credits = 0;
 
     const userCredits = await getUserValidCredits(user_uuid);
@@ -96,8 +99,11 @@ export async function decreaseCredits({
 
         // credit enough for cost
         if (left_credits >= credits) {
-          order_no = credit.order_no;
-          expired_at = credit.expired_at || "";
+          // 如果没有自定义order_no，使用被扣除积分的order_no
+          if (!custom_order_no) {
+            order_no = credit.order_no;
+          }
+          expired_at = credit.expired_at || null;
           break;
         }
 
@@ -142,7 +148,7 @@ export async function increaseCredits({
       trans_type: trans_type,
       credits: credits,
       order_no: order_no || "",
-      expired_at: expired_at || "",
+      expired_at: expired_at || null,
     };
     await insertCredit(new_credit);
   } catch (e) {

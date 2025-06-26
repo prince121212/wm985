@@ -4,6 +4,9 @@ export function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(false);
 
   useEffect(() => {
+    // 检查是否在浏览器环境中
+    if (typeof window === 'undefined') return;
+
     const mediaQuery = window.matchMedia(query);
 
     // Initial check

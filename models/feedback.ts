@@ -13,14 +13,14 @@ export async function insertFeedback(feedback: Feedback) {
   return data;
 }
 
-export async function findFeedbackByUuid(
-  uuid: string
+export async function findFeedbackById(
+  id: number
 ): Promise<Feedback | undefined> {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("feedbacks")
     .select("*")
-    .eq("uuid", uuid)
+    .eq("id", id)
     .single();
 
   if (error) {

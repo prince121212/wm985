@@ -3,24 +3,29 @@
   "theme": "light",
   "header": {
     "brand": {
-      "title": "ShipAny",
+      "title": "Civilization Resources",
       "logo": {
         "src": "/logo.png",
-        "alt": "ShipAny"
+        "alt": "Civilization Resources"
       },
       "url": "/"
     },
     "nav": {
       "items": [
         {
-          "title": "Features",
-          "url": "/#feature",
-          "icon": "HiOutlineSparkles"
+          "title": "Resources",
+          "url": "/resources",
+          "icon": "HiOutlineCollection"
         },
         {
-          "title": "Pricing",
-          "url": "/#pricing",
-          "icon": "MdPayment"
+          "title": "Categories",
+          "url": "/categories",
+          "icon": "HiOutlineFolder"
+        },
+        {
+          "title": "Tags",
+          "url": "/tags",
+          "icon": "HiOutlineTag"
         },
         {
           "title": "More Info",
@@ -44,35 +49,16 @@
     "show_locale": true
   },
   "hero": {
-    "title": "Ship Any AI Startups in hours, not days",
-    "highlight_text": "Ship Any",
-    "description": "ShipAny is a NextJS boilerplate for building AI SaaS startups.<br/>Ship Fast with a variety of templates and components.",
-    "announcement": {
-      "label": "2025",
-      "title": "🎉 Happy New Year",
-      "url": "/#pricing"
-    },
-    "tip": "🎁 50% off before 2025",
-    "buttons": [
-      {
-        "title": "Get Started",
-        "icon": "RiFlashlightFill",
-        "url": "/#pricing",
-        "target": "_self",
-        "variant": "default"
-      },
-      {
-        "title": "Join Discord",
-        "icon": "RiDiscordFill",
-        "url": "https://discord.gg/HQNnrzjZQS",
-        "target": "_blank",
-        "variant": "outline"
-      }
-    ],
-    "show_happy_users": true,
+    "title": "Civilization Resources Sharing Platform, Gathering Human Wisdom",
+    "highlight_text": "Civilization Resources",
+    "description": "Civilization Resources is an open resource sharing platform.<br/>Discover, share and download various civilization-related precious resources.",
+
+    "buttons": [],
+    "show_happy_users": false,
     "show_badge": false
   },
   "branding": {
+    "disabled": true,
     "title": "ShipAny is built on the shoulders of giants",
     "items": [
       {
@@ -328,6 +314,7 @@
   },
   "stats": {
     "name": "stats",
+    "disabled": true,
     "label": "Stats",
     "title": "People Love ShipAny",
     "description": "for it's easy to use and fast to ship.",
@@ -459,6 +446,7 @@
   },
   "testimonial": {
     "name": "testimonial",
+    "disabled": true,
     "label": "Testimonial",
     "title": "What Users Say About ShipAny",
     "description": "Hear from developers and founders who launched their AI startups with ShipAny.",
@@ -548,6 +536,7 @@
   },
   "cta": {
     "name": "cta",
+    "disabled": true,
     "title": "Ship your first AI SaaS Startup",
     "description": "Start from here, ship with ShipAny.",
     "buttons": [
@@ -568,33 +557,28 @@
   "footer": {
     "name": "footer",
     "brand": {
-      "title": "ShipAny",
-      "description": "ShipAny is a NextJS boilerplate for building AI SaaS startups. Ship Fast with a variety of templates and components.",
+      "title": "文明知识库",
+      "description": "文明知识库是一个专注于文明资源分享的平台。通过丰富的资源和分类快速获取知识。",
       "logo": {
         "src": "/logo.png",
-        "alt": "ShipAny"
+        "alt": "文明知识库"
       },
       "url": "/"
     },
-    "copyright": "© 2025 • ShipAny All rights reserved.",
+    "copyright": "© 2025 • 文明知识库 保留所有权利。",
     "nav": {
       "items": [
         {
           "title": "About",
           "children": [
             {
-              "title": "Features",
-              "url": "/#feature",
+              "title": "热门资源",
+              "url": "/resources?sort=popular",
               "target": "_self"
             },
             {
-              "title": "Showcases",
-              "url": "/#showcase",
-              "target": "_self"
-            },
-            {
-              "title": "Pricing",
-              "url": "/#pricing",
+              "title": "浏览分类",
+              "url": "/categories",
               "target": "_self"
             }
           ]
@@ -603,18 +587,8 @@
           "title": "Resources",
           "children": [
             {
-              "title": "Documents",
-              "url": "https://docs.shipany.ai",
-              "target": "_blank"
-            },
-            {
-              "title": "Components",
-              "url": "https://shipany.ai/components",
-              "target": "_blank"
-            },
-            {
-              "title": "Templates",
-              "url": "https://shipany.ai/templates",
+              "title": "文明知识库",
+              "url": "https://wm985.top",
               "target": "_blank"
             }
           ]
@@ -623,18 +597,8 @@
           "title": "Friends",
           "children": [
             {
-              "title": "ThinkAny",
-              "url": "https://thinkany.ai",
-              "target": "_blank"
-            },
-            {
-              "title": "HeyBeauty",
-              "url": "https://heybeauty.ai",
-              "target": "_blank"
-            },
-            {
-              "title": "Pagen",
-              "url": "https://pagen.so",
+              "title": "文明知识库",
+              "url": "https://wm985.top",
               "target": "_blank"
             }
           ]
@@ -644,27 +608,16 @@
     "social": {
       "items": [
         {
-          "title": "X",
-          "icon": "RiTwitterXFill",
-          "url": "https://x.com/shipanyai",
+          "title": "QQ",
+          "icon": "RiQqFill",
+          "url": "https://qm.qq.com/q/lfdZh1vQFG",
           "target": "_blank"
         },
-        {
-          "title": "Github",
-          "icon": "RiGithubFill",
-          "url": "https://github.com/shipanyai",
-          "target": "_blank"
-        },
-        {
-          "title": "Discord",
-          "icon": "RiDiscordFill",
-          "url": "https://discord.gg/HQNnrzjZQS",
-          "target": "_blank"
-        },
+
         {
           "title": "Email",
           "icon": "RiMailLine",
-          "url": "mailto:support@shipany.ai",
+          "url": "mailto:noreply@wm985.top",
           "target": "_self"
         }
       ]

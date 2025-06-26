@@ -23,6 +23,18 @@ export default async function ({ children }: { children: ReactNode }) {
           is_active: false,
         },
         {
+          title: "我的上传",
+          url: "/my-uploads",
+          icon: "RiUploadLine",
+          is_active: false,
+        },
+        {
+          title: "我的收藏",
+          url: "/my-favorites",
+          icon: "RiHeartLine",
+          is_active: false,
+        },
+        {
           title: t("user.my_orders"),
           url: "/my-orders",
           icon: "RiOrderPlayLine",

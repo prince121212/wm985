@@ -5,5 +5,5 @@ export interface Credit {
   trans_type: string;
   credits: number;
   order_no: string;
-  expired_at?: string;
+  expired_at?: string | null;
 }

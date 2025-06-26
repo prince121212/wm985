@@ -5,3 +5,6 @@ export interface Table extends Slot {
   columns?: TableColumn[];
   empty_message?: string;
 }
+
+// 重新导出 TableColumn 类型
+export type { TableColumn };

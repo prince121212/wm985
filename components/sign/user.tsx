@@ -37,7 +37,7 @@ export default function SignUser({ user }: { user: User }) {
         <DropdownMenuSeparator />
 
         <DropdownMenuItem className="flex justify-center cursor-pointer">
-          <Link href="/profile">{t("user.user_center")}</Link>
+          <Link href="/user-center">{t("user.user_center")}</Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
 

@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "title": "几小时内构建任何 AI SaaS 创业项目 | ShipAny",
-    "description": "ShipAny 是一个用于构建 AI SaaS 创业项目的 NextJS 模板，提供各种模板和组件，帮助您快速启动。",
-    "keywords": "ShipAny, AI SaaS 模板, NextJS 模板"
+    "title": "文明资源共享平台 | 文明资源站",
+    "description": "文明资源站是一个开放的资源共享平台，提供各种文明相关的资源下载和分享服务。",
+    "keywords": "文明资源站, 资源共享, 文明资源, 资源下载"
   },
   "user": {
     "sign_in": "登录",
@@ -36,7 +36,7 @@
   },
   "my_orders": {
     "title": "我的订单",
-    "description": "在 ShipAny 上购买的订单。",
+    "description": "在文明资源站上的订单记录。",
     "no_orders": "未找到订单",
     "tip": "",
     "activate_order": "激活订单",
@@ -84,7 +84,7 @@
   },
   "blog": {
     "title": "博客",
-    "description": "关于 ShipAny 的新闻、资源和更新",
+    "description": "关于文明资源站的新闻、资源和更新",
     "read_more_text": "阅读更多"
   },
   "my_invites": {
@@ -95,7 +95,7 @@
     "edit_invite_link": "编辑邀请链接",
     "copy_invite_link": "复制邀请链接",
     "invite_code": "邀请码",
-    "invite_tip": "每邀请 1 位朋友购买 ShipAny，奖励 $50。",
+    "invite_tip": "每邀请 1 位朋友使用文明资源站，获得积分奖励。",
     "invite_balance": "邀请奖励余额",
     "total_invite_count": "总邀请人数",
     "total_paid_count": "已充值人数",
@@ -103,7 +103,7 @@
     "update_invite_code": "设置邀请码",
     "update_invite_code_tip": "输入你的自定义邀请码",
     "update_invite_button": "保存",
-    "no_orders": "你需要先购买过 ShipAny 才能邀请朋友",
+    "no_orders": "你需要先在文明资源站有活动记录才能邀请朋友",
     "no_affiliates": "你暂无邀请朋友的权限，请联系我们申请开通。",
     "table": {
       "invite_time": "邀请时间",
@@ -139,11 +139,129 @@
     "submit": "提交",
     "loading": "提交中...",
     "contact_tip": "其他联系方式",
-    "rating_tip": "您对 ShipAny 的看法如何？",
+    "rating_tip": "您对文明资源站的看法如何？",
     "placeholder": "在这里留下您的反馈...",
     "success": "感谢您的反馈！",
     "error_empty": "请输入反馈内容",
     "error_too_long": "反馈内容过长，最多1000字符",
     "error_network": "网络错误，请稍后再试"
+  },
+  "resources": {
+    "title": "资源库",
+    "description": "发现和访问各种优质资源",
+    "search_placeholder": "搜索资源...",
+    "filter": "筛选",
+    "sort": "排序",
+    "view_mode": "视图模式",
+    "grid_view": "网格视图",
+    "list_view": "列表视图",
+    "no_results": "未找到匹配的资源",
+    "load_more": "加载更多",
+    "total_results": "共找到 {count} 个资源",
+    "download": "访问",
+    "free_download": "免费访问",
+    "favorite": "收藏",
+    "favorited": "已收藏",
+    "share": "分享",
+    "view_details": "查看详情",
+
+    "category": "分类",
+    "tags": "标签",
+    "author": "作者",
+    "upload_time": "上传时间",
+    "rating": "评分",
+    "downloads": "访问次数",
+    "views": "浏览次数"
+  },
+  "upload": {
+    "title": "上传资源",
+    "description": "分享您的优质资源，帮助更多人获得价值",
+    "guidelines": "上传须知",
+    "resource_title": "资源标题",
+    "resource_description": "资源描述",
+    "detailed_content": "详细内容",
+    "select_category": "选择分类",
+    "add_tags": "添加标签",
+    "file_upload": "文件上传",
+    "click_to_upload": "点击选择文件",
+    "drag_to_upload": "或拖拽文件到此处",
+    "supported_formats": "支持的格式",
+    "max_file_size": "最大文件大小",
+    "free_resource": "免费资源",
+    "set_price": "设置价格",
+    "price": "价格",
+    "submit": "提交资源",
+    "uploading": "上传中...",
+    "upload_progress": "上传进度",
+    "upload_success": "资源上传成功！审核通过后将公开显示",
+    "upload_failed": "上传失败，请稍后再试"
+  },
+  "categories": {
+    "title": "资源分类",
+    "description": "浏览不同类别的资源，快速找到您需要的内容",
+    "browse_resources": "浏览资源",
+    "subcategories": "子分类",
+    "resource_count": "{count} 个资源"
+  },
+  "tags": {
+    "title": "资源标签",
+    "description": "通过标签快速找到相关资源，标签大小反映使用频率",
+    "popular_tags": "热门标签",
+    "search_tags": "搜索标签...",
+    "usage_count": "使用次数",
+    "total_tags": "共 {count} 个标签",
+    "total_usage": "总使用次数: {count}"
+  },
+  "my_uploads": {
+    "title": "我的上传",
+    "description": "管理您上传的资源，查看审核状态和下载统计",
+    "search_uploads": "搜索我的上传...",
+    "filter_status": "筛选状态",
+    "all_status": "全部状态",
+    "pending": "待审核",
+    "approved": "已通过",
+    "rejected": "已拒绝",
+    "total_uploads": "总上传",
+    "total_downloads": "总下载",
+    "edit": "编辑",
+    "delete": "删除",
+    "view": "查看",
+    "no_uploads": "您还没有上传任何资源",
+    "upload_first": "上传第一个资源"
+  },
+  "my_favorites": {
+    "title": "我的收藏",
+    "description": "管理您收藏的资源，快速访问感兴趣的内容",
+    "search_favorites": "搜索我的收藏...",
+    "sort_by": "排序方式",
+    "latest": "最新收藏",
+    "oldest": "最早收藏",
+    "popular": "最多下载",
+    "highest_rated": "最高评分",
+    "remove_favorite": "取消收藏",
+    "favorited_at": "收藏于",
+    "no_favorites": "您还没有收藏任何资源",
+    "discover_resources": "去发现资源"
+  },
+  "rating": {
+    "rate_resource": "为这个资源评分",
+    "your_rating": "您的评分",
+    "average_rating": "平均评分",
+    "rating_count": "{count} 个评价",
+    "rate_success": "评分成功",
+    "rate_failed": "评分失败"
+  },
+  "comments": {
+    "title": "评论",
+    "write_comment": "写下你的评论...",
+    "post_comment": "发布评论",
+    "posting": "发布中...",
+    "reply": "回复",
+    "like": "点赞",
+    "report": "举报",
+    "no_comments": "暂无评论，来发表第一条评论吧！",
+    "login_to_comment": "请先登录后发表评论",
+    "comment_success": "评论发布成功",
+    "comment_failed": "评论发布失败"
   }
 }

@@ -30,6 +30,13 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
       }
     }
 
+    // 检查是否在浏览器环境中
+    if (typeof window === 'undefined') {
+      // 在服务端环境中使用默认主题
+      setTheme("light");
+      return;
+    }
+
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     setTheme(mediaQuery.matches ? "dark" : "light");
 
