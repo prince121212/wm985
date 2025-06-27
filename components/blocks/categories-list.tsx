@@ -111,13 +111,21 @@ function CategoryCard({ category, isExpanded, onToggle }: CategoryCardProps) {
 
 export default function CategoriesList() {
   const t = useTranslations();
+  const [mounted, setMounted] = useState(false);
   const [categories, setCategories] = useState<CategoryWithChildren[]>([]);
   const [loading, setLoading] = useState(true);
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
 
+  // 确保组件在客户端正确挂载
   useEffect(() => {
-    fetchCategories();
+    setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      fetchCategories();
+    }
+  }, [mounted]);
 
   const fetchCategories = async () => {
     try {
@@ -238,7 +246,8 @@ export default function CategoriesList() {
     });
   };
 
-  if (loading) {
+  // 在服务端渲染时返回加载状态
+  if (!mounted || loading) {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {Array.from({ length: 9 }).map((_, i) => (

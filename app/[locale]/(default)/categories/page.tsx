@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
-import CategoriesList from "@/components/blocks/categories-list";
+import CategoriesListWrapper from "@/components/blocks/categories-list-wrapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -20,7 +20,7 @@ export default async function CategoriesPage() {
 
         {/* 分类列表 */}
         <Suspense fallback={<CategoriesListSkeleton />}>
-          <CategoriesList />
+          <CategoriesListWrapper />
         </Suspense>
       </div>
     </div>

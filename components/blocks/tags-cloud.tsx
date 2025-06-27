@@ -95,12 +95,20 @@ function TagItem({ tag, maxUsage, colorIndex }: TagItemProps) {
 
 export default function TagsCloud() {
   const t = useTranslations();
+  const [mounted, setMounted] = useState(false);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // 确保组件在客户端正确挂载
   useEffect(() => {
-    fetchTags();
+    setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (mounted) {
+      fetchTags();
+    }
+  }, [mounted]);
 
   const fetchTags = async () => {
     try {
@@ -126,7 +134,8 @@ export default function TagsCloud() {
     }
   };
 
-  if (loading) {
+  // 在服务端渲染时返回加载状态
+  if (!mounted || loading) {
     return (
       <div className="flex flex-wrap gap-3 justify-center">
         {Array.from({ length: 20 }).map((_, i) => (

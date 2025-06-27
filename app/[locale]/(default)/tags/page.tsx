@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
-import TagsCloud from "@/components/blocks/tags-cloud";
+import TagsCloudWrapper from "@/components/blocks/tags-cloud-wrapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -20,7 +20,7 @@ export default async function TagsPage() {
 
         {/* 标签云 - 只保留标签云部分 */}
         <Suspense fallback={<TagsCloudSkeleton />}>
-          <TagsCloud />
+          <TagsCloudWrapper />
         </Suspense>
       </div>
     </div>
