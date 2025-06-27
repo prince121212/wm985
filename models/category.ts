@@ -21,27 +21,21 @@ export async function getAllCategories(includeChildren: boolean = false, include
 
     let categories = data || [];
 
-    // 如果需要包含资源数量，添加资源计数
+    // 如果需要包含资源数量，批量获取所有分类的资源计数，避免N+1查询
     if (includeCount) {
-      // 获取每个分类的资源数量
-      const categoriesWithCount = await Promise.all(
-        categories.map(async (cat) => {
-          try {
-            const resourceCount = await getCategoryResourceCount(cat.id);
-            return {
-              ...cat,
-              resource_count: resourceCount
-            };
-          } catch (countError) {
-            log.warn("获取分类资源数量失败，使用默认值0", countError as Error, { categoryId: cat.id });
-            return {
-              ...cat,
-              resource_count: 0
-            };
-          }
-        })
-      );
-      categories = categoriesWithCount;
+      try {
+        const resourceCounts = await getAllCategoriesResourceCount();
+        categories = categories.map(cat => ({
+          ...cat,
+          resource_count: resourceCounts[cat.id] || 0
+        }));
+      } catch (countError) {
+        log.warn("批量获取分类资源数量失败，使用默认值0", { error: countError });
+        categories = categories.map(cat => ({
+          ...cat,
+          resource_count: 0
+        }));
+      }
     }
 
     return categories;
@@ -236,6 +230,37 @@ export async function getCategoryResourceCount(categoryId: number): Promise<numb
     }
 
     return count || 0;
+  });
+}
+
+// 批量获取所有分类的资源数量，避免N+1查询
+export async function getAllCategoriesResourceCount(): Promise<{ [categoryId: number]: number }> {
+  return withRetry(async () => {
+    const supabase = getSupabaseClient();
+
+    // 直接查询资源表，按分类ID分组统计数量
+    const { data, error } = await supabase
+      .from('resources')
+      .select('category_id')
+      .eq('status', 'approved');
+
+    if (error) {
+      log.error("批量获取分类资源数量失败", error);
+      log.warn("批量获取分类资源数量失败，使用默认值0", { error });
+      return {};
+    }
+
+    // 在内存中统计每个分类的资源数量
+    const countMap: { [categoryId: number]: number } = {};
+    (data || []).forEach((resource) => {
+      const categoryId = resource.category_id;
+      if (categoryId) {
+        countMap[categoryId] = (countMap[categoryId] || 0) + 1;
+      }
+    });
+
+    log.info("批量获取分类资源数量成功", { categoriesCount: Object.keys(countMap).length });
+    return countMap;
   });
 }
 

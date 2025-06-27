@@ -61,7 +61,7 @@ export default function SystemManagement() {
     try {
       setIsLoading(true);
 
-      const response = await fetch('/api/admin/database-stats');
+      const response = await fetch('/api/admin/statistics');
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -70,7 +70,13 @@ export default function SystemManagement() {
       const result = await response.json();
 
       if (result.code === 0 && result.data) {
-        const newStats = result.data.stats;
+        // 适配统计API的数据结构
+        const statsData = result.data;
+        const newStats = {
+          resources: statsData.resources?.total || 0,
+          categories: statsData.categories?.total || 0,
+          tags: statsData.tags?.total || 0
+        };
         setStats(newStats);
         return newStats;
       } else {
@@ -112,7 +118,8 @@ export default function SystemManagement() {
 
     } catch (error) {
       console.error('发送验证码失败:', error);
-      toast.error(`发送验证码失败: ${error.message}`, { id: 'send-code' });
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      toast.error(`发送验证码失败: ${errorMessage}`, { id: 'send-code' });
     } finally {
       setIsSendingCode(false);
     }
@@ -150,7 +157,8 @@ export default function SystemManagement() {
 
     } catch (error) {
       console.error('重置数据库失败:', error);
-      toast.error(`重置数据库失败: ${error.message}`, { id: 'reset-db' });
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      toast.error(`重置数据库失败: ${errorMessage}`, { id: 'reset-db' });
     } finally {
       setIsLoading(false);
     }
@@ -213,7 +221,8 @@ export default function SystemManagement() {
 
     } catch (error) {
       console.error('赠送积分失败:', error);
-      toast.error(`赠送积分失败: ${error.message}`, { id: 'grant-credits' });
+      const errorMessage = error instanceof Error ? error.message : '未知错误';
+      toast.error(`赠送积分失败: ${errorMessage}`, { id: 'grant-credits' });
     } finally {
       setIsGrantingCredits(false);
     }

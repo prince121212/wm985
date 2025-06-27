@@ -26,7 +26,7 @@ export default async function ResourcesPage({
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-4">资源库</h1>
         <p className="text-muted-foreground">
-          发现和下载各种类型的文明资源
+          发现和访问各种类型的文明资源
         </p>
       </div>
 
@@ -40,7 +40,15 @@ export default async function ResourcesPage({
       {/* 资源列表 */}
       <div>
         <Suspense fallback={<ResourceListSkeleton />}>
-          <ResourceList searchParams={params} />
+          <ResourceList
+            initialFilters={{
+              category: params.category,
+              tags: params.tags?.split(',').filter(Boolean),
+              search: params.search,
+              sort: params.sort as 'latest' | 'popular' | 'rating' | 'views',
+              is_free: params.free === 'true' ? true : params.free === 'false' ? false : undefined
+            }}
+          />
         </Suspense>
       </div>
     </div>
@@ -71,14 +79,14 @@ export async function generateMetadata({
   const t = await getTranslations();
 
   let title = "资源库 - 文明资源站";
-  let description = "发现和下载各种优质资源，包括设计素材、开发工具、文档模板、音频视频素材等。免费和付费资源应有尽有。";
+  let description = "发现和访问各种优质资源，包括设计素材、开发工具、文档模板、音频视频素材等。免费和付费资源应有尽有。";
 
   if (params.search) {
     title = `"${params.search}" 搜索结果 - 资源库 - 文明资源站`;
     description = `搜索"${params.search}"相关的优质资源，包括设计素材、开发工具、文档模板等。`;
   } else if (params.category) {
     title = `${params.category}分类资源 - 资源库 - 文明资源站`;
-    description = `浏览${params.category}分类下的所有优质资源，精选高质量内容，免费下载。`;
+    description = `浏览${params.category}分类下的所有优质资源，精选高质量内容，免费访问。`;
   } else if (params.tags) {
     const tagList = params.tags.split(',').slice(0, 3).join('、');
     title = `${tagList}标签资源 - 资源库 - 文明资源站`;
@@ -88,13 +96,13 @@ export async function generateMetadata({
   return {
     title,
     description,
-    keywords: "资源库,资源下载,设计素材,开发工具,文档模板,音频素材,视频素材,免费资源,付费资源,文明资源站",
+    keywords: "资源库,资源访问,设计素材,开发工具,文档模板,音频素材,视频素材,免费资源,付费资源,文明资源站",
     openGraph: {
       title,
       description,
       type: 'website',
       locale: 'zh_CN',
-      url: 'https://your-domain.com/resources',
+      url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/resources`,
       siteName: '文明资源站',
       images: [
         {
@@ -112,10 +120,10 @@ export async function generateMetadata({
       images: ['/og-image.jpg'],
     },
     alternates: {
-      canonical: 'https://your-domain.com/resources',
+      canonical: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/resources`,
       languages: {
-        'zh-CN': 'https://your-domain.com/zh/resources',
-        'en-US': 'https://your-domain.com/en/resources',
+        'zh-CN': `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/zh/resources`,
+        'en-US': `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/en/resources`,
       },
     },
   };

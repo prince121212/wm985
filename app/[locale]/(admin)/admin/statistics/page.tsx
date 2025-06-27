@@ -34,7 +34,7 @@ export default async function AdminStatisticsPage() {
     getAllCategories(),
     getAllTags(),
     getUsers(1, 1000), // 获取更多用户数据用于统计
-    getAuditLogStats().catch(() => ({ total: 0, approved: 0, rejected: 0, todayTotal: 0, weekTotal: 0, topAdmins: [] })),
+    getAuditLogStats().catch(() => ({ total: 0, today: 0, thisWeek: 0, thisMonth: 0, topActions: [] })),
     getResourceStatsByCategory()
   ]);
 
@@ -117,7 +117,7 @@ export default async function AdminStatisticsPage() {
               </svg>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{users.length}</div>
+              <div className="text-2xl font-bold">{users?.length || 0}</div>
               <p className="text-xs text-muted-foreground">
                 注册用户总数
               </p>
@@ -151,7 +151,7 @@ export default async function AdminStatisticsPage() {
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">总下载量</CardTitle>
+              <CardTitle className="text-sm font-medium">总访问量</CardTitle>
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="0 0 24 24"
@@ -168,9 +168,9 @@ export default async function AdminStatisticsPage() {
               </svg>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{resourcesStats.totalDownloads.toLocaleString()}</div>
+              <div className="text-2xl font-bold">{resourcesStats.totalAccess.toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
-                累计下载次数
+                累计访问次数
               </p>
             </CardContent>
           </Card>
@@ -214,11 +214,11 @@ export default async function AdminStatisticsPage() {
                   <div className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span>今日审核</span>
-                      <span>{auditStats.todayTotal}</span>
+                      <span>{auditStats.today}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span>本周审核</span>
-                      <span>{auditStats.weekTotal}</span>
+                      <span>{auditStats.thisWeek}</span>
                     </div>
                   </div>
                 </div>
@@ -276,27 +276,27 @@ export default async function AdminStatisticsPage() {
           </Card>
         </div>
 
-        {/* 管理员活动统计 */}
-        {auditStats.topAdmins.length > 0 && (
+        {/* 热门操作统计 */}
+        {auditStats.topActions.length > 0 && (
           <Card>
             <CardHeader>
-              <CardTitle>管理员活动</CardTitle>
+              <CardTitle>热门操作</CardTitle>
               <CardDescription>
-                管理员审核活动统计
+                本月最常执行的操作统计
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {auditStats.topAdmins.map((admin, index) => (
-                  <div key={admin.admin_email} className="flex items-center justify-between">
+                {auditStats.topActions.map((action, index) => (
+                  <div key={action.action} className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Badge variant="outline" className="text-xs">
                         #{index + 1}
                       </Badge>
-                      <span className="text-sm">{admin.admin_email}</span>
+                      <span className="text-sm">{action.action}</span>
                     </div>
                     <span className="text-sm font-medium">
-                      {admin.count} 次审核
+                      {action.count} 次
                     </span>
                   </div>
                 ))}

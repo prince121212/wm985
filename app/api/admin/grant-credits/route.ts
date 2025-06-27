@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
     // 查找目标用户
     const targetUser = await findUserByEmail(target_email);
-    if (!targetUser) {
+    if (!targetUser || !targetUser.uuid) {
       return respErr(`用户不存在: ${target_email}`);
     }
 
@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
 
     // 赠送积分
     await increaseCredits({
-      user_uuid: targetUser.uuid,
+      user_uuid: targetUser.uuid!,
       trans_type: CreditsTransType.SystemAdd,
       credits: credits,
       order_no: `ADMIN_GRANT_${Date.now()}`

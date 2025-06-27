@@ -247,9 +247,9 @@ export default function ResourceDetail({ resourceUuid }: ResourceDetailProps) {
           uuid: commentData.data?.uuid || `temp-${Date.now()}`,
           content: comment.trim(),
           author: {
-            uuid: user.uuid,
-            nickname: user.nickname,
-            avatar_url: user.avatar_url
+            uuid: user?.uuid || '',
+            nickname: user?.nickname || '',
+            avatar_url: user?.avatar_url || ''
           },
           created_at: new Date().toISOString(),
           replies: [],
@@ -432,7 +432,7 @@ export default function ResourceDetail({ resourceUuid }: ResourceDetailProps) {
               <div className="flex flex-wrap gap-2">
                 {resource.tags.map((tag, index) => (
                   <Badge key={index} variant="secondary" className="text-xs">
-                    {tag}
+                    {tag.name}
                   </Badge>
                 ))}
               </div>

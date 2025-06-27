@@ -5,7 +5,7 @@ import ProfileTabs from "@/components/blocks/profile-tabs";
 
 export default async function UserCenterPage() {
   const userInfo = await getUserInfo();
-  if (!userInfo || !userInfo.email) {
+  if (!userInfo || !userInfo.email || !userInfo.uuid) {
     redirect("/auth/signin");
   }
 
@@ -13,7 +13,12 @@ export default async function UserCenterPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <ProfileTabs user={userInfo} />
+      <ProfileTabs user={{
+        uuid: userInfo.uuid,
+        nickname: userInfo.nickname,
+        email: userInfo.email,
+        avatar_url: userInfo.avatar_url
+      }} />
     </div>
   );
 }

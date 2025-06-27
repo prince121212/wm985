@@ -493,7 +493,7 @@ export default function ResourceFilter({
             <Checkbox
               id="free-only"
               checked={isFreeOnly}
-              onCheckedChange={setIsFreeOnly}
+              onCheckedChange={(checked) => setIsFreeOnly(checked === true)}
             />
             <Label htmlFor="free-only" className="text-sm">
               仅显示免费资源

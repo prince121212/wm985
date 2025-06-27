@@ -102,30 +102,30 @@ export const DynamicUserComponents = {
 
 // 性能监控组件（懒加载）
 export const DynamicPerformanceComponents = {
-  PerformanceMonitor: dynamic(() => import('@/components/performance/performance-monitor'), {
+  PerformanceMonitor: dynamic(() => import('@/components/performance/performance-monitor').then(mod => ({ default: mod.PerformanceMonitor })), {
     ssr: false,
     loading: () => null, // 性能监控组件不需要加载状态
   }),
   
-  VirtualList: dynamic(() => import('@/components/performance/virtual-list'), {
+  VirtualList: dynamic(() => import('@/components/performance/virtual-list').then(mod => ({ default: mod.VirtualList })), {
     ...dynamicConfig,
     loading: () => <LoadingSkeleton />,
   }),
 };
 
-// 第三方库的动态导入
+// 第三方库的动态导入（暂时注释掉，因为这些库可能没有安装）
 export const DynamicLibraries = {
-  // 图表库
-  Chart: dynamic(() => import('react-chartjs-2').then(mod => mod.Chart), {
-    ...dynamicConfig,
-    loading: () => <div className="h-64 bg-muted rounded animate-pulse"></div>,
-  }),
-  
-  // 代码编辑器
-  CodeEditor: dynamic(() => import('@monaco-editor/react').then(mod => mod.default), {
-    ...dynamicConfig,
-    loading: () => <div className="h-96 bg-muted rounded animate-pulse"></div>,
-  }),
+  // // 图表库
+  // Chart: dynamic(() => import('react-chartjs-2').then(mod => mod.Chart), {
+  //   ...dynamicConfig,
+  //   loading: () => <div className="h-64 bg-muted rounded animate-pulse"></div>,
+  // }),
+
+  // // 代码编辑器
+  // CodeEditor: dynamic(() => import('@monaco-editor/react').then(mod => mod.default), {
+  //   ...dynamicConfig,
+  //   loading: () => <div className="h-96 bg-muted rounded animate-pulse"></div>,
+  // }),
   
   // 移除文件预览器，资源站不需要文件预览功能
 };
@@ -134,13 +134,13 @@ export const DynamicLibraries = {
 export function createDynamicComponent<T = {}>(
   importFn: () => Promise<{ default: ComponentType<T> }>,
   options: {
-    loading?: ComponentType;
+    loading?: () => React.ReactNode;
     fallback?: ComponentType<T>;
     ssr?: boolean;
   } = {}
 ) {
   const {
-    loading = LoadingSpinner,
+    loading = () => <LoadingSpinner />,
     fallback,
     ssr = false,
   } = options;

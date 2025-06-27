@@ -12,7 +12,7 @@ interface FavoriteButtonProps {
   initialFavorited?: boolean;
   onToggle?: (favorited: boolean) => void;
   variant?: "default" | "outline" | "ghost";
-  size?: "sm" | "md" | "lg";
+  size?: "default" | "sm" | "lg" | "icon";
   showText?: boolean;
   className?: string;
 }
@@ -22,7 +22,7 @@ export function FavoriteButton({
   initialFavorited = false,
   onToggle,
   variant = "outline",
-  size = "md",
+  size = "default",
   showText = false,
   className
 }: FavoriteButtonProps) {
@@ -102,9 +102,10 @@ export function FavoriteButton({
   };
 
   const sizeClasses = {
+    default: "h-4 w-4",
     sm: "h-3 w-3",
-    md: "h-4 w-4",
-    lg: "h-5 w-5"
+    lg: "h-5 w-5",
+    icon: "h-4 w-4"
   };
 
   return (
@@ -141,17 +142,18 @@ export function FavoriteButton({
 // 简化的收藏图标组件
 export function FavoriteIcon({
   favorited,
-  size = "md",
+  size = "default",
   className
 }: {
   favorited: boolean;
-  size?: "sm" | "md" | "lg";
+  size?: "default" | "sm" | "lg" | "icon";
   className?: string;
 }) {
   const sizeClasses = {
+    default: "h-4 w-4",
     sm: "h-3 w-3",
-    md: "h-4 w-4",
-    lg: "h-5 w-5"
+    lg: "h-5 w-5",
+    icon: "h-4 w-4"
   };
 
   return (

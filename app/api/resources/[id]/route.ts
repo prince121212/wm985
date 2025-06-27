@@ -1,5 +1,5 @@
 import { respData, respErr, respInvalidParams, respUnauthorized, respNotFound } from "@/lib/resp";
-import { getUserUuid } from "@/services/user";
+import { getUserUuid, isUserAdmin } from "@/services/user";
 import { log } from "@/lib/logger";
 import { findResourceByUuid, deleteResource, incrementResourceAccess } from "@/models/resource";
 import { getResourceTags } from "@/models/tag";
@@ -37,7 +37,11 @@ export async function GET(req: Request, { params }: RouteParams) {
     // 获取资源标签
     if (resource.id) {
       const tags = await getResourceTags(resource.id);
-      resource.tags = tags.map(tag => tag.name);
+      resource.tags = tags.filter(tag => tag.id !== undefined).map(tag => ({
+        id: tag.id!,
+        name: tag.name,
+        color: tag.color
+      }));
     }
 
     // 增加访问次数（异步执行，不影响响应）
@@ -79,8 +83,8 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     }
 
     // 检查权限（只有作者或管理员可以删除）
-    const isAdmin = false; // TODO: 实现管理员权限检查
-    
+    const isAdmin = await isUserAdmin();
+
     if (existingResource.author_id !== user_uuid && !isAdmin) {
       return respUnauthorized("无权限删除此资源");
     }

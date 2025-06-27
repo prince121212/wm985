@@ -209,7 +209,7 @@ export async function getResourceTags(resourceId: number): Promise<Tag[]> {
       throw error;
     }
 
-    return data?.map(item => item.tag).filter(Boolean) || [];
+    return (data?.map(item => (item as any).tag).filter(Boolean) || []) as Tag[];
   });
 }
 

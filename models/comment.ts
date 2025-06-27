@@ -265,3 +265,22 @@ export async function getCommentStats(resourceId: number): Promise<{
     return stats;
   });
 }
+
+// 获取资源的评论总数
+export async function getResourceCommentsCount(resourceId: number): Promise<number> {
+  return withRetry(async () => {
+    const supabase = getSupabaseClient();
+    const { count, error } = await supabase
+      .from("resource_comments")
+      .select("*", { count: 'exact', head: true })
+      .eq("resource_id", resourceId)
+      .eq("status", "approved");
+
+    if (error) {
+      log.error("获取评论总数失败", error, { resourceId });
+      throw error;
+    }
+
+    return count || 0;
+  });
+}

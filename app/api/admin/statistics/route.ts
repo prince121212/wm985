@@ -51,7 +51,7 @@ export async function GET(req: Request) {
         list: tags.slice(0, 10) // 返回前10个标签
       },
       users: {
-        total: users.length,
+        total: users?.length || 0,
         // 可以添加更多用户统计，如活跃用户数等
       },
       audit: auditStats,
@@ -62,8 +62,8 @@ export async function GET(req: Request) {
         avgViewsPerResource: resourcesStats.total > 0 
           ? Math.round(resourcesStats.totalViews / resourcesStats.total) 
           : 0,
-        avgDownloadsPerResource: resourcesStats.total > 0 
-          ? Math.round(resourcesStats.totalDownloads / resourcesStats.total) 
+        avgAccessPerResource: resourcesStats.total > 0
+          ? Math.round(resourcesStats.totalAccess / resourcesStats.total)
           : 0,
       }
     };
@@ -71,7 +71,7 @@ export async function GET(req: Request) {
     log.info("管理后台统计数据获取成功", {
       user_uuid,
       resourcesTotal: resourcesStats.total,
-      usersTotal: users.length,
+      usersTotal: users?.length || 0,
       categoriesTotal: categories.length
     });
 

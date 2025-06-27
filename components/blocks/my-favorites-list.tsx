@@ -20,7 +20,7 @@ import {
   Video, 
   Code
 } from "lucide-react";
-import { FavoriteWithResource } from "@/types/resource";
+import { FavoriteWithResource } from "@/models/favorite";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { toast } from "sonner";

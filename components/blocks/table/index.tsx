@@ -9,19 +9,20 @@ import {
   TableRow,
 } from "@/components/ui/table";
 
-import Copy from "./copy";
-import { CopyToClipboard } from "react-copy-to-clipboard";
+import CopyComponent from "./copy";
 import { TableColumn } from "@/types/blocks/table";
 
-export default function ({
+interface TableProps<T = Record<string, any>> {
+  columns?: TableColumn[];
+  data?: T[];
+  empty_message?: string;
+}
+
+export default function DataTable<T = Record<string, any>>({
   columns,
   data,
   empty_message,
-}: {
-  columns?: TableColumn[];
-  data?: any[];
-  empty_message?: string;
-}) {
+}: TableProps<T>) {
   if (!columns) {
     columns = [];
   }
@@ -54,7 +55,7 @@ export default function ({
                   if (column.type === "copy" && value) {
                     return (
                       <TableCell key={iidx} className={column.className}>
-                        <Copy text={value}>{content}</Copy>
+                        <CopyComponent text={value}>{content}</CopyComponent>
                       </TableCell>
                     );
                   }

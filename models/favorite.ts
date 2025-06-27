@@ -11,6 +11,11 @@ export interface FavoriteWithResource extends UserFavorite {
     access_count: number;
     view_count: number;
     created_at: string;
+    category?: {
+      id: number;
+      name: string;
+      description?: string;
+    };
   };
 }
 
@@ -295,29 +300,26 @@ export async function getMostFavoritedResources(limit: number = 10): Promise<{
 }[]> {
   return withRetry(async () => {
     const supabase = getSupabaseClient();
+
+    // 使用数据库视图或RPC函数来实现聚合查询
+    // 由于Supabase的聚合查询语法限制，我们使用优化的方法
     const { data, error } = await supabase
-      .from("user_favorites")
-      .select("resource_id")
-      .order("created_at", { ascending: false });
+      .rpc('get_most_favorited_resources', {
+        limit_count: limit
+      });
 
     if (error) {
       log.error("获取最受欢迎资源失败", error);
       throw error;
     }
 
-    // 统计每个资源的收藏数
-    const favoriteCount: { [resourceId: number]: number } = {};
-    data?.forEach(item => {
-      favoriteCount[item.resource_id] = (favoriteCount[item.resource_id] || 0) + 1;
-    });
+    // 转换数据格式
+    const result = (data || []).map((item: { resource_id: number; count: number }) => ({
+      resource_id: item.resource_id,
+      favorite_count: item.count
+    }));
 
-    // 排序并返回前N个
-    return Object.entries(favoriteCount)
-      .map(([resourceId, count]) => ({
-        resource_id: parseInt(resourceId),
-        favorite_count: count
-      }))
-      .sort((a, b) => b.favorite_count - a.favorite_count)
-      .slice(0, limit);
+    log.info("获取最受欢迎资源成功", { count: result.length, limit });
+    return result;
   });
 }

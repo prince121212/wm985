@@ -16,21 +16,35 @@ import { CacheKey } from "@/services/constant";
 import { ContextValue } from "@/types/context";
 import { User } from "@/types/user";
 import moment from "moment";
-import useOneTapLogin from "@/hooks/useOneTapLogin";
+// 动态导入useOneTapLogin以避免服务器端渲染问题
+import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { log } from "@/lib/logger";
+
+// 动态导入，不在服务器端渲染
+const OneTapLoginComponent = dynamic(() => import("@/hooks/useOneTapLogin"), {
+  ssr: false,
+});
 
 const AppContext = createContext({} as ContextValue);
 
 export const useAppContext = () => useContext(AppContext);
 
 export const AppContextProvider = ({ children }: { children: ReactNode }) => {
-  if (
-    process.env.NEXT_PUBLIC_AUTH_GOOGLE_ONE_TAP_ENABLED === "true" &&
-    process.env.NEXT_PUBLIC_AUTH_GOOGLE_ID
-  ) {
-    useOneTapLogin();
-  }
+  // 条件渲染OneTapLogin组件，而不是直接调用hook
+  const [showOneTapLogin, setShowOneTapLogin] = useState(false);
+  
+  useEffect(() => {
+    // 确保这段代码只在客户端执行
+    if (typeof window !== 'undefined') {
+      if (
+        process.env.NEXT_PUBLIC_AUTH_GOOGLE_ONE_TAP_ENABLED === "true" &&
+        process.env.NEXT_PUBLIC_AUTH_GOOGLE_ID
+      ) {
+        setShowOneTapLogin(true);
+      }
+    }
+  }, []);
 
   const { data: session } = useSession();
 
@@ -43,8 +57,11 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   const [userLoading, setUserLoading] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     // 初始化时从缓存中读取管理员状态
-    const cachedAdminStatus = cacheGet(CacheKey.AdminStatus);
-    return cachedAdminStatus === 'true';
+    if (typeof window !== 'undefined') {
+      const cachedAdminStatus = cacheGet(CacheKey.AdminStatus);
+      return cachedAdminStatus === 'true';
+    }
+    return false;
   });
 
   const [showFeedback, setShowFeedback] = useState<boolean>(false);
@@ -52,8 +69,6 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   // 用于防止重复请求的 ref
   const fetchingUserInfo = useRef<boolean>(false);
   const lastSessionId = useRef<string | null>(null);
-
-
 
   const updateInvite = useCallback(async (user: User) => {
     try {
@@ -204,6 +219,7 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AppContext.Provider value={contextValue}>
+      {showOneTapLogin && <OneTapLoginComponent />}
       {children}
     </AppContext.Provider>
   );

@@ -133,9 +133,9 @@ const CommentSection = forwardRef<CommentSectionRef, CommentSectionProps>(({
           uuid: result.data?.uuid || `temp-${Date.now()}`,
           content: newComment.trim(),
           author: {
-            uuid: user.uuid,
-            nickname: user.nickname,
-            avatar_url: user.avatar_url
+            uuid: user?.uuid || '',
+            nickname: user?.nickname || '',
+            avatar_url: user?.avatar_url || ''
           },
           created_at: new Date().toISOString(),
           replies: [],
@@ -332,9 +332,9 @@ const CommentSection = forwardRef<CommentSectionRef, CommentSectionProps>(({
                         uuid: result.data?.uuid || `temp-${Date.now()}`,
                         content: replyContent.trim(),
                         author: {
-                          uuid: user.uuid,
-                          nickname: user.nickname,
-                          avatar_url: user.avatar_url
+                          uuid: user?.uuid || '',
+                          nickname: user?.nickname || '',
+                          avatar_url: user?.avatar_url || ''
                         },
                         created_at: new Date().toISOString()
                       };

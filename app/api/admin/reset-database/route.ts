@@ -3,10 +3,33 @@ import { getUserUuid, isUserAdmin, getUserEmail } from "@/services/user";
 import { log } from "@/lib/logger";
 import { getSupabaseClient } from "@/models/db";
 import { sendEmail } from "@/lib/wework-email";
-import { getUuid } from "@/lib/hash";
+import { randomBytes } from "crypto";
 
 // 存储验证码的临时缓存（生产环境应使用Redis）
 const verificationCodes = new Map<string, { code: string; expires: number; email: string }>();
+
+// 定期清理过期验证码，防止内存泄漏
+const cleanupExpiredCodes = () => {
+  const now = Date.now();
+  for (const [key, value] of verificationCodes.entries()) {
+    if (now > value.expires) {
+      verificationCodes.delete(key);
+    }
+  }
+};
+
+// 每10分钟清理一次过期验证码
+setInterval(cleanupExpiredCodes, 10 * 60 * 1000);
+
+// 生成加密安全的6位数字验证码
+function generateSecureVerificationCode(): string {
+  // 使用crypto.randomBytes生成安全的随机数
+  const buffer = randomBytes(4);
+  const randomNumber = buffer.readUInt32BE(0);
+  // 确保生成6位数字（100000-999999）
+  const code = (randomNumber % 900000) + 100000;
+  return code.toString();
+}
 
 // POST /api/admin/reset-database - 重置数据库（清空脏数据）
 export async function POST(req: Request) {
@@ -32,7 +55,8 @@ export async function POST(req: Request) {
 
     // 第一步：发送验证码
     if (action === 'send_verification') {
-      const code = Math.floor(100000 + Math.random() * 900000).toString(); // 生成6位数字验证码
+      // 使用加密安全的随机数生成6位验证码
+      const code = generateSecureVerificationCode();
       const expires = Date.now() + 10 * 60 * 1000; // 10分钟有效期
 
       verificationCodes.set(user_uuid, { code, expires, email: user_email });
@@ -104,106 +128,106 @@ export async function POST(req: Request) {
 
     try {
       // 1. 删除评论
-      const { data: commentsData, error: commentsError } = await supabase
+      const { count: commentsCount, error: commentsError } = await supabase
         .from("resource_comments")
-        .delete()
+        .delete({ count: 'exact' })
         .gte('id', 0); // 删除所有记录
 
       if (commentsError) {
         log.error("删除评论失败", commentsError);
       } else {
-        results.resource_comments = commentsData?.length || 0;
+        results.resource_comments = commentsCount || 0;
         log.info("评论删除完成", { count: results.resource_comments });
       }
 
       // 2. 删除评分
-      const { data: ratingsData, error: ratingsError } = await supabase
+      const { count: ratingsCount, error: ratingsError } = await supabase
         .from("resource_ratings")
-        .delete()
+        .delete({ count: 'exact' })
         .gte('id', 0);
 
       if (ratingsError) {
         log.error("删除评分失败", ratingsError);
       } else {
-        results.resource_ratings = ratingsData?.length || 0;
+        results.resource_ratings = ratingsCount || 0;
         log.info("评分删除完成", { count: results.resource_ratings });
       }
 
       // 3. 删除收藏
-      const { data: favoritesData, error: favoritesError } = await supabase
+      const { count: favoritesCount, error: favoritesError } = await supabase
         .from("user_favorites")
-        .delete()
+        .delete({ count: 'exact' })
         .gte('id', 0);
 
       if (favoritesError) {
         log.error("删除收藏失败", favoritesError);
       } else {
-        results.user_favorites = favoritesData?.length || 0;
+        results.user_favorites = favoritesCount || 0;
         log.info("收藏删除完成", { count: results.user_favorites });
       }
 
       // 4. 删除下载历史
-      const { data: downloadHistoryData, error: downloadHistoryError } = await supabase
+      const { count: downloadHistoryCount, error: downloadHistoryError } = await supabase
         .from("download_history")
-        .delete()
+        .delete({ count: 'exact' })
         .gte('id', 0);
 
       if (downloadHistoryError) {
         log.error("删除下载历史失败", downloadHistoryError);
       } else {
-        results.download_history = downloadHistoryData?.length || 0;
+        results.download_history = downloadHistoryCount || 0;
         log.info("下载历史删除完成", { count: results.download_history });
       }
 
       // 5. 删除资源标签关联
-      const { data: resourceTagsData, error: resourceTagsError } = await supabase
+      const { count: resourceTagsCount, error: resourceTagsError } = await supabase
         .from("resource_tags")
-        .delete()
+        .delete({ count: 'exact' })
         .gte('resource_id', 0);
 
       if (resourceTagsError) {
         log.error("删除资源标签关联失败", resourceTagsError);
       } else {
-        results.resource_tags = resourceTagsData?.length || 0;
+        results.resource_tags = resourceTagsCount || 0;
         log.info("资源标签关联删除完成", { count: results.resource_tags });
       }
 
       // 6. 删除资源
-      const { data: resourcesData, error: resourcesError } = await supabase
+      const { count: resourcesCount, error: resourcesError } = await supabase
         .from("resources")
-        .delete()
+        .delete({ count: 'exact' })
         .gte('id', 0);
 
       if (resourcesError) {
         log.error("删除资源失败", resourcesError);
       } else {
-        results.resources = resourcesData?.length || 0;
+        results.resources = resourcesCount || 0;
         log.info("资源删除完成", { count: results.resources });
       }
 
       // 7. 删除分类
-      const { data: categoriesData, error: categoriesError } = await supabase
+      const { count: categoriesCount, error: categoriesError } = await supabase
         .from("categories")
-        .delete()
+        .delete({ count: 'exact' })
         .gte('id', 0);
 
       if (categoriesError) {
         log.error("删除分类失败", categoriesError);
       } else {
-        results.categories = categoriesData?.length || 0;
+        results.categories = categoriesCount || 0;
         log.info("分类删除完成", { count: results.categories });
       }
 
       // 8. 删除标签
-      const { data: tagsData, error: tagsError } = await supabase
+      const { count: tagsCount, error: tagsError } = await supabase
         .from("tags")
-        .delete()
+        .delete({ count: 'exact' })
         .gte('id', 0);
 
       if (tagsError) {
         log.error("删除标签失败", tagsError);
       } else {
-        results.tags = tagsData?.length || 0;
+        results.tags = tagsCount || 0;
         log.info("标签删除完成", { count: results.tags });
       }
 

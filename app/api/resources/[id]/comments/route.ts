@@ -35,12 +35,16 @@ export async function GET(req: Request, { params }: RouteParams) {
       return respErr("资源数据异常");
     }
 
-    // 获取评论列表
+    // 获取评论列表和总数
     const comments = await getResourceComments(resource.id, offset, limit);
+
+    // 获取评论总数
+    const { getResourceCommentsCount } = await import("@/models/comment");
+    const totalComments = await getResourceCommentsCount(resource.id);
 
     return respData({
       comments,
-      total: comments.length,
+      total: totalComments,
       offset,
       limit,
       resource: {
@@ -124,7 +128,8 @@ export async function POST(req: Request, { params }: RouteParams) {
       resource_id: resource.id,
       user_uuid,
       content: content.trim(),
-      parent_id: parent_id || undefined
+      parent_id: parent_id || undefined,
+      status: 'approved' // 暂时自动审核通过
     });
 
     log.info("评论添加成功", { 

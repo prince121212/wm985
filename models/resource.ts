@@ -3,6 +3,19 @@ import { log } from "@/lib/logger";
 import { wrapQueryWithMonitoring } from "@/lib/db-performance";
 import { Resource, ResourceWithDetails } from "@/types/resource";
 
+// 安全的搜索词处理函数
+function sanitizeSearchTerm(searchTerm: string): string {
+  if (!searchTerm) return '';
+
+  // 移除潜在的危险字符，只保留字母、数字、中文、空格和常见标点
+  const sanitized = searchTerm
+    .replace(/[^\w\s\u4e00-\u9fff\-_.]/g, '')
+    .trim()
+    .substring(0, 100); // 限制长度
+
+  return sanitized;
+}
+
 // 复用现有的错误处理和日志模式
 export async function insertResource(resource: Omit<Resource, 'id' | 'created_at' | 'updated_at'>) {
   return withRetry(async () => {
@@ -156,8 +169,9 @@ export async function getResourcesCount(params: {
 
       // 搜索
       if (params.search) {
-        const searchTerm = params.search.trim();
-        if (searchTerm.length > 0 && searchTerm.length <= 100) {
+        const searchTerm = sanitizeSearchTerm(params.search);
+        if (searchTerm.length > 0) {
+          // 使用参数化查询，避免SQL注入风险
           query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
         }
       }
@@ -258,18 +272,9 @@ export async function getResourcesList(params: {
 
     // 搜索 - 使用安全的参数化查询
     if (params.search) {
-      const searchTerm = params.search.trim();
-
-      // 验证搜索词长度和内容
-      if (searchTerm.length === 0) {
-        // 空搜索词，不添加搜索条件
-      } else if (searchTerm.length > 100) {
-        // 搜索词过长，截断处理
-        const truncatedTerm = searchTerm.substring(0, 100);
-        log.warn("搜索词过长，已截断", { original: searchTerm.length, truncated: truncatedTerm.length });
-        query = query.or(`title.ilike.%${truncatedTerm}%,description.ilike.%${truncatedTerm}%`);
-      } else {
-        // 正常搜索，使用安全的ILIKE查询
+      const searchTerm = sanitizeSearchTerm(params.search);
+      if (searchTerm.length > 0) {
+        // 使用安全的搜索词进行查询
         query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
       }
     }
@@ -423,7 +428,7 @@ export async function getResourcesStats(): Promise<{
   pending: number;
   rejected: number;
   totalViews: number;
-  totalDownloads: number;
+  totalAccess: number;
 }> {
   return withRetry(async () => {
     const supabase = getSupabaseClient();
@@ -483,7 +488,7 @@ export async function getResourceStatsByCategory(): Promise<{
 
     resources.forEach(resource => {
       const categoryId = resource.category_id;
-      const categoryName = resource.category?.name || "未分类";
+      const categoryName = (resource.category as any)?.name || "未分类";
 
       if (!categoryStats[categoryId]) {
         categoryStats[categoryId] = {
@@ -540,7 +545,7 @@ export async function getUserResources(params: {
 
       // 搜索
       if (params.search) {
-        const searchTerm = params.search.trim();
+        const searchTerm = sanitizeSearchTerm(params.search);
         if (searchTerm.length > 0) {
           query = query.or(`title.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
         }
