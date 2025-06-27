@@ -16,7 +16,10 @@ export class EmailService {
   private readonly siteName: string;
 
   constructor() {
-    this.baseUrl = process.env.NEXT_PUBLIC_WEB_URL === "http://localhost:3000" ? "https://wm985.top" : process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.top';
+    // 优先使用配置的 WEB_URL，如果是本地开发环境则使用生产域名
+    const webUrl = process.env.NEXT_PUBLIC_WEB_URL || 'http://localhost:3000';
+    const isLocalDev = webUrl.includes('localhost') || webUrl.includes('127.0.0.1');
+    this.baseUrl = isLocalDev ? "https://wm985.top" : webUrl;
     this.siteName = process.env.NEXT_PUBLIC_PROJECT_NAME || 'pc-t';
   }
 

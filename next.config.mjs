@@ -2,6 +2,40 @@
 // 这必须在任何其他导入之前执行
 if (typeof global !== 'undefined') {
   try {
+    // 获取当前环境的基础 URL
+    function getBaseUrl() {
+      // 优先使用环境变量
+      if (process.env.NEXT_PUBLIC_APP_URL) {
+        return process.env.NEXT_PUBLIC_APP_URL;
+      }
+
+      // Vercel 环境
+      if (process.env.VERCEL_URL) {
+        return `https://${process.env.VERCEL_URL}`;
+      }
+
+      // 开发环境默认值
+      return 'http://localhost:3000';
+    }
+
+    // 创建 location 对象
+    function createLocationObject() {
+      const baseUrl = getBaseUrl();
+      const url = new URL(baseUrl);
+
+      return {
+        href: baseUrl,
+        origin: url.origin,
+        protocol: url.protocol,
+        host: url.host,
+        hostname: url.hostname,
+        port: url.port || (url.protocol === 'https:' ? '443' : '80'),
+        pathname: '/',
+        search: '',
+        hash: ''
+      };
+    }
+
     // 强制设置 self
     global.self = global;
 
@@ -21,17 +55,7 @@ if (typeof global !== 'undefined') {
       cancelAnimationFrame: function(id) {
         clearTimeout(id);
       },
-      location: {
-        href: 'http://localhost:3000',
-        origin: 'http://localhost:3000',
-        protocol: 'http:',
-        host: 'localhost:3000',
-        hostname: 'localhost',
-        port: '3000',
-        pathname: '/',
-        search: '',
-        hash: ''
-      },
+      location: createLocationObject(),
       navigator: {
         userAgent: 'node',
         platform: 'node'
@@ -101,11 +125,36 @@ if (typeof global !== 'undefined') {
           nodeName: 'HTML',
           nodeType: 1
         }
+      },
+      matchMedia: (query) => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: () => {},
+        removeListener: () => {},
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        dispatchEvent: () => false
+      }),
+      localStorage: {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+        clear: () => {}
+      },
+      sessionStorage: {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+        clear: () => {}
       }
     };
 
-    // 确保 document 也在全局作用域中
+    // 确保 document 和其他 API 也在全局作用域中
     global.document = global.window.document;
+    global.matchMedia = global.window.matchMedia;
+    global.localStorage = global.window.localStorage;
+    global.sessionStorage = global.window.sessionStorage;
 
   } catch (e) {
     // 忽略只读属性错误
@@ -162,110 +211,6 @@ const nextConfig = {
   webpack: (config, { isServer, dev, webpack }) => {
     // 简化的 webpack 配置，专注于解决 self 问题
     if (isServer) {
-      // 在服务器端设置全局变量
-      if (typeof global !== 'undefined') {
-        global.self = global;
-
-        // 创建一个更完整的 window 对象
-        global.window = {
-          ...global,
-          addEventListener: function() {},
-          removeEventListener: function() {},
-          dispatchEvent: function() { return true; },
-          setTimeout: global.setTimeout,
-          clearTimeout: global.clearTimeout,
-          setInterval: global.setInterval,
-          clearInterval: global.clearInterval,
-          requestAnimationFrame: function(callback) {
-            return setTimeout(callback, 16);
-          },
-          cancelAnimationFrame: function(id) {
-            clearTimeout(id);
-          },
-          location: {
-            href: 'http://localhost:3000',
-            origin: 'http://localhost:3000',
-            protocol: 'http:',
-            host: 'localhost:3000',
-            hostname: 'localhost',
-            port: '3000',
-            pathname: '/',
-            search: '',
-            hash: ''
-          },
-          navigator: {
-            userAgent: 'node',
-            platform: 'node'
-          },
-          document: {
-            createElement: () => ({
-              tagName: 'DIV',
-              style: {},
-              classList: {
-                add: () => {},
-                remove: () => {},
-                contains: () => false,
-                toggle: () => false
-              },
-              setAttribute: () => {},
-              getAttribute: () => null,
-              addEventListener: () => {},
-              removeEventListener: () => {},
-              appendChild: () => {},
-              removeChild: () => {},
-              innerHTML: '',
-              textContent: ''
-            }),
-            getElementById: () => null,
-            getElementsByTagName: () => [],
-            getElementsByClassName: () => [],
-            querySelector: () => null,
-            querySelectorAll: () => [],
-            addEventListener: () => {},
-            removeEventListener: () => {},
-            createTextNode: (text) => ({ textContent: text }),
-            body: {
-              style: {},
-              appendChild: () => {},
-              removeChild: () => {},
-              addEventListener: () => {},
-              removeEventListener: () => {}
-            },
-            head: {
-              appendChild: () => {},
-              removeChild: () => {}
-            },
-            documentElement: {
-              style: {},
-              classList: {
-                add: () => {},
-                remove: () => {},
-                contains: () => false,
-                toggle: () => false
-              },
-              getAttribute: (name) => {
-                if (name === 'data-theme') return 'light';
-                if (name === 'lang') return 'zh';
-                if (name === 'dir') return 'ltr';
-                return null;
-              },
-              setAttribute: () => {},
-              removeAttribute: () => {},
-              hasAttribute: () => false,
-              addEventListener: () => {},
-              removeEventListener: () => {},
-              appendChild: () => {},
-              removeChild: () => {},
-              innerHTML: '',
-              textContent: '',
-              tagName: 'HTML',
-              nodeName: 'HTML',
-              nodeType: 1
-            }
-          }
-        };
-      }
-
       // 使用 DefinePlugin 来定义全局变量
       config.plugins = config.plugins || [];
       config.plugins.push(

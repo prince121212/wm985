@@ -8,18 +8,49 @@ import { randomBytes } from "crypto";
 // 存储验证码的临时缓存（生产环境应使用Redis）
 const verificationCodes = new Map<string, { code: string; expires: number; email: string }>();
 
-// 定期清理过期验证码，防止内存泄漏
+// 清理过期验证码，防止内存泄漏
 const cleanupExpiredCodes = () => {
   const now = Date.now();
+  let cleanedCount = 0;
+
   for (const [key, value] of verificationCodes.entries()) {
     if (now > value.expires) {
       verificationCodes.delete(key);
+      cleanedCount++;
     }
+  }
+
+  if (cleanedCount > 0) {
+    log.info(`清理过期验证码 ${cleanedCount} 个，当前缓存大小: ${verificationCodes.size}`);
+  }
+
+  return cleanedCount;
+};
+
+// 获取验证码前先清理过期的验证码
+const getVerificationCode = (userUuid: string) => {
+  // 每次访问时清理过期验证码
+  cleanupExpiredCodes();
+  return verificationCodes.get(userUuid);
+};
+
+// 设置验证码前先清理过期的验证码
+const setVerificationCode = (userUuid: string, codeData: { code: string; expires: number; email: string }) => {
+  // 每次设置时清理过期验证码
+  cleanupExpiredCodes();
+  verificationCodes.set(userUuid, codeData);
+
+  // 如果缓存过大，强制清理
+  if (verificationCodes.size > 1000) {
+    log.warn(`验证码缓存过大 (${verificationCodes.size})，执行强制清理`);
+    cleanupExpiredCodes();
   }
 };
 
-// 每10分钟清理一次过期验证码
-setInterval(cleanupExpiredCodes, 10 * 60 * 1000);
+// 删除验证码
+const deleteVerificationCode = (userUuid: string) => {
+  return verificationCodes.delete(userUuid);
+};
 
 // 生成加密安全的6位数字验证码
 function generateSecureVerificationCode(): string {
@@ -59,7 +90,7 @@ export async function POST(req: Request) {
       const code = generateSecureVerificationCode();
       const expires = Date.now() + 10 * 60 * 1000; // 10分钟有效期
 
-      verificationCodes.set(user_uuid, { code, expires, email: user_email });
+      setVerificationCode(user_uuid, { code, expires, email: user_email });
 
       try {
         await sendEmail({
@@ -88,13 +119,13 @@ export async function POST(req: Request) {
         return respErr("请输入验证码");
       }
 
-      const storedData = verificationCodes.get(user_uuid);
+      const storedData = getVerificationCode(user_uuid);
       if (!storedData) {
         return respErr("验证码已过期，请重新获取");
       }
 
       if (Date.now() > storedData.expires) {
-        verificationCodes.delete(user_uuid);
+        deleteVerificationCode(user_uuid);
         return respErr("验证码已过期，请重新获取");
       }
 
@@ -107,7 +138,7 @@ export async function POST(req: Request) {
       }
 
       // 验证通过，删除验证码
-      verificationCodes.delete(user_uuid);
+      deleteVerificationCode(user_uuid);
     } else {
       return respErr("无效的操作类型");
     }
