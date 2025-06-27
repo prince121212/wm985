@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +18,7 @@ interface EmailSendFormProps {
 }
 
 export function EmailSendForm({ onSuccess, defaultType, defaultTo }: EmailSendFormProps) {
+  const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [restrictToRegisteredUsers, setRestrictToRegisteredUsers] = useState(true);
   const [formData, setFormData] = useState({
@@ -28,6 +29,30 @@ export function EmailSendForm({ onSuccess, defaultType, defaultTo }: EmailSendFo
     html: '',
     data: {} as any,
   });
+
+  // 确保组件在客户端正确挂载
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // 在服务端渲染时返回加载状态
+  if (!mounted) {
+    return (
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>邮件发送</CardTitle>
+          <CardDescription>
+            发送各种类型的邮件通知
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-sm text-muted-foreground">加载中...</div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   const emailTypes = [
     { value: EmailType.WELCOME, label: '欢迎邮件' },

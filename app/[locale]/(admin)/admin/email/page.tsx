@@ -1,22 +1,32 @@
 import { redirect } from "next/navigation";
 import { getUserEmail, getUserUuid } from "@/services/user";
-import { EmailSendForm } from "@/components/email/send-form";
+import { EmailSendFormWrapper } from "@/components/email/send-form-wrapper";
 import Header from "@/components/dashboard/header";
+import { log } from "@/lib/logger";
 
 export default async function AdminEmailPage() {
-  const user_uuid = await getUserUuid();
-  const user_email = await getUserEmail();
+  try {
+    const user_uuid = await getUserUuid();
+    const user_email = await getUserEmail();
 
-  const callbackUrl = `/admin/email`;
-  if (!user_uuid) {
-    redirect(`/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
-  }
+    log.debug("Admin Email Page 访问", { user_uuid, user_email });
 
-  // 检查管理员权限
-  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(email => email.trim());
-  const isAdmin = adminEmails.includes(user_email);
+    const callbackUrl = `/admin/email`;
+    if (!user_uuid) {
+      log.debug("Admin Email Page - 用户未登录，重定向到登录页");
+      redirect(`/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
+    }
 
-  if (!isAdmin) {
+    // 检查管理员权限
+    const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(email => email.trim());
+    const isAdmin = adminEmails.includes(user_email);
+
+    if (!isAdmin) {
+      log.security("Admin Email Page - 非管理员用户尝试访问", { user_email });
+      redirect('/');
+    }
+  } catch (error) {
+    log.error("Admin Email Page 初始化错误", error as Error);
     redirect('/');
   }
 
@@ -39,7 +49,7 @@ export default async function AdminEmailPage() {
         <div className="grid gap-8">
           <div>
             <h2 className="text-xl font-semibold mb-4">发送邮件</h2>
-            <EmailSendForm />
+            <EmailSendFormWrapper />
           </div>
 
           <div className="bg-muted/50 p-6 rounded-lg">
