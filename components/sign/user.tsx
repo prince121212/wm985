@@ -58,7 +58,7 @@ export default function SignUser({ user }: { user: User }) {
           onClick={() => {
             localStorage.removeItem('USER_INFO');
             localStorage.removeItem('ADMIN_STATUS');
-            signOut({ callbackUrl: window.location.origin });
+            signOut();
           }}
         >
           {t("user.sign_out")}

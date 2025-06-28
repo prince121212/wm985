@@ -99,7 +99,7 @@ export default function () {
                   onClick={() => {
                     localStorage.removeItem('USER_INFO');
                     localStorage.removeItem('ADMIN_STATUS');
-                    signOut({ callbackUrl: window.location.origin });
+                    signOut();
                   }}
                 >
                   <LogOut />
