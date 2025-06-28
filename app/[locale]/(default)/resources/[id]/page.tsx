@@ -72,7 +72,7 @@ export async function generateMetadata({ params }: ResourcePageProps) {
       description: resourceDescription,
       type: 'article',
       locale: 'zh_CN',
-      url: `https://your-domain.com/resources/${id}`,
+      url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.top'}/resources/${id}`,
       siteName: '文明资源站',
       images: [
         {
@@ -90,7 +90,7 @@ export async function generateMetadata({ params }: ResourcePageProps) {
       images: ['/og-image.jpg'],
     },
     alternates: {
-      canonical: `https://your-domain.com/resources/${id}`,
+      canonical: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.top'}/resources/${id}`,
     },
   };
 }

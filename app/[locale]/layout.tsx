@@ -24,12 +24,34 @@ export async function generateMetadata({
   const t = await getTranslations();
 
   return {
+    metadataBase: new URL(process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.top'),
     title: {
       template: `%s`,
       default: t("metadata.title") || "",
     },
     description: t("metadata.description") || "",
     keywords: t("metadata.keywords") || "",
+    openGraph: {
+      title: t("metadata.title") || "",
+      description: t("metadata.description") || "",
+      type: 'website',
+      locale: locale === 'zh' ? 'zh_CN' : 'en_US',
+      siteName: '文明资源站',
+      images: [
+        {
+          url: '/og-image.jpg',
+          width: 1200,
+          height: 630,
+          alt: '文明资源站 - 优质资源分享平台',
+        },
+      ],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: t("metadata.title") || "",
+      description: t("metadata.description") || "",
+      images: ['/og-image.jpg'],
+    },
   };
 }
 
