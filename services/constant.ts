@@ -2,6 +2,7 @@ export const CacheKey = {
   Theme: "THEME",
   InviteCode: "INVITE_CODE",
   AdminStatus: "ADMIN_STATUS",
+  UserInfo: "USER_INFO",
 };
 
 export const AffiliateStatus = {

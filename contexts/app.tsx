@@ -54,6 +54,7 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
 
   const [showSignModal, setShowSignModal] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
   const [userLoading, setUserLoading] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
     // 初始化时从缓存中读取管理员状态
@@ -69,6 +70,42 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
   // 用于防止重复请求的 ref
   const fetchingUserInfo = useRef<boolean>(false);
   const lastSessionId = useRef<string | null>(null);
+
+  // 检查缓存的用户信息是否完整
+  const isCachedUserInfoComplete = useCallback((userData: any): boolean => {
+    if (!userData || typeof userData !== 'object') {
+      return false;
+    }
+
+    // 检查必需的基础字段
+    const requiredFields = ['uuid', 'email', 'nickname'];
+    const hasRequiredFields = requiredFields.every(field =>
+      userData[field] !== undefined && userData[field] !== null && userData[field] !== ''
+    );
+
+    // 检查是否有管理员状态字段（业务相关）
+    const hasAdminStatus = userData.hasOwnProperty('isAdmin');
+
+    // 检查是否有积分信息（业务相关）
+    const hasCreditsInfo = userData.credits && typeof userData.credits === 'object';
+
+    log.debug("缓存用户信息完整性检查", {
+      hasRequiredFields,
+      hasAdminStatus,
+      hasCreditsInfo,
+      userData: {
+        uuid: userData.uuid,
+        email: userData.email,
+        hasCredits: !!userData.credits,
+        isAdmin: userData.isAdmin
+      }
+    });
+
+    // 只有当基础字段完整且有业务字段时才认为是完整的
+    return hasRequiredFields && hasAdminStatus && hasCreditsInfo;
+  }, []);
+
+
 
   const updateInvite = useCallback(async (user: User) => {
     try {
@@ -126,6 +163,34 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
       return;
     }
 
+    // 先检查缓存中的用户信息是否完整
+    try {
+      const cachedUser = cacheGet(CacheKey.UserInfo);
+      if (cachedUser) {
+        const userData = JSON.parse(cachedUser);
+        if (isCachedUserInfoComplete(userData)) {
+          // 缓存信息完整，直接使用缓存
+          setUser(userData);
+          setIsAdmin(userData.isAdmin || false);
+          updateInvite(userData);
+
+          log.debug("使用完整的缓存用户信息，跳过API请求", {
+            user_uuid: userData.uuid,
+            function: "fetchUserInfo",
+            source: "cache"
+          });
+          return;
+        } else {
+          log.debug("缓存用户信息不完整，需要重新获取", {
+            user_uuid: userData.uuid,
+            function: "fetchUserInfo"
+          });
+        }
+      }
+    } catch (e) {
+      log.warn("检查缓存用户信息时出错", { error: e as Error });
+    }
+
     try {
       fetchingUserInfo.current = true;
       setUserLoading(true);
@@ -157,12 +222,14 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
       // 缓存管理员状态（会话级别缓存，无过期时间）
       cacheSet(CacheKey.AdminStatus, adminStatus.toString(), -1);
 
-      log.debug("管理员权限状态", {
+      // 缓存用户信息到 localStorage（会话级别缓存，无过期时间）
+      cacheSet(CacheKey.UserInfo, JSON.stringify(data), -1);
+
+      log.debug("从API获取用户信息并更新缓存", {
         isAdmin: adminStatus,
         function: "fetchUserInfo",
         user_uuid: data.uuid,
-        cached: true,
-        cacheType: "session"
+        source: "api"
       });
 
       updateInvite(data);
@@ -172,7 +239,56 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
       setUserLoading(false);
       fetchingUserInfo.current = false;
     }
-  }, [updateInvite]);
+  }, [updateInvite, isCachedUserInfoComplete]);
+
+  // 清理不完整的缓存并强制重新获取用户信息
+  const refreshUserInfo = useCallback(async () => {
+    log.debug("手动刷新用户信息", { function: "refreshUserInfo" });
+
+    // 清理现有缓存
+    cacheRemove(CacheKey.UserInfo);
+    cacheRemove(CacheKey.AdminStatus);
+
+    // 重新获取用户信息
+    await fetchUserInfo();
+  }, [fetchUserInfo]);
+
+  // 客户端水合后立即从缓存恢复用户信息
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !isHydrated) {
+      setIsHydrated(true);
+
+      // 尝试从 localStorage 恢复用户信息
+      try {
+        const cachedUser = cacheGet(CacheKey.UserInfo);
+        if (cachedUser) {
+          const userData = JSON.parse(cachedUser);
+
+          if (isCachedUserInfoComplete(userData)) {
+            // 缓存信息完整，直接使用
+            setUser(userData);
+            setIsAdmin(userData.isAdmin || false);
+            log.debug("从完整缓存恢复用户信息", {
+              user_uuid: userData.uuid,
+              function: "hydrateEffect",
+              isComplete: true
+            });
+          } else {
+            // 缓存信息不完整，仅恢复基础信息，等待后续API更新
+            setUser(userData);
+            setIsAdmin(userData.isAdmin || false);
+            log.debug("从不完整缓存恢复用户信息", {
+              user_uuid: userData.uuid,
+              function: "hydrateEffect",
+              isComplete: false
+            });
+          }
+        }
+      } catch (e) {
+        log.warn("读取缓存用户信息失败", { error: e as Error });
+      }
+    }
+  }, [isHydrated, isCachedUserInfoComplete]);
 
   useEffect(() => {
     // 只有当 session 真正变化时才重新获取用户信息
@@ -191,8 +307,9 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
       lastSessionId.current = null;
       setUser(null);
       setIsAdmin(false);
-      // 清理管理员状态缓存
+      // 清理管理员状态缓存和用户信息缓存
       cacheRemove(CacheKey.AdminStatus);
+      cacheRemove(CacheKey.UserInfo);
     }
   }, [session, fetchUserInfo]);
 
@@ -208,6 +325,8 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
     showFeedback,
     setShowFeedback,
     isAdmin,
+    isHydrated,
+    refreshUserInfo,
   }), [
     theme,
     showSignModal,
@@ -215,6 +334,8 @@ export const AppContextProvider = ({ children }: { children: ReactNode }) => {
     userLoading,
     showFeedback,
     isAdmin,
+    isHydrated,
+    refreshUserInfo,
   ]);
 
   return (

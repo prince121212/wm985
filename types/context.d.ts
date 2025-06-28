@@ -12,5 +12,7 @@ export interface ContextValue {
   showFeedback: boolean;
   setShowFeedback: (show: boolean) => void;
   isAdmin: boolean;
+  isHydrated: boolean;
+  refreshUserInfo: () => Promise<void>;
   [propName: string]: any;
 }
