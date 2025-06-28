@@ -1,8 +1,10 @@
 name: Deploy to Vercel
 
 on:
-  push:
-    branches: [ master ]
+  # 暂停自动部署 - 取消注释下面的行来重新启用
+  # push:
+  #   branches: [ master ]
+  workflow_dispatch: # 允许手动触发
 
 jobs:
   deploy:
