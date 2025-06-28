@@ -3,12 +3,17 @@
 import Analytics from "@/components/analytics";
 import { CacheKey } from "@/services/constant";
 import { ThemeProvider as NextThemesProvider } from "next-themes";
-import SignModal from "@/components/sign/modal";
+import dynamic from "next/dynamic";
 import type { ThemeProviderProps } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { cacheGet } from "@/lib/cache";
 import { useAppContext } from "@/contexts/app";
 import { useEffect } from "react";
+
+// 动态导入 SignModal，只在客户端渲染
+const SignModal = dynamic(() => import("@/components/sign/modal"), {
+  ssr: false,
+});
 
 export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   const { theme, setTheme } = useAppContext();

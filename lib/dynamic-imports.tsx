@@ -134,7 +134,7 @@ export const DynamicLibraries = {
 export function createDynamicComponent<T = {}>(
   importFn: () => Promise<{ default: ComponentType<T> }>,
   options: {
-    loading?: () => React.ReactNode;
+    loading?: () => React.ReactElement | null;
     fallback?: ComponentType<T>;
     ssr?: boolean;
   } = {}
