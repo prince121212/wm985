@@ -11,7 +11,7 @@ import { emailService } from "@/services/email";
 import { DEFAULT_AVATAR_URL, PASSWORD_CONFIG } from "@/lib/constants";
 import { log } from "@/lib/logger";
 import { isValidEmail } from "@/lib/email-validator";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {

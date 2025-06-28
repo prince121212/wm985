@@ -2,7 +2,6 @@ packages:
   - "."
 
 onlyBuiltDependencies:
-  - bcrypt
   - esbuild
   - sharp
   - workerd

@@ -4,7 +4,7 @@ import { findEmailUser, updateUserPassword } from "@/models/user";
 import { PASSWORD_CONFIG } from "@/lib/constants";
 import { log } from "@/lib/logger";
 import { isValidEmail } from "@/lib/email-validator";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   let email = '';

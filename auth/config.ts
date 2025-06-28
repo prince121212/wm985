@@ -10,7 +10,7 @@ import { getUuid } from "@/lib/hash";
 import { saveUser } from "@/services/user";
 import { findEmailUser } from "@/models/user";
 import { log } from "@/lib/logger";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 let providers: Provider[] = [];
 
