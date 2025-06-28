@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 import { Tag } from "@/types/resource";
+import { log } from "@/lib/logger";
 
 // 预定义的标签颜色
 const tagColors = [
@@ -46,7 +47,7 @@ interface TagItemProps {
 }
 
 function TagItem({ tag, maxUsage, colorIndex }: TagItemProps) {
-  const ratio = tag.usage_count / maxUsage;
+  const ratio = (tag.usage_count || 0) / Math.max(maxUsage, 1);
 
   // 根据使用频率确定样式类别
   let buttonClass = "";
@@ -86,7 +87,7 @@ function TagItem({ tag, maxUsage, colorIndex }: TagItemProps) {
       <button className={`${buttonClass} ${sizeClass}`}>
         {tag.name}
         <span className="text-xs opacity-80 ml-1">
-          ({tag.usage_count})
+          ({tag.usage_count || 0})
         </span>
       </button>
     </Link>
@@ -113,21 +114,42 @@ export default function TagsCloud() {
   const fetchTags = async () => {
     try {
       setLoading(true);
+      log.info("开始获取标签云数据", {
+        endpoint: "/api/tags",
+        params: { type: "popular", limit: 50 }
+      });
+
       const response = await fetch('/api/tags?type=popular&limit=50');
+
       if (response.ok) {
         const result = await response.json();
         if (result.code === 0 && result.data?.tags) {
+          log.info("标签云数据获取成功", {
+            tagsCount: result.data.tags.length,
+            endpoint: "/api/tags"
+          });
           setTags(result.data.tags);
         } else {
-          console.error("API返回错误:", result.message);
+          log.error("标签云API返回错误", new Error(result.message || "未知错误"), {
+            endpoint: "/api/tags",
+            responseCode: result.code,
+            message: result.message
+          });
           setTags([]);
         }
       } else {
-        console.error("API请求失败:", response.status);
+        log.error("标签云API请求失败", new Error(`HTTP ${response.status}`), {
+          endpoint: "/api/tags",
+          status: response.status,
+          statusText: response.statusText
+        });
         setTags([]);
       }
     } catch (error) {
-      console.error("获取标签失败:", error);
+      log.error("获取标签云数据失败", error as Error, {
+        endpoint: "/api/tags",
+        params: { type: "popular", limit: 50 }
+      });
       setTags([]);
     } finally {
       setLoading(false);
@@ -152,7 +174,7 @@ export default function TagsCloud() {
     );
   }
 
-  const maxUsage = tags.length > 0 ? Math.max(...tags.map(tag => tag.usage_count)) : 1;
+  const maxUsage = tags.length > 0 ? Math.max(...tags.map(tag => tag.usage_count || 0)) : 1;
 
   return (
     <div className="max-w-4xl mx-auto">

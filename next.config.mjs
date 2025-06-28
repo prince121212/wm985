@@ -211,14 +211,13 @@ const nextConfig = {
   webpack: (config, { isServer, dev, webpack }) => {
     // 简化的 webpack 配置，专注于解决 self 问题
     if (isServer) {
-      // 使用 DefinePlugin 来定义全局变量
-      config.plugins = config.plugins || [];
-      config.plugins.push(
-        new webpack.DefinePlugin({
-          'self': 'global',
-          'window': 'global'
-        })
-      );
+      // 为服务端设置必要的全局变量，但不覆盖 React 相关的全局变量
+      if (typeof global !== 'undefined') {
+        // 只在需要时设置 self，不影响 React
+        if (!global.self) {
+          global.self = global;
+        }
+      }
 
       // 在服务器端排除浏览器特有的包
       config.externals = config.externals || [];
