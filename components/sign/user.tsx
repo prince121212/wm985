@@ -55,7 +55,7 @@ export default function SignUser({ user }: { user: User }) {
 
         <DropdownMenuItem
           className="flex justify-center cursor-pointer"
-          onClick={() => signOut()}
+          onClick={() => signOut({ callbackUrl: window.location.origin })}
         >
           {t("user.sign_out")}
         </DropdownMenuItem>

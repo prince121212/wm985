@@ -96,7 +96,7 @@ export default function () {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="cursor-pointer"
-                  onClick={() => signOut()}
+                  onClick={() => signOut({ callbackUrl: window.location.origin })}
                 >
                   <LogOut />
                   {t("user.sign_out")}
