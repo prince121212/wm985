@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 import ResourceList from "@/components/blocks/resource-list";
 import ResourceFilter from "@/components/blocks/resource-filter";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createPageMetadata, createSearchTitle, createCategoryTitle, createTagsTitle, PAGE_TITLES, PAGE_DESCRIPTIONS } from "@/lib/metadata";
 
 // 复用现有的页面布局模式
 export default async function ResourcesPage({
@@ -76,55 +77,27 @@ export async function generateMetadata({
   }>;
 }) {
   const params = await searchParams;
-  const t = await getTranslations();
 
-  let title = "资源库 - 文明资源站";
-  let description = "发现和访问各种优质资源，包括设计素材、开发工具、文档模板、音频视频素材等。免费和付费资源应有尽有。";
+  let title: string = PAGE_TITLES.RESOURCES;
+  let description: string = PAGE_DESCRIPTIONS.RESOURCES;
 
   if (params.search) {
-    title = `"${params.search}" 搜索结果 - 资源库 - 文明资源站`;
+    title = createSearchTitle(params.search);
     description = `搜索"${params.search}"相关的优质资源，包括设计素材、开发工具、文档模板等。`;
   } else if (params.category) {
-    title = `${params.category}分类资源 - 资源库 - 文明资源站`;
+    title = createCategoryTitle(params.category);
     description = `浏览${params.category}分类下的所有优质资源，精选高质量内容，免费访问。`;
   } else if (params.tags) {
-    const tagList = params.tags.split(',').slice(0, 3).join('、');
-    title = `${tagList}标签资源 - 资源库 - 文明资源站`;
-    description = `查看${tagList}相关的优质资源，精心筛选的高质量内容。`;
+    const tagList = params.tags.split(',').filter(Boolean);
+    title = createTagsTitle(tagList);
+    description = `查看${tagList.slice(0, 3).join('、')}相关的优质资源，精心筛选的高质量内容。`;
   }
 
-  return {
+  return createPageMetadata({
     title,
     description,
-    keywords: "资源库,资源访问,设计素材,开发工具,文档模板,音频素材,视频素材,免费资源,付费资源,文明资源站",
-    openGraph: {
-      title,
-      description,
-      type: 'website',
-      locale: 'zh_CN',
-      url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/resources`,
-      siteName: '文明资源站',
-      images: [
-        {
-          url: '/og-image.jpg',
-          width: 1200,
-          height: 630,
-          alt: '文明资源站 - 优质资源分享平台',
-        },
-      ],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title,
-      description,
-      images: ['/og-image.jpg'],
-    },
-    alternates: {
-      canonical: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/resources`,
-      languages: {
-        'zh-CN': `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/zh/resources`,
-        'en-US': `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/en/resources`,
-      },
-    },
-  };
+    keywords: "资源库,资源访问,设计素材,开发工具,文档模板,音频素材,视频素材,免费资源,付费资源,文明",
+    url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/resources`,
+    locale: 'zh_CN',
+  });
 }

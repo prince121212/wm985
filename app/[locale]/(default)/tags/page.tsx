@@ -1,11 +1,10 @@
 import { Suspense } from "react";
-import { getTranslations } from "next-intl/server";
 import TagsCloudWrapper from "@/components/blocks/tags-cloud-wrapper";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createPageMetadata, PAGE_TITLES, PAGE_DESCRIPTIONS } from "@/lib/metadata";
 
 export default async function TagsPage() {
-  const t = await getTranslations();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -52,11 +51,11 @@ function TagsCloudSkeleton() {
 }
 
 export async function generateMetadata() {
-  const t = await getTranslations();
-
-  return {
-    title: "资源标签 - 文明资源站",
-    description: "通过标签快速找到相关资源，浏览热门标签和主题",
+  return createPageMetadata({
+    title: PAGE_TITLES.TAGS,
+    description: PAGE_DESCRIPTIONS.TAGS,
     keywords: "资源标签,标签云,热门标签,资源主题",
-  };
+    url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/tags`,
+    locale: 'zh_CN',
+  });
 }

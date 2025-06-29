@@ -1,8 +1,8 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
 import ResourceDetail from "@/components/blocks/resource-detail";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createPageMetadata } from "@/lib/metadata";
 
 interface ResourcePageProps {
   params: Promise<{
@@ -12,8 +12,8 @@ interface ResourcePageProps {
 }
 
 export default async function ResourcePage({ params }: ResourcePageProps) {
-  const { id, locale } = await params;
-  const t = await getTranslations();
+  const { id } = await params;
+
 
   // 这里应该从API获取资源详情
   // const resource = await getResourceByUuid(id);
@@ -54,7 +54,6 @@ function ResourceDetailSkeleton() {
 
 export async function generateMetadata({ params }: ResourcePageProps) {
   const { id } = await params;
-  const t = await getTranslations();
 
   // TODO: 在实际应用中，这里应该根据资源ID获取真实的资源信息
   // const resource = await getResourceByUuid(id);
@@ -63,34 +62,12 @@ export async function generateMetadata({ params }: ResourcePageProps) {
   const resourceTitle = "资源详情";
   const resourceDescription = "查看资源的详细信息，包括文件类型、大小、作者、评分等。高质量资源，安全下载。";
 
-  return {
-    title: `${resourceTitle} - 文明资源站`,
+  return createPageMetadata({
+    title: resourceTitle,
     description: resourceDescription,
     keywords: "资源详情,文件下载,资源信息,设计素材,开发工具,文档模板",
-    openGraph: {
-      title: `${resourceTitle} - 文明资源站`,
-      description: resourceDescription,
-      type: 'article',
-      locale: 'zh_CN',
-      url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.top'}/resources/${id}`,
-      siteName: '文明资源站',
-      images: [
-        {
-          url: '/og-image.jpg',
-          width: 1200,
-          height: 630,
-          alt: '文明资源站 - 优质资源详情',
-        },
-      ],
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: `${resourceTitle} - 文明资源站`,
-      description: resourceDescription,
-      images: ['/og-image.jpg'],
-    },
-    alternates: {
-      canonical: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.top'}/resources/${id}`,
-    },
-  };
+    url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.top'}/resources/${id}`,
+    locale: 'zh_CN',
+    type: 'article',
+  });
 }

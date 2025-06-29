@@ -1,11 +1,10 @@
 import { Suspense } from "react";
-import { getTranslations } from "next-intl/server";
 import ResourceUploadForm from "@/components/blocks/resource-upload-form";
+import { createPageMetadata, PAGE_TITLES, PAGE_DESCRIPTIONS } from "@/lib/metadata";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default async function UploadPage() {
-  const t = await getTranslations();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -79,11 +78,11 @@ function UploadFormSkeleton() {
 }
 
 export async function generateMetadata() {
-  const t = await getTranslations();
-
-  return {
-    title: "上传资源 - 文明资源站",
-    description: "上传和分享您的优质资源，帮助更多人获得价值",
+  return createPageMetadata({
+    title: PAGE_TITLES.UPLOAD,
+    description: PAGE_DESCRIPTIONS.UPLOAD,
     keywords: "资源上传,文件分享,资源分享,文明资源",
-  };
+    url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/upload`,
+    locale: 'zh_CN',
+  });
 }

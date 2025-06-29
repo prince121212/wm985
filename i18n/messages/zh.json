@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "title": "文明资源共享平台 | 文明资源站",
-    "description": "文明资源站是一个开放的资源共享平台，提供各种文明相关的资源下载和分享服务。",
-    "keywords": "文明资源站, 资源共享, 文明资源, 资源下载"
+    "title": "文明",
+    "description": "文明知识库是一个开放的资源共享平台，提供各种文明相关的资源下载和分享服务。",
+    "keywords": "文明知识库, 资源共享, 文明资源, 资源下载"
   },
   "user": {
     "sign_in": "登录",
@@ -36,7 +36,7 @@
   },
   "my_orders": {
     "title": "我的订单",
-    "description": "在文明资源站上的订单记录。",
+    "description": "在文明知识库上的订单记录。",
     "no_orders": "未找到订单",
     "tip": "",
     "activate_order": "激活订单",
@@ -84,7 +84,7 @@
   },
   "blog": {
     "title": "博客",
-    "description": "关于文明资源站的新闻、资源和更新",
+    "description": "关于文明知识库的新闻、资源和更新",
     "read_more_text": "阅读更多"
   },
   "my_invites": {
@@ -95,7 +95,7 @@
     "edit_invite_link": "编辑邀请链接",
     "copy_invite_link": "复制邀请链接",
     "invite_code": "邀请码",
-    "invite_tip": "每邀请 1 位朋友使用文明资源站，获得积分奖励。",
+    "invite_tip": "每邀请 1 位朋友使用文明知识库，获得积分奖励。",
     "invite_balance": "邀请奖励余额",
     "total_invite_count": "总邀请人数",
     "total_paid_count": "已充值人数",
@@ -103,7 +103,7 @@
     "update_invite_code": "设置邀请码",
     "update_invite_code_tip": "输入你的自定义邀请码",
     "update_invite_button": "保存",
-    "no_orders": "你需要先在文明资源站有活动记录才能邀请朋友",
+    "no_orders": "你需要先在文明知识库有活动记录才能邀请朋友",
     "no_affiliates": "你暂无邀请朋友的权限，请联系我们申请开通。",
     "table": {
       "invite_time": "邀请时间",
@@ -139,7 +139,7 @@
     "submit": "提交",
     "loading": "提交中...",
     "contact_tip": "其他联系方式",
-    "rating_tip": "您对文明资源站的看法如何？",
+    "rating_tip": "您对文明知识库的看法如何？",
     "placeholder": "在这里留下您的反馈...",
     "success": "感谢您的反馈！",
     "error_empty": "请输入反馈内容",

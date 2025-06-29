@@ -91,7 +91,7 @@ export function MobileNav() {
                 <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
                   <Grid3X3 className="h-4 w-4 text-primary-foreground" />
                 </div>
-                <span className="font-semibold">文明资源站</span>
+                <span className="font-semibold">文明知识库</span>
               </div>
               <Button 
                 variant="ghost" 

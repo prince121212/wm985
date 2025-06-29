@@ -1,7 +1,7 @@
 import { getUserInfo } from "@/services/user";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
 import MyFavoritesList from "@/components/blocks/my-favorites-list";
+import { createPageMetadata, PAGE_TITLES, PAGE_DESCRIPTIONS } from "@/lib/metadata";
 
 export default async function MyFavoritesPage() {
   const userInfo = await getUserInfo();
@@ -9,7 +9,7 @@ export default async function MyFavoritesPage() {
     redirect("/auth/signin");
   }
 
-  const t = await getTranslations();
+
 
   return (
     <div className="space-y-6">
@@ -27,10 +27,11 @@ export default async function MyFavoritesPage() {
 }
 
 export async function generateMetadata() {
-  const t = await getTranslations();
-
-  return {
-    title: "我的收藏 - 文明资源站",
-    description: "管理您收藏的资源，快速访问感兴趣的内容",
-  };
+  return createPageMetadata({
+    title: PAGE_TITLES.MY_FAVORITES,
+    description: PAGE_DESCRIPTIONS.MY_FAVORITES,
+    keywords: "我的收藏,收藏管理,收藏资源,个人收藏",
+    url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/my-favorites`,
+    locale: 'zh_CN',
+  });
 }

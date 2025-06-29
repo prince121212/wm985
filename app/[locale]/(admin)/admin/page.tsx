@@ -49,7 +49,7 @@ export default async function AdminDashboardPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">管理后台</h1>
           <p className="text-muted-foreground">
-            欢迎回来，管理员。这里是文明资源站的管理控制台。
+            欢迎回来，管理员。这里是文明知识库的管理控制台。
           </p>
         </div>
 

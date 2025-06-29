@@ -3,10 +3,10 @@
   "theme": "light",
   "header": {
     "brand": {
-      "title": "Civilization Resources",
+      "title": "Civilization Knowledge Base",
       "logo": {
         "src": "/logo.png",
-        "alt": "Civilization Resources"
+        "alt": "Civilization Knowledge Base"
       },
       "url": "/"
     },
@@ -49,9 +49,9 @@
     "show_locale": true
   },
   "hero": {
-    "title": "Civilization Resources Sharing Platform, Gathering Human Wisdom",
-    "highlight_text": "Civilization Resources",
-    "description": "Civilization Resources is an open resource sharing platform.<br/>Discover, share and download various civilization-related precious resources.",
+    "title": "Civilization Knowledge Base Sharing Platform, Gathering Human Wisdom",
+    "highlight_text": "Civilization Knowledge Base",
+    "description": "Civilization Knowledge Base is an open resource sharing platform.<br/>Discover, share and download various civilization-related precious resources.",
 
     "buttons": [],
     "show_happy_users": false,
@@ -557,15 +557,15 @@
   "footer": {
     "name": "footer",
     "brand": {
-      "title": "文明知识库",
-      "description": "文明知识库是一个专注于文明资源分享的平台。通过丰富的资源和分类快速获取知识。",
+      "title": "Civilization Knowledge Base",
+      "description": "Civilization Knowledge Base is a platform focused on sharing civilization resources. Quickly access knowledge through rich resources and categories.",
       "logo": {
         "src": "/logo.png",
-        "alt": "文明知识库"
+        "alt": "Civilization Knowledge Base"
       },
       "url": "/"
     },
-    "copyright": "© 2025 • 文明知识库 保留所有权利。",
+    "copyright": "© 2025 • Civilization Knowledge Base. All rights reserved.",
     "nav": {
       "items": [
         {
@@ -587,7 +587,7 @@
           "title": "Resources",
           "children": [
             {
-              "title": "文明知识库",
+              "title": "Civilization Knowledge Base",
               "url": "https://wm985.top",
               "target": "_blank"
             }
@@ -597,7 +597,7 @@
           "title": "Friends",
           "children": [
             {
-              "title": "文明知识库",
+              "title": "Civilization Knowledge Base",
               "url": "https://wm985.top",
               "target": "_blank"
             }

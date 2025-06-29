@@ -1,7 +1,7 @@
 import { getUserInfo } from "@/services/user";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
 import ProfileTabs from "@/components/blocks/profile-tabs";
+import { createPageMetadata, PAGE_TITLES, PAGE_DESCRIPTIONS } from "@/lib/metadata";
 
 export default async function UserCenterPage() {
   const userInfo = await getUserInfo();
@@ -9,7 +9,7 @@ export default async function UserCenterPage() {
     redirect("/auth/signin");
   }
 
-  const t = await getTranslations();
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -24,11 +24,11 @@ export default async function UserCenterPage() {
 }
 
 export async function generateMetadata() {
-  const t = await getTranslations();
-
-  return {
-    title: "用户中心 - 文明资源站",
-    description: "管理您的个人信息、上传资源、收藏内容等",
+  return createPageMetadata({
+    title: PAGE_TITLES.USER_CENTER,
+    description: PAGE_DESCRIPTIONS.USER_CENTER,
     keywords: "用户中心,个人资料,我的上传,我的收藏,积分管理",
-  };
+    url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/user-center`,
+    locale: 'zh_CN',
+  });
 }

@@ -22,10 +22,10 @@ export default async function AdminLayout({
 
   const sidebar: Sidebar = {
     brand: {
-      title: "文明资源站",
+      title: "文明知识库",
       logo: {
         src: "/logo.png",
-        alt: "文明资源站",
+        alt: "文明知识库",
       },
       url: "/admin",
     },

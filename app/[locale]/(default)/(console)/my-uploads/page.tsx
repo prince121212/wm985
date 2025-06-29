@@ -1,7 +1,7 @@
 import { getUserInfo } from "@/services/user";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
 import MyUploadsList from "@/components/blocks/my-uploads-list";
+import { createPageMetadata, PAGE_TITLES, PAGE_DESCRIPTIONS } from "@/lib/metadata";
 
 export default async function MyUploadsPage() {
   const userInfo = await getUserInfo();
@@ -9,7 +9,7 @@ export default async function MyUploadsPage() {
     redirect("/auth/signin");
   }
 
-  const t = await getTranslations();
+
 
   return (
     <div className="space-y-6">
@@ -27,10 +27,11 @@ export default async function MyUploadsPage() {
 }
 
 export async function generateMetadata() {
-  const t = await getTranslations();
-
-  return {
-    title: "我的上传 - 文明资源站",
-    description: "管理您上传的资源，查看审核状态和下载统计",
-  };
+  return createPageMetadata({
+    title: PAGE_TITLES.MY_UPLOADS,
+    description: PAGE_DESCRIPTIONS.MY_UPLOADS,
+    keywords: "我的上传,上传管理,资源管理,上传历史",
+    url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/my-uploads`,
+    locale: 'zh_CN',
+  });
 }

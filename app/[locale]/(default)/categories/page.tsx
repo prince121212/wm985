@@ -1,11 +1,10 @@
 import { Suspense } from "react";
-import { getTranslations } from "next-intl/server";
 import CategoriesListWrapper from "@/components/blocks/categories-list-wrapper";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createPageMetadata, PAGE_TITLES, PAGE_DESCRIPTIONS } from "@/lib/metadata";
 
 export default async function CategoriesPage() {
-  const t = await getTranslations();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -52,11 +51,11 @@ function CategoriesListSkeleton() {
 }
 
 export async function generateMetadata() {
-  const t = await getTranslations();
-
-  return {
-    title: "资源分类 - 文明资源站",
-    description: "浏览不同类别的资源，包括设计素材、开发工具、文档模板等",
+  return createPageMetadata({
+    title: PAGE_TITLES.CATEGORIES,
+    description: PAGE_DESCRIPTIONS.CATEGORIES,
     keywords: "资源分类,分类浏览,设计素材,开发工具,文档模板",
-  };
+    url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/categories`,
+    locale: 'zh_CN',
+  });
 }

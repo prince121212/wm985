@@ -61,7 +61,7 @@ export default function ResourceUploadForm() {
       console.error("获取分类失败:", error);
       toast.error("获取分类失败");
 
-      // 使用文明资源站分类作为后备
+      // 使用文明知识库分类作为后备
       setCategories([
         { id: 1, name: "文学作品" },
         { id: 2, name: "艺术设计" },
