@@ -111,7 +111,7 @@ export async function decreaseCredits({
       }
     }
 
-    const new_credit: Credit = {
+    const new_credit: Omit<Credit, 'id'> = {
       trans_no: getSnowId(),
       created_at: getIsoTimestr(),
       user_uuid: user_uuid,
@@ -141,7 +141,7 @@ export async function increaseCredits({
   order_no?: string;
 }) {
   try {
-    const new_credit: Credit = {
+    const new_credit: Omit<Credit, 'id'> = {
       trans_no: getSnowId(),
       created_at: getIsoTimestr(),
       user_uuid: user_uuid,

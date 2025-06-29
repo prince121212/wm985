@@ -1,7 +1,7 @@
 import { Credit } from "@/types/credit";
 import { getSupabaseClient } from "@/models/db";
 
-export async function insertCredit(credit: Credit) {
+export async function insertCredit(credit: Omit<Credit, 'id'>) {
   const supabase = getSupabaseClient();
   const { data, error } = await supabase.from("credits").insert(credit);
 
