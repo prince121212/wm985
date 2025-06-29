@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { getTransactionTypeText, isResourceAccessTransaction } from "@/constants/transactionTypes";
+import { truncateResourceTitle, getResourceLinkTitle } from "@/utils/creditUtils";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -774,19 +776,23 @@ function MyCredits() {
                 {(showAll ? creditHistory : creditHistory.slice(0, 5)).map((record, index) => (
                   <div key={index} className="flex items-center justify-between py-2 border-b last:border-b-0">
                     <div className="flex-1">
-                      <div className="font-medium">{getTransactionTypeText(record.trans_type)}</div>
-                      {/* 如果是资源访问且有资源信息，显示资源名称 */}
-                      {record.trans_type === 'resource_access' && record.resource ? (
-                        <div className="text-sm text-blue-600 hover:text-blue-800 cursor-pointer mt-1">
-                          <a
-                            href={`/resources/${record.resource.uuid}`}
-                            className="hover:underline"
-                            title="点击查看资源详情"
-                          >
-                            📄 {record.resource.title}
-                          </a>
-                        </div>
-                      ) : null}
+                      <div className="font-medium">
+                        {getTransactionTypeText(record.trans_type)}
+                        {record.trans_type === 'resource_access' && record.resource ? (
+                          <>
+                            --
+                            <a
+                              href={record.resource.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 hover:underline"
+                              title={getResourceLinkTitle(record.resource)}
+                            >
+                              {truncateResourceTitle(record.resource.title)}
+                            </a>
+                          </>
+                        ) : null}
+                      </div>
                       <div className="text-sm text-muted-foreground mt-1">
                         {new Date(record.created_at).toLocaleDateString('zh-CN', {
                           year: 'numeric',
@@ -856,25 +862,7 @@ function MyCredits() {
   );
 }
 
-// 获取交易类型文本
-function getTransactionTypeText(transType: string): string {
-  const typeMap: { [key: string]: string } = {
-    'new_user': '新用户奖励',
-    'order_pay': '充值',
-    'system_add': '系统赠送',
-    'ping': 'API测试',
-    'resource_access': '访问资源',
-    'recharge': '充值',
-    'download': '访问资源',
-    'upload_reward': '上传奖励',
-    'daily_signin': '每日签到',
-    'invite_reward': '邀请奖励',
-    'refund': '退款',
-    'admin_adjust': '管理员调整',
-  };
 
-  return typeMap[transType] || transType;
-}
 
 // 我的邀请组件
 function MyInvites({ user }: { user?: any }) {

@@ -5,9 +5,11 @@ import { getCreditsByUserUuid } from "@/models/credit";
 import { getTranslations } from "next-intl/server";
 import { getUserCredits } from "@/services/credit";
 import { getUserUuid } from "@/services/user";
+import { enrichCreditsWithResources, truncateResourceTitle, getResourceLinkTitle } from "@/utils/creditUtils";
+import { getTransactionTypeText, isResourceAccessTransaction } from "@/constants/transactionTypes";
 import moment from "moment";
 
-export default async function () {
+export default async function MyCreditsPage() {
   const t = await getTranslations();
 
   const user_uuid = await getUserUuid();
@@ -16,7 +18,10 @@ export default async function () {
     return <Empty message="no auth" />;
   }
 
-  const data = await getCreditsByUserUuid(user_uuid, 1, 100);
+  const rawData = await getCreditsByUserUuid(user_uuid, 1, 100);
+
+  // 使用公共函数批量增强积分记录
+  const data = await enrichCreditsWithResources(rawData || []);
 
   const userCredits = await getUserCredits(user_uuid);
 
@@ -44,6 +49,30 @@ export default async function () {
       {
         title: t("my_credits.table.trans_type"),
         name: "trans_type",
+        callback: (v: any) => {
+          const baseText = getTransactionTypeText(v.trans_type);
+
+          // 如果是资源访问且有资源信息，在后面加上资源名称
+          if (isResourceAccessTransaction(v.trans_type) && v.resource) {
+            const resourceName = truncateResourceTitle(v.resource.title);
+            return (
+              <span>
+                {baseText}--
+                <a
+                  href={v.resource.file_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:text-blue-800 hover:underline"
+                  title={getResourceLinkTitle(v.resource)}
+                >
+                  {resourceName}
+                </a>
+              </span>
+            );
+          }
+
+          return baseText;
+        },
       },
       {
         title: t("my_credits.table.credits"),
