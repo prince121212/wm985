@@ -24,11 +24,21 @@ import {
   CheckCircle,
   Edit,
   BarChart3,
-  Info
+  Info,
+  RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { toast } from "sonner";
+
+// 类型定义
+interface StatsType {
+  total: number;
+  approved: number;
+  pending: number;
+  rejected: number;
+  totalViews: number;
+}
 
 // 辅助函数
 const getStatusText = (status: string) => {
@@ -305,7 +315,8 @@ function ProfileInfo({ user }: { user?: any }) {
 function MyUploads() {
   const [uploads, setUploads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<StatsType | null>(null);
+  const [refreshingTotalAccess, setRefreshingTotalAccess] = useState(false);
 
   useEffect(() => {
     fetchMyUploads();
@@ -326,6 +337,46 @@ function MyUploads() {
       console.error("获取我的上传失败:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRefreshTotalAccess = async () => {
+    try {
+      setRefreshingTotalAccess(true);
+      const response = await fetch('/api/users/refresh-total-access', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.code === 0) {
+          // 更新stats中的totalViews
+          setStats((prev: StatsType | null) => {
+            if (!prev) return prev;
+            return {
+              ...prev,
+              totalViews: data.data.total_access_count
+            };
+          });
+          toast.success("总访问数已刷新");
+        } else {
+          throw new Error(data.message || '刷新失败');
+        }
+      } else {
+        throw new Error('刷新失败');
+      }
+    } catch (error) {
+      console.error("刷新总访问数失败:", error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("刷新总访问数失败，请稍后再试");
+      }
+    } finally {
+      setRefreshingTotalAccess(false);
     }
   };
 
@@ -393,7 +444,19 @@ function MyUploads() {
             </Card>
             <Card>
               <CardContent className="p-4 text-center">
-                <div className="text-2xl font-bold text-blue-600">{stats.totalViews || 0}</div>
+                <div className="flex items-center justify-center gap-2 mb-1">
+                  <div className="text-2xl font-bold text-blue-600">{stats.totalViews || 0}</div>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={handleRefreshTotalAccess}
+                    disabled={refreshingTotalAccess}
+                    className="h-6 w-6 p-0"
+                    title="刷新总访问数"
+                  >
+                    <RefreshCw className={`h-3 w-3 ${refreshingTotalAccess ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
                 <div className="text-sm text-muted-foreground">总访问</div>
               </CardContent>
             </Card>
@@ -778,20 +841,24 @@ function MyCredits() {
                     <div className="flex-1">
                       <div className="font-medium">
                         {getTransactionTypeText(record.trans_type)}
-                        {record.trans_type === 'resource_access' && record.resource ? (
+                        {record.trans_type === 'resource_access' && (
                           <>
                             --
-                            <a
-                              href={record.resource.file_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 hover:underline"
-                              title={getResourceLinkTitle(record.resource)}
-                            >
-                              {truncateResourceTitle(record.resource.title)}
-                            </a>
+                            {record.resource ? (
+                              <a
+                                href={record.resource.file_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 hover:underline"
+                                title={getResourceLinkTitle(record.resource)}
+                              >
+                                {truncateResourceTitle(record.resource.title)}
+                              </a>
+                            ) : (
+                              <span className="text-muted-foreground">资源已被清理</span>
+                            )}
                           </>
-                        ) : null}
+                        )}
                       </div>
                       <div className="text-sm text-muted-foreground mt-1">
                         {new Date(record.created_at).toLocaleDateString('zh-CN', {

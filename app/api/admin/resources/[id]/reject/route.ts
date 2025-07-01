@@ -2,6 +2,7 @@ import { respData, respErr, respInvalidParams, respUnauthorized, respNotFound } 
 import { getUserUuid, isUserAdmin, getUserEmail } from "@/services/user";
 import { log } from "@/lib/logger";
 import { findResourceByUuid, updateResource } from "@/models/resource";
+import { getSupabaseClient, withRetry } from "@/models/db";
 
 interface RouteParams {
   params: Promise<{
@@ -68,13 +69,20 @@ export async function POST(req: Request, { params }: RouteParams) {
 
     await updateResource(id, updateData);
 
+    // 如果资源状态从approved变为rejected，更新用户的总通过审核资源数
+    if (oldStatus === 'approved') {
+      await updateUserApprovedResourcesCount(resource.author_id);
+    }
+
     // 审核日志功能已移除
 
     log.info("资源已拒绝", {
       resourceId: id,
       title: resource.title,
       user_uuid,
-      reason
+      reason,
+      authorId: resource.author_id,
+      oldStatus
     });
 
     return respData({
@@ -94,5 +102,47 @@ export async function POST(req: Request, { params }: RouteParams) {
     });
 
     return respErr("拒绝失败，请稍后再试");
+  }
+}
+
+// 更新用户的总通过审核资源数
+async function updateUserApprovedResourcesCount(authorId: string): Promise<void> {
+  try {
+    await withRetry(async () => {
+      const supabase = getSupabaseClient();
+
+      // 计算用户当前已通过审核的资源数
+      const { count, error: countError } = await supabase
+        .from("resources")
+        .select("*", { count: 'exact', head: true })
+        .eq("author_id", authorId)
+        .eq("status", "approved");
+
+      if (countError) {
+        log.error("计算用户审核通过资源数失败", countError, { authorId });
+        throw countError;
+      }
+
+      const approvedCount = count || 0;
+
+      // 更新用户表中的总通过审核资源数
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({ total_approved_resources: approvedCount })
+        .eq("uuid", authorId);
+
+      if (updateError) {
+        log.error("更新用户总通过审核资源数失败", updateError, { authorId, approvedCount });
+        throw updateError;
+      }
+
+      log.info("用户总通过审核资源数更新成功", {
+        authorId,
+        approvedCount
+      });
+    });
+  } catch (error) {
+    log.error("更新用户总通过审核资源数失败", error as Error, { authorId });
+    // 不抛出错误，避免影响主要的审核流程
   }
 }

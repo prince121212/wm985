@@ -41,8 +41,14 @@ CREATE TABLE IF NOT EXISTS users (
     email_verified BOOLEAN DEFAULT FALSE,
     email_verified_at timestamptz,
     password_hash VARCHAR(255), -- 用于邮箱注册用户的密码
+    total_access_count INTEGER NOT NULL DEFAULT 0, -- 用户总访问数
+    total_approved_resources INTEGER NOT NULL DEFAULT 0, -- 用户总通过审核的资源数
     UNIQUE (email, signin_provider)
 );
+
+-- 为已存在的用户表添加新字段（兼容已有数据库）
+ALTER TABLE users ADD COLUMN IF NOT EXISTS total_access_count INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS total_approved_resources INTEGER NOT NULL DEFAULT 0;
 
 -- 订单表
 CREATE TABLE IF NOT EXISTS orders (

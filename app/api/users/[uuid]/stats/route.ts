@@ -41,20 +41,20 @@ async function getUserStats(userUuid: string): Promise<{
   return withRetry(async () => {
     const supabase = getSupabaseClient();
 
-    // 获取用户上传的资源数量和总访问次数
+    // 直接从用户表获取统计信息
     const { data, error } = await supabase
-      .from("resources")
-      .select("id, access_count")
-      .eq("author_id", userUuid)
-      .eq("status", "approved"); // 只统计已审核通过的资源
+      .from("users")
+      .select("total_access_count, total_approved_resources")
+      .eq("uuid", userUuid)
+      .single();
 
     if (error) {
-      log.error("获取用户资源统计失败", error, { userUuid });
+      log.error("获取用户统计信息失败", error, { userUuid });
       throw error;
     }
 
-    const uploadedResourcesCount = data?.length || 0;
-    const totalVisitors = data?.reduce((sum, resource) => sum + (resource.access_count || 0), 0) || 0;
+    const uploadedResourcesCount = data?.total_approved_resources || 0;
+    const totalVisitors = data?.total_access_count || 0;
 
     log.info("用户统计信息获取成功", {
       userUuid,
