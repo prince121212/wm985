@@ -31,20 +31,32 @@ export default function BatchImportCategories({ open, onOpenChange }: BatchImpor
   {
     "name": "编程开发",
     "description": "编程相关的资源和教程",
-    "icon": "Code",
+    "icon": "code",
     "sort_order": 1
   },
   {
     "name": "设计素材",
     "description": "UI设计、平面设计等素材",
-    "icon": "Palette",
+    "icon": "palette",
     "sort_order": 2
   },
   {
     "name": "学术论文",
     "description": "各领域学术研究论文",
-    "icon": "FileText",
+    "icon": "file-text",
     "sort_order": 3
+  },
+  {
+    "name": "数据库技术",
+    "description": "MySQL、PostgreSQL、MongoDB等数据库技术",
+    "icon": "database",
+    "sort_order": 4
+  },
+  {
+    "name": "云计算",
+    "description": "AWS、Azure、阿里云等云服务技术",
+    "icon": "cloud",
+    "sort_order": 5
   }
 ]`;
 
@@ -190,7 +202,7 @@ export default function BatchImportCategories({ open, onOpenChange }: BatchImpor
             <ul className="text-sm text-muted-foreground space-y-1">
               <li>• <code>name</code>: 分类名称（必填，最多50字符）</li>
               <li>• <code>description</code>: 分类描述（可选，最多200字符）</li>
-              <li>• <code>icon</code>: 图标名称（可选，使用Lucide图标名称）</li>
+              <li>• <code>icon</code>: 图标名称（可选，使用kebab-case格式，如 "code", "file-text"）</li>
               <li>• <code>sort_order</code>: 排序号（可选，数字类型）</li>
               <li>• <code>parent_id</code>: 父分类ID（可选，数字类型）</li>
             </ul>

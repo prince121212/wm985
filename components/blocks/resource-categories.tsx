@@ -5,27 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  FileText,
-  Image,
-  Music,
-  Video,
-  Code,
-  Database,
-  Layout,
-  BookOpen,
-  ArrowRight
+  ArrowRight,
+  Layout
 } from "lucide-react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
+import { DynamicIcon } from "@/components/ui/dynamic-icon";
 
-// 分类图标映射 - 保持当前系统的Lucide图标
-const categoryIcons = {
-  "文学作品": BookOpen,
-  "艺术设计": Image,
-  "音乐舞蹈": Music,
-  "历史文化": Layout,
-  "戏曲表演": Video,
-  "教育资料": FileText,
+// 分类图标映射 - 作为备用方案保留
+const categoryIconFallback = {
+  "文学作品": "book-open",
+  "艺术设计": "image",
+  "音乐舞蹈": "music",
+  "历史文化": "layout",
+  "戏曲表演": "video",
+  "教育资料": "file-text",
 };
 
 // 分类背景色映射 - 参考原型图的不同颜色
@@ -194,7 +188,8 @@ export default function ResourceCategories({
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 lg:gap-6 mb-8">
           {visibleCategories.map((category) => {
-            const IconComponent = categoryIcons[category.name as keyof typeof categoryIcons] || FileText;
+            // 优先使用数据库中的icon字段，如果没有则使用备用映射
+            const iconName = category.icon || categoryIconFallback[category.name as keyof typeof categoryIconFallback] || "file-text";
             const bgColor = categoryColors[category.name as keyof typeof categoryColors] || "bg-gray-100 dark:bg-gray-900";
 
             return (
@@ -202,7 +197,10 @@ export default function ResourceCategories({
                 <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 cursor-pointer text-center">
                   <CardContent className="p-4 lg:p-6">
                     <div className={`w-10 h-10 lg:w-12 lg:h-12 ${bgColor} rounded-lg flex items-center justify-center mx-auto mb-3 group-hover:scale-110 transition-transform`}>
-                      <IconComponent className="w-5 h-5 lg:w-6 lg:h-6 text-gray-700 dark:text-gray-300" />
+                      <DynamicIcon
+                        name={iconName}
+                        className="w-5 h-5 lg:w-6 lg:h-6 text-gray-700 dark:text-gray-300"
+                      />
                     </div>
                     <h3 className="font-medium mb-1 text-sm lg:text-base group-hover:text-primary transition-colors">{category.name}</h3>
                     <p className="text-xs lg:text-sm text-muted-foreground">

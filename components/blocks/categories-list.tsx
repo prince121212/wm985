@@ -8,31 +8,20 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Folder,
-  FolderOpen,
-  ChevronDown,
-  ChevronRight,
-  Palette,
-  Code,
-  FileText,
-  Music,
-  Video,
-  Image,
-  Type,
-  Package,
-  BookOpen,
   Layout
 } from "lucide-react";
 import { CategoryWithChildren } from "@/types/resource";
 import { buildCategoryTree } from "@/models/category";
+import { DynamicIcon } from "@/components/ui/dynamic-icon";
 
-// 分类图标映射 - 保持使用系统的Lucide图标
-const categoryIcons = {
-  "文学作品": FileText,
-  "艺术设计": Palette,
-  "音乐舞蹈": Music,
-  "历史文化": Package,
-  "戏曲表演": Video,
-  "教育资料": BookOpen,
+// 分类图标映射 - 作为备用方案保留
+const categoryIconFallback = {
+  "文学作品": "file-text",
+  "艺术设计": "palette",
+  "音乐舞蹈": "music",
+  "历史文化": "package",
+  "戏曲表演": "video",
+  "教育资料": "book-open",
 };
 
 interface CategoryCardProps {
@@ -42,7 +31,8 @@ interface CategoryCardProps {
 }
 
 function CategoryCard({ category, isExpanded, onToggle }: CategoryCardProps) {
-  const IconComponent = categoryIcons[category.name as keyof typeof categoryIcons] || Folder;
+  // 优先使用数据库中的icon字段，如果没有则使用备用映射
+  const iconName = category.icon || categoryIconFallback[category.name as keyof typeof categoryIconFallback] || "folder";
   const hasChildren = category.children && category.children.length > 0;
 
   return (
@@ -52,7 +42,10 @@ function CategoryCard({ category, isExpanded, onToggle }: CategoryCardProps) {
           <div className="flex items-center gap-4">
             <Link href={`/resources?category=${category.id}`}>
               <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center hover:bg-primary/20 transition-colors" onClick={(e) => e.stopPropagation()}>
-                <IconComponent className="h-6 w-6 text-primary" />
+                <DynamicIcon
+                  name={iconName}
+                  className="h-6 w-6 text-primary"
+                />
               </div>
             </Link>
             <div>
