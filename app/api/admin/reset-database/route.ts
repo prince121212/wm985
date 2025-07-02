@@ -150,7 +150,6 @@ export async function POST(req: Request) {
       resource_comments: 0,
       resource_ratings: 0,
       user_favorites: 0,
-      download_history: 0,
       resource_tags: 0,
       resources: 0,
       categories: 0,
@@ -197,20 +196,7 @@ export async function POST(req: Request) {
         log.info("收藏删除完成", { count: results.user_favorites });
       }
 
-      // 4. 删除下载历史
-      const { count: downloadHistoryCount, error: downloadHistoryError } = await supabase
-        .from("download_history")
-        .delete({ count: 'exact' })
-        .gte('id', 0);
-
-      if (downloadHistoryError) {
-        log.error("删除下载历史失败", downloadHistoryError);
-      } else {
-        results.download_history = downloadHistoryCount || 0;
-        log.info("下载历史删除完成", { count: results.download_history });
-      }
-
-      // 5. 删除资源标签关联
+      // 4. 删除资源标签关联
       const { count: resourceTagsCount, error: resourceTagsError } = await supabase
         .from("resource_tags")
         .delete({ count: 'exact' })
@@ -223,7 +209,7 @@ export async function POST(req: Request) {
         log.info("资源标签关联删除完成", { count: results.resource_tags });
       }
 
-      // 6. 删除资源
+      // 5. 删除资源
       const { count: resourcesCount, error: resourcesError } = await supabase
         .from("resources")
         .delete({ count: 'exact' })
@@ -236,7 +222,7 @@ export async function POST(req: Request) {
         log.info("资源删除完成", { count: results.resources });
       }
 
-      // 7. 删除分类
+      // 6. 删除分类
       const { count: categoriesCount, error: categoriesError } = await supabase
         .from("categories")
         .delete({ count: 'exact' })
@@ -249,7 +235,7 @@ export async function POST(req: Request) {
         log.info("分类删除完成", { count: results.categories });
       }
 
-      // 8. 删除标签
+      // 7. 删除标签
       const { count: tagsCount, error: tagsError } = await supabase
         .from("tags")
         .delete({ count: 'exact' })
