@@ -17,9 +17,16 @@ export async function GET(req: Request, { params }: RouteParams) {
       return respInvalidParams("用户UUID不能为空");
     }
 
-    log.info("获取用户统计信息", { userUuid: uuid });
+    // 检查是否需要强制刷新
+    const url = new URL(req.url);
+    const forceRefresh = url.searchParams.get('refresh') === 'true';
 
-    const stats = await getUserStats(uuid);
+    log.info("获取用户统计信息", {
+      userUuid: uuid,
+      forceRefresh
+    });
+
+    const stats = await getUserStats(uuid, forceRefresh);
 
     return respData({
       stats
@@ -34,19 +41,25 @@ export async function GET(req: Request, { params }: RouteParams) {
 }
 
 // 获取用户统计信息
-async function getUserStats(userUuid: string): Promise<{
+async function getUserStats(userUuid: string, forceRefresh: boolean = false): Promise<{
   uploadedResourcesCount: number;
   totalVisitors: number;
 }> {
   return withRetry(async () => {
     const supabase = getSupabaseClient();
 
-    // 直接从用户表获取统计信息
-    const { data, error } = await supabase
+    // 根据 forceRefresh 参数决定查询方式
+    let queryBuilder = supabase
       .from("users")
       .select("total_access_count, total_approved_resources")
-      .eq("uuid", userUuid)
-      .single();
+      .eq("uuid", userUuid);
+
+    // 如果强制刷新，添加额外条件来绕过查询缓存
+    if (forceRefresh) {
+      queryBuilder = queryBuilder.eq("created_at", "created_at");
+    }
+
+    const { data, error } = await queryBuilder.single();
 
     if (error) {
       log.error("获取用户统计信息失败", error, { userUuid });
