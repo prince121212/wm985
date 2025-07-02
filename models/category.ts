@@ -312,7 +312,7 @@ export async function getCategoryPath(categoryId: number): Promise<Category[]> {
   return withRetry(async () => {
     const categories = await getAllCategories();
     const categoryMap = new Map<number, Category>();
-    
+
     categories.forEach(category => {
       categoryMap.set(category.id!, category);
     });
@@ -323,11 +323,154 @@ export async function getCategoryPath(categoryId: number): Promise<Category[]> {
     while (currentId) {
       const category = categoryMap.get(currentId);
       if (!category) break;
-      
+
       path.unshift(category);
       currentId = category.parent_id;
     }
 
     return path;
+  });
+}
+
+// 分页查询分类（管理后台用）
+export async function getCategoriesWithPagination(params: {
+  page: number;
+  pageSize: number;
+  search?: string;
+  includeResourceCount?: boolean;
+  includeParentName?: boolean;
+}): Promise<{
+  categories: Category[];
+  total: number;
+}> {
+  return withRetry(async () => {
+    const supabase = getSupabaseClient();
+
+    // 构建查询
+    let query = supabase
+      .from("categories")
+      .select("*", { count: 'exact' });
+
+    // 搜索功能
+    if (params.search && params.search.trim()) {
+      const searchTerm = params.search.trim();
+      query = query.or(`name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%`);
+    }
+
+    // 排序
+    query = query.order("sort_order", { ascending: true })
+                 .order("created_at", { ascending: false });
+
+    // 分页
+    const offset = (params.page - 1) * params.pageSize;
+    query = query.range(offset, offset + params.pageSize - 1);
+
+    const { data, error, count } = await query;
+
+    if (error) {
+      log.error("分页查询分类失败", error, params);
+      throw error;
+    }
+
+    let categories = data || [];
+    const total = count || 0;
+
+    // 如果需要包含资源数量
+    if (params.includeResourceCount && categories.length > 0) {
+      try {
+        const categoryIds = categories.map(cat => cat.id).filter(Boolean);
+        const resourceCounts = await getCategoriesResourceCount(categoryIds);
+
+        categories = categories.map(cat => ({
+          ...cat,
+          resource_count: resourceCounts[cat.id!] || 0
+        }));
+      } catch (countError) {
+        log.warn("获取分类资源数量失败，使用默认值0", { error: countError });
+        categories = categories.map(cat => ({
+          ...cat,
+          resource_count: 0
+        }));
+      }
+    }
+
+    // 如果需要包含父分类名称
+    if (params.includeParentName && categories.length > 0) {
+      try {
+        const parentIds = categories
+          .map(cat => cat.parent_id)
+          .filter(Boolean) as number[];
+
+        if (parentIds.length > 0) {
+          const { data: parentCategories } = await supabase
+            .from("categories")
+            .select("id, name")
+            .in("id", parentIds);
+
+          const parentMap = new Map<number, string>();
+          (parentCategories || []).forEach(parent => {
+            parentMap.set(parent.id, parent.name);
+          });
+
+          categories = categories.map(cat => ({
+            ...cat,
+            parent_name: cat.parent_id ? parentMap.get(cat.parent_id) : undefined
+          }));
+        }
+      } catch (parentError) {
+        log.warn("获取父分类名称失败", { error: parentError });
+      }
+    }
+
+    log.info("分页查询分类成功", {
+      page: params.page,
+      pageSize: params.pageSize,
+      total,
+      returned: categories.length,
+      search: params.search
+    });
+
+    return {
+      categories,
+      total
+    };
+  });
+}
+
+// 获取指定分类的资源数量（批量查询优化版）
+export async function getCategoriesResourceCount(categoryIds: number[]): Promise<{ [categoryId: number]: number }> {
+  return withRetry(async () => {
+    if (categoryIds.length === 0) {
+      return {};
+    }
+
+    const supabase = getSupabaseClient();
+
+    // 查询指定分类的资源数量
+    const { data, error } = await supabase
+      .from('resources')
+      .select('category_id')
+      .eq('status', 'approved')
+      .in('category_id', categoryIds);
+
+    if (error) {
+      log.error("获取分类资源数量失败", error, { categoryIds });
+      throw error;
+    }
+
+    // 统计每个分类的资源数量
+    const countMap: { [categoryId: number]: number } = {};
+    categoryIds.forEach(id => {
+      countMap[id] = 0; // 初始化为0
+    });
+
+    (data || []).forEach((resource) => {
+      const categoryId = resource.category_id;
+      if (categoryId && countMap.hasOwnProperty(categoryId)) {
+        countMap[categoryId]++;
+      }
+    });
+
+    return countMap;
   });
 }

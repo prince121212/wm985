@@ -1,7 +1,7 @@
 import { respData, respErr, respInvalidParams, respUnauthorized } from "@/lib/resp";
 import { getUserUuid, isUserAdmin } from "@/services/user";
 import { log } from "@/lib/logger";
-import { createCategory, getAllCategories } from "@/models/category";
+import { createCategory, getAllCategories, getCategoriesWithPagination } from "@/models/category";
 
 // GET /api/admin/categories - 获取分类列表
 export async function GET(req: Request) {
@@ -17,13 +17,38 @@ export async function GET(req: Request) {
       return respUnauthorized("无管理员权限");
     }
 
-    log.info("获取分类列表", { user_uuid });
+    // 解析查询参数
+    const url = new URL(req.url);
+    const page = parseInt(url.searchParams.get('page') || '1');
+    const pageSize = parseInt(url.searchParams.get('pageSize') || '20');
+    const search = url.searchParams.get('search') || '';
 
-    const categories = await getAllCategories(true, true);
+    // 验证分页参数
+    const validPage = Math.max(1, page);
+    const validPageSize = Math.min(Math.max(1, pageSize), 100); // 限制最大页面大小为100
+
+    log.info("获取分类列表", {
+      user_uuid,
+      page: validPage,
+      pageSize: validPageSize,
+      search
+    });
+
+    // 获取分类数据（支持分页和搜索）
+    const result = await getCategoriesWithPagination({
+      page: validPage,
+      pageSize: validPageSize,
+      search,
+      includeResourceCount: true,
+      includeParentName: true
+    });
 
     return respData({
-      categories,
-      total: categories.length
+      categories: result.categories,
+      total: result.total,
+      page: validPage,
+      pageSize: validPageSize,
+      totalPages: Math.ceil(result.total / validPageSize)
     });
 
   } catch (error) {

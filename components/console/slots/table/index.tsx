@@ -3,7 +3,11 @@ import TableBlock from "@/components/blocks/table";
 import { Table as TableSlotType } from "@/types/slots/table";
 import Toolbar from "@/components/blocks/toolbar";
 
-export default function ({ ...table }: TableSlotType) {
+interface TableSlotProps extends TableSlotType {
+  onAction?: (action: string) => void;
+}
+
+export default function ({ onAction, ...table }: TableSlotProps) {
   return (
     <div className="space-y-6">
       <div>
@@ -15,7 +19,7 @@ export default function ({ ...table }: TableSlotType) {
           {table.tip.description || table.tip.title}
         </p>
       )}
-      {table.toolbar && <Toolbar items={table.toolbar.items} />}
+      {table.toolbar && <Toolbar items={table.toolbar.items} onAction={onAction} />}
       <Separator />
       <TableBlock {...table} />
     </div>

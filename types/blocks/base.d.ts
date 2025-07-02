@@ -23,6 +23,8 @@ export interface Button {
   variant?: ButtonVariant;
   size?: ButtonSize;
   className?: string;
+  action?: string;
+  onClick?: () => void;
 }
 
 export interface Image {
