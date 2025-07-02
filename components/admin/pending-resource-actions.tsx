@@ -18,11 +18,13 @@ import { useRouter } from "next/navigation";
 interface PendingResourceActionsProps {
   resourceUuid: string;
   resourceTitle: string;
+  onActionComplete?: () => void; // 操作完成后的回调函数
 }
 
 export default function PendingResourceActions({
   resourceUuid,
-  resourceTitle
+  resourceTitle,
+  onActionComplete
 }: PendingResourceActionsProps) {
   const router = useRouter();
   const [isApproving, setIsApproving] = useState(false);
@@ -42,7 +44,11 @@ export default function PendingResourceActions({
 
       if (result.code === 0) {
         toast.success("资源审核通过");
-        router.refresh(); // 刷新页面数据
+        if (onActionComplete) {
+          onActionComplete(); // 调用回调函数刷新数据
+        } else {
+          router.refresh(); // 兜底方案
+        }
       } else {
         throw new Error(result.message || '审核失败');
       }
@@ -79,7 +85,11 @@ export default function PendingResourceActions({
         toast.success("资源已拒绝");
         setShowRejectDialog(false);
         setRejectReason("");
-        router.refresh(); // 刷新页面数据
+        if (onActionComplete) {
+          onActionComplete(); // 调用回调函数刷新数据
+        } else {
+          router.refresh(); // 兜底方案
+        }
       } else {
         throw new Error(result.message || '拒绝失败');
       }

@@ -62,7 +62,7 @@ export async function POST(req: Request, { params }: RouteParams) {
       updated_at: new Date().toISOString()
     };
 
-    // 如果提供了拒绝原因，可以保存到content字段或者单独的字段
+    // 如果提供了拒绝原因，保存到rejection_reason字段
     if (reason) {
       updateData.rejection_reason = reason;
     }

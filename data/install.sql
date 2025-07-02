@@ -189,6 +189,7 @@ CREATE TABLE IF NOT EXISTS resources (
     is_featured BOOLEAN DEFAULT FALSE,
     is_free BOOLEAN DEFAULT TRUE,
     credits INTEGER DEFAULT 0,
+    rejection_reason TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -598,6 +599,12 @@ BEGIN
         IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'resources' AND column_name = 'credits') THEN
             ALTER TABLE resources ADD COLUMN credits INTEGER DEFAULT 0;
             RAISE NOTICE '已添加 credits 字段';
+        END IF;
+
+        -- 添加拒绝原因字段
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'resources' AND column_name = 'rejection_reason') THEN
+            ALTER TABLE resources ADD COLUMN rejection_reason TEXT;
+            RAISE NOTICE '已添加 rejection_reason 字段';
         END IF;
 
         -- 清理 NULL 值

@@ -19,15 +19,17 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
     
+    const statusParam = searchParams.get('status');
     const params = {
       category: searchParams.get('category') || undefined,
       tags: searchParams.get('tags')?.split(',').filter(Boolean) || undefined,
       search: searchParams.get('search') || undefined,
       sort: searchParams.get('sort') || 'latest',
-      status: searchParams.get('status') || undefined, // 管理员可以查看所有状态
+      status: statusParam === 'all' ? undefined : (statusParam || undefined), // 管理员可以查看所有状态，all表示不筛选状态
       author_id: searchParams.get('author_id') || undefined,
       offset: parseInt(searchParams.get('offset') || '0'),
       limit: Math.min(parseInt(searchParams.get('limit') || '20'), 100), // 最大100条
+      isAdmin: true, // 标识这是管理员请求
     };
 
     log.info("获取管理后台资源列表", { user_uuid, ...params });

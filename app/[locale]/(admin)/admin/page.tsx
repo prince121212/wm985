@@ -173,7 +173,7 @@ export default async function AdminDashboardPage() {
                 <div className="flex items-center gap-2">
                   <Badge variant="secondary">{resourcesStats.pending} 个待审核</Badge>
                 </div>
-                <Link href="/admin/resources/pending">
+                <Link href="/admin/resources">
                   <Button variant="outline" size="sm">
                     查看详情
                   </Button>

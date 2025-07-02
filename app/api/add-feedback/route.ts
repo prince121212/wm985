@@ -1,4 +1,4 @@
-import { respData, respErr } from "@/lib/resp";
+import { respData, respErr, respInvalidParams, respUnauthorized } from "@/lib/resp";
 
 import { Feedback } from "@/types/feedback";
 import { getIsoTimestr } from "@/lib/time";
@@ -25,19 +25,19 @@ export async function POST(req: Request) {
     // 验证参数
     if (!content || content.trim().length === 0) {
       log.warn("反馈内容为空");
-      return respErr("反馈内容不能为空");
+      return respInvalidParams("反馈内容不能为空");
     }
 
     if (content.trim().length > 1000) {
       log.warn("反馈内容过长", { length: content.length });
-      return respErr("反馈内容过长，最多1000字符");
+      return respInvalidParams("反馈内容过长，最多1000字符");
     }
 
     // 获取用户UUID
     user_uuid = await getUserUuid();
     if (!user_uuid) {
       log.warn("用户未登录，无法提交反馈");
-      return respErr("请先登录后再提交反馈");
+      return respUnauthorized("请先登录后再提交反馈");
     }
 
     log.info("用户反馈信息", { user_uuid, contentLength: content.length, rating });

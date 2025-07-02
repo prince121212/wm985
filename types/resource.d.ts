@@ -17,6 +17,7 @@ export interface Resource {
   is_featured: boolean;
   is_free: boolean;
   credits?: number;
+  rejection_reason?: string;
   created_at?: string;
   updated_at?: string;
 }

@@ -1,36 +1,109 @@
-import { getUserUuid, getUserEmail } from "@/services/user";
-import { redirect } from "next/navigation";
-import TableSlot from "@/components/dashboard/slots/table";
-import { Table as TableSlotType, TableColumn } from "@/types/slots/table";
-import { getResourcesList } from "@/models/resource";
-import moment from "moment";
+"use client";
+
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, Loader2, Trash2 } from "lucide-react";
 import Header from "@/components/dashboard/header";
+import TableBlock from "@/components/blocks/table";
+import { TableColumn } from "@/types/blocks/table";
+import { ResourceWithDetails } from "@/types/resource";
+import moment from "moment";
+import { toast } from "sonner";
+import PendingResourceActions from "@/components/admin/pending-resource-actions";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
-export default async function AdminResourcesPage() {
-  const user_uuid = await getUserUuid();
-  const user_email = await getUserEmail();
-
-  const callbackUrl = `/admin/resources`;
-  if (!user_uuid) {
-    redirect(`/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`);
-  }
-
-  // 检查管理员权限
-  const adminEmails = (process.env.ADMIN_EMAILS || '').split(',').map(email => email.trim());
-  const isAdmin = adminEmails.includes(user_email);
-
-  if (!isAdmin) {
-    redirect('/');
-  }
+export default function AdminResourcesPage() {
+  const router = useRouter();
+  const [resources, setResources] = useState<ResourceWithDetails[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>("pending"); // 默认选中待审核
+  const [refreshing, setRefreshing] = useState(false);
+  const [deletingResource, setDeletingResource] = useState<string | null>(null);
 
   // 获取资源列表
-  const resources = await getResourcesList({
-    limit: 50,
-    offset: 0,
-    sort: 'latest'
-  });
+  const fetchResources = async () => {
+    try {
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (statusFilter !== "all") {
+        params.set("status", statusFilter);
+      } else {
+        // 对于管理员，全部状态应该包含所有状态的资源
+        params.set("status", "all");
+      }
+      params.set("limit", "50");
+      params.set("offset", "0");
+      params.set("sort", "latest");
+
+      const response = await fetch(`/api/admin/resources?${params.toString()}`);
+      const data = await response.json();
+
+      if (data.code === 0) {
+        setResources(data.data.resources || []);
+      } else {
+        throw new Error(data.message || '获取资源列表失败');
+      }
+    } catch (error) {
+      console.error('获取资源列表失败:', error);
+      toast.error(`获取资源列表失败: ${error instanceof Error ? error.message : '未知错误'}`);
+      setResources([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 刷新数据
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchResources();
+    setRefreshing(false);
+    toast.success("数据已刷新");
+  };
+
+  // 删除资源
+  const handleDeleteResource = async (resourceUuid: string, resourceTitle: string) => {
+    try {
+      setDeletingResource(resourceUuid);
+
+      const response = await fetch(`/api/admin/resources/${resourceUuid}/delete`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.code === 0) {
+        toast.success(`资源"${resourceTitle}"已删除`);
+        // 重新获取资源列表
+        await fetchResources();
+      } else {
+        throw new Error(data.message || '删除失败');
+      }
+    } catch (error) {
+      console.error('删除资源失败:', error);
+      toast.error(`删除资源失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setDeletingResource(null);
+    }
+  };
+
+  // 状态筛选变化时重新获取数据
+  useEffect(() => {
+    fetchResources();
+  }, [statusFilter]);
 
   const crumb = {
     items: [
@@ -122,34 +195,139 @@ export default async function AdminResourcesPage() {
         </span>
       )
     },
+    {
+      name: "actions",
+      title: "操作",
+      callback: (row) => {
+        return (
+          <div className="flex items-center gap-2">
+            {/* 审核操作 - 只有待审核状态的资源才显示 */}
+            {row.status === 'pending' && (
+              <PendingResourceActions
+                resourceUuid={row.uuid}
+                resourceTitle={row.title}
+                onActionComplete={fetchResources} // 操作完成后重新获取数据
+              />
+            )}
+
+            {/* 删除按钮 - 所有状态的资源都可以删除 */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={deletingResource === row.uuid}
+                >
+                  {deletingResource === row.uuid ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4" />
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>确认删除资源</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    您确定要删除资源 <strong>"{row.title}"</strong> 吗？
+                    <br />
+                    <span className="text-red-600">此操作不可撤销，将永久删除该资源及其所有相关数据（评论、收藏、评分等）。</span>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>取消</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={() => handleDeleteResource(row.uuid, row.title)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    确认删除
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        );
+      }
+    },
   ];
 
-  const table: TableSlotType = {
-    title: "资源列表",
-    description: "管理平台上的所有资源",
-    toolbar: {
-      items: [
-        {
-          title: "刷新",
-          icon: "RiRefreshLine",
-          url: "/admin/resources",
-        },
-        {
-          title: "待审核",
-          icon: "RiTimeLine",
-          url: "/admin/resources/pending",
-        },
-      ],
-    },
-    columns,
-    data: resources,
+  // 获取状态筛选的描述文本
+  const getStatusDescription = () => {
+    const statusMap = {
+      all: "所有资源",
+      pending: "待审核资源",
+      approved: "已通过资源",
+      rejected: "已拒绝资源"
+    };
+    const statusText = statusMap[statusFilter as keyof typeof statusMap] || "所有资源";
+    return `共 ${resources.length} 个${statusText}`;
   };
 
   return (
     <>
       <Header crumb={crumb} />
       <div className="w-full px-4 md:px-8 py-8">
-        <TableSlot {...table} />
+        <div className="space-y-6">
+          {/* 页面标题和描述 */}
+          <div>
+            <h1 className="text-2xl font-medium mb-2">资源管理</h1>
+            <p className="text-sm text-muted-foreground">
+              {getStatusDescription()}
+            </p>
+          </div>
+
+          {/* 筛选和操作栏 */}
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              {/* 状态筛选 */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">状态筛选:</span>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue placeholder="选择状态" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">待审核</SelectItem>
+                    <SelectItem value="approved">已通过</SelectItem>
+                    <SelectItem value="rejected">已拒绝</SelectItem>
+                    <SelectItem value="all">全部状态</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* 刷新按钮 */}
+            <Button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              variant="outline"
+              size="sm"
+            >
+              {refreshing ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <RefreshCw className="h-4 w-4 mr-2" />
+              )}
+              刷新
+            </Button>
+          </div>
+
+          {/* 资源表格 */}
+          <div className="overflow-x-auto">
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-6 w-6 animate-spin mr-2" />
+                <span>加载中...</span>
+              </div>
+            ) : (
+              <TableBlock
+                columns={columns}
+                data={resources}
+                empty_message="暂无资源"
+              />
+            )}
+          </div>
+        </div>
       </div>
     </>
   );

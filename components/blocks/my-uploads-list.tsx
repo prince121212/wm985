@@ -21,7 +21,8 @@ import {
   Code,
   Clock,
   CheckCircle,
-  XCircle
+  XCircle,
+  AlertCircle
 } from "lucide-react";
 import { ResourceWithDetails } from "@/types/resource";
 import { formatDistanceToNow } from "date-fns";
@@ -131,6 +132,19 @@ function ResourceCard({ resource, onDelete }: {
               </span>
             </div>
             
+            {/* 拒绝原因 */}
+            {resource.status === 'rejected' && resource.rejection_reason && (
+              <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-red-500 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <div className="text-sm font-medium text-red-800 mb-1">拒绝原因</div>
+                    <div className="text-sm text-red-700">{resource.rejection_reason}</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* 价格和分类 */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -145,7 +159,7 @@ function ResourceCard({ resource, onDelete }: {
                   </Badge>
                 )}
               </div>
-              
+
               {/* 操作按钮 */}
               <div className="flex items-center gap-2">
                 <Link href={`/resources/${resource.uuid}`}>

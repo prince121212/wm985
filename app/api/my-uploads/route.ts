@@ -1,7 +1,7 @@
 import { respData, respErr, respUnauthorized } from "@/lib/resp";
 import { getUserUuid } from "@/services/user";
 import { log } from "@/lib/logger";
-import { getUserResources } from "@/models/resource";
+import { getUserResources, getUserResourcesCount } from "@/models/resource";
 import { getSupabaseClient, withRetry } from "@/models/db";
 
 // GET /api/my-uploads - 获取当前用户上传的资源列表
@@ -25,15 +25,16 @@ export async function GET(req: Request) {
 
     log.info("获取用户上传资源列表", { user_uuid, ...params });
 
-    // 并行获取资源列表和用户统计信息
-    const [resources, userStats] = await Promise.all([
+    // 并行获取资源列表、用户统计信息和总资源数
+    const [resources, userStats, totalResources] = await Promise.all([
       getUserResources(params),
-      getUserStatsFromDB(user_uuid)
+      getUserStatsFromDB(user_uuid),
+      getUserResourcesCount(user_uuid, params.status) // 获取用户资源总数
     ]);
 
     // 计算统计信息
     const stats = {
-      total: resources.length,
+      total: totalResources, // 使用真正的总数量
       approved: userStats.total_approved_resources, // 直接从用户表获取已通过审核的资源数
       pending: resources.filter(r => r.status === 'pending').length,
       rejected: resources.filter(r => r.status === 'rejected').length,

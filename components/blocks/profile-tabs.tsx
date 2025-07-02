@@ -25,7 +25,8 @@ import {
   Edit,
   BarChart3,
   Info,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -317,20 +318,27 @@ function MyUploads() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<StatsType | null>(null);
   const [refreshingTotalAccess, setRefreshingTotalAccess] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const pageSize = 10; // 每页显示10个资源
 
   useEffect(() => {
     fetchMyUploads();
-  }, []);
+  }, [currentPage]);
 
   const fetchMyUploads = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/my-uploads');
+      const offset = (currentPage - 1) * pageSize;
+      const response = await fetch(`/api/my-uploads?limit=${pageSize}&offset=${offset}`);
       if (response.ok) {
         const data = await response.json();
         if (data.code === 0) {
           setUploads(data.data.resources || []);
           setStats(data.data.stats || {});
+          // 计算总页数
+          const total = data.data.stats?.total || 0;
+          setTotalPages(Math.ceil(total / pageSize));
         }
       }
     } catch (error) {
@@ -474,7 +482,7 @@ function MyUploads() {
           />
         ) : (
           <div className="space-y-4">
-            {uploads.slice(0, 5).map((resource) => (
+            {uploads.map((resource) => (
               <Card key={resource.uuid}>
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
@@ -488,6 +496,19 @@ function MyUploads() {
                         <span>访问: {resource.access_count || 0}</span>
                         <span>{new Date(resource.created_at).toLocaleDateString()}</span>
                       </div>
+
+                      {/* 拒绝原因 */}
+                      {resource.status === 'rejected' && resource.rejection_reason && (
+                        <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-md">
+                          <div className="flex items-start gap-2">
+                            <AlertCircle className="h-3 w-3 text-red-500 mt-0.5 flex-shrink-0" />
+                            <div>
+                              <div className="text-xs font-medium text-red-800 mb-1">拒绝原因</div>
+                              <div className="text-xs text-red-700">{resource.rejection_reason}</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2 ml-4">
                       <Button variant="outline" size="sm" asChild>
@@ -498,10 +519,28 @@ function MyUploads() {
                 </CardContent>
               </Card>
             ))}
-            {uploads.length > 5 && (
-              <div className="text-center">
-                <Button variant="outline" asChild>
-                  <Link href="/my-uploads">查看全部 ({uploads.length})</Link>
+
+            {/* 分页控件 */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 mt-6">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                >
+                  上一页
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  第 {currentPage} 页，共 {totalPages} 页
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  下一页
                 </Button>
               </div>
             )}

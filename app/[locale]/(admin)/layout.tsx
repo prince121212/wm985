@@ -46,10 +46,6 @@ export default async function AdminLayout({
               url: "/admin/resources",
             },
             {
-              title: "待审核资源",
-              url: "/admin/resources/pending",
-            },
-            {
               title: "分类管理",
               url: "/admin/categories",
             },

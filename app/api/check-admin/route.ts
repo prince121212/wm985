@@ -1,4 +1,4 @@
-import { respData, respErr } from "@/lib/resp";
+import { respData, respErr, respUnauthorized } from "@/lib/resp";
 import { isUserAdmin, getUserUuid, getUserEmail } from "@/services/user";
 import { log } from "@/lib/logger";
 
@@ -12,7 +12,7 @@ export async function GET() {
 
     if (!user_uuid) {
       log.warn("管理员权限检查 - 用户未登录", { endpoint: "/api/check-admin" });
-      return respErr("用户未登录", 401);
+      return respUnauthorized("用户未登录");
     }
 
     const isAdmin = await isUserAdmin();

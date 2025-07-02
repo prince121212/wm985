@@ -276,10 +276,10 @@ export async function POST(req: Request) {
     // 根据错误类型返回更具体的错误信息
     if (error instanceof Error) {
       if (error.message.includes('category_id')) {
-        return respErr("无效的分类ID");
+        return respInvalidParams("无效的分类ID");
       }
       if (error.message.includes('duplicate') || error.message.includes('unique')) {
-        return respErr("资源已存在");
+        return respErr("资源已存在", 409); // 409 Conflict
       }
     }
 

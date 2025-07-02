@@ -197,6 +197,7 @@ export async function getResourcesList(params: {
   status?: string;
   offset?: number;
   limit?: number;
+  isAdmin?: boolean; // 新增管理员标识
 }): Promise<ResourceWithDetails[]> {
   return wrapQueryWithMonitoring(
     'getResourcesList',
@@ -213,10 +214,11 @@ export async function getResourcesList(params: {
     // 状态筛选
     if (params.status) {
       query = query.eq("status", params.status);
-    } else {
-      // 默认只显示已审核通过的资源
+    } else if (!params.isAdmin) {
+      // 非管理员默认只显示已审核通过的资源
       query = query.eq("status", "approved");
     }
+    // 管理员且未指定状态时，显示所有状态的资源
 
     // 分类筛选
     if (params.category) {
@@ -591,5 +593,40 @@ export async function getUserResources(params: {
       return data || [];
     }),
     800 // 800ms慢查询阈值
+  );
+}
+
+// 获取用户资源总数（用于分页）
+export async function getUserResourcesCount(authorId: string, status?: string): Promise<number> {
+  return wrapQueryWithMonitoring(
+    'getUserResourcesCount',
+    async () => withRetry(async () => {
+      const supabase = getSupabaseClient();
+      let query = supabase
+        .from("resources")
+        .select('id', { count: 'exact', head: true })
+        .eq("author_id", authorId);
+
+      // 状态筛选
+      if (status) {
+        query = query.eq("status", status);
+      }
+
+      const { count, error } = await query;
+
+      if (error) {
+        log.error("获取用户资源总数失败", error, { authorId, status });
+        throw error;
+      }
+
+      log.info("用户资源总数获取成功", {
+        authorId,
+        status,
+        count: count || 0
+      });
+
+      return count || 0;
+    }),
+    300 // 300ms慢查询阈值
   );
 }

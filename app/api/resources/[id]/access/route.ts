@@ -1,4 +1,4 @@
-import { respData, respErr, respInvalidParams, respUnauthorized, respNotFound } from "@/lib/resp";
+import { respData, respErr, respInvalidParams, respUnauthorized, respNotFound, respForbidden } from "@/lib/resp";
 import { getUserUuid } from "@/services/user";
 import { log } from "@/lib/logger";
 import { findResourceByUuid, incrementResourceAccess } from "@/models/resource";
@@ -30,7 +30,7 @@ export async function POST(req: Request, { params }: RouteParams) {
 
     // 检查资源状态
     if (resource.status !== 'approved') {
-      return respErr("资源未通过审核，无法访问");
+      return respForbidden("资源未通过审核，无法访问");
     }
 
     // 获取用户信息（可选，匿名用户也可以访问免费资源）
