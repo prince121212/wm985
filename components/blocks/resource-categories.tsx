@@ -11,33 +11,27 @@ import {
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { DynamicIcon } from "@/components/ui/dynamic-icon";
+import { Category } from "@/types/resource";
 
-// 分类图标映射 - 作为备用方案保留
+// 分类图标映射 - 对应6个主分类，作为备用方案保留
 const categoryIconFallback = {
-  "文学作品": "book-open",
-  "艺术设计": "image",
-  "音乐舞蹈": "music",
-  "历史文化": "layout",
-  "戏曲表演": "video",
-  "教育资料": "file-text",
+  "文学艺术": "book-open",
+  "历史文化": "landmark",
+  "教育学术": "graduation-cap",
+  "科学技术": "cpu",
+  "社会生活": "users",
+  "媒体娱乐": "play-circle",
 };
 
-// 分类背景色映射 - 参考原型图的不同颜色
+// 分类背景色映射 - 对应6个主分类
 const categoryColors = {
-  "文学作品": "bg-red-100 dark:bg-red-900",
-  "艺术设计": "bg-blue-100 dark:bg-blue-900",
-  "音乐舞蹈": "bg-green-100 dark:bg-green-900",
+  "文学艺术": "bg-red-100 dark:bg-red-900",
   "历史文化": "bg-yellow-100 dark:bg-yellow-900",
-  "戏曲表演": "bg-purple-100 dark:bg-purple-900",
-  "教育资料": "bg-indigo-100 dark:bg-indigo-900",
+  "教育学术": "bg-blue-100 dark:bg-blue-900",
+  "科学技术": "bg-green-100 dark:bg-green-900",
+  "社会生活": "bg-purple-100 dark:bg-purple-900",
+  "媒体娱乐": "bg-indigo-100 dark:bg-indigo-900",
 };
-
-interface Category {
-  id: number;
-  name: string;
-  description: string;
-  resource_count?: number;
-}
 
 interface ResourceCategoriesProps {
   categories?: Category[];
@@ -54,12 +48,12 @@ export default function ResourceCategories({
 
   // 默认分类数据（仅在数据库为空时显示）
   const defaultCategories: Category[] = [
-    { id: 1, name: "文学作品", description: "诗歌、小说、散文等文学创作", resource_count: 0 },
-    { id: 2, name: "艺术设计", description: "绘画、雕塑、设计作品等", resource_count: 0 },
-    { id: 3, name: "音乐舞蹈", description: "音乐作品、舞蹈表演等", resource_count: 0 },
-    { id: 4, name: "历史文化", description: "历史文献、文化遗产等", resource_count: 0 },
-    { id: 5, name: "戏曲表演", description: "传统戏曲、现代表演等", resource_count: 0 },
-    { id: 6, name: "教育资料", description: "教学材料、学习资源等", resource_count: 0 },
+    { id: 1, name: "文学作品", description: "诗歌、小说、散文等文学创作", sort_order: 1, resource_count: 0 },
+    { id: 2, name: "艺术设计", description: "绘画、雕塑、设计作品等", sort_order: 2, resource_count: 0 },
+    { id: 3, name: "音乐舞蹈", description: "音乐作品、舞蹈表演等", sort_order: 3, resource_count: 0 },
+    { id: 4, name: "历史文化", description: "历史文献、文化遗产等", sort_order: 4, resource_count: 0 },
+    { id: 5, name: "戏曲表演", description: "传统戏曲、现代表演等", sort_order: 5, resource_count: 0 },
+    { id: 6, name: "教育资料", description: "教学材料、学习资源等", sort_order: 6, resource_count: 0 },
   ];
 
   useEffect(() => {

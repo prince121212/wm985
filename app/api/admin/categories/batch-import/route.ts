@@ -1,7 +1,7 @@
 import { NextRequest } from "next/server";
 import { respData, respErr, respUnauthorized, respInvalidParams } from "@/lib/resp";
 import { getUserUuid, isUserAdmin } from "@/services/user";
-import { createCategory, findCategoryByName } from "@/models/category";
+import { createCategory, findCategoryByName, findCategoryByNameWithMinId } from "@/models/category";
 import { log } from "@/lib/logger";
 import { CategoryInput, ImportResult } from "@/types/admin";
 
@@ -83,13 +83,55 @@ export async function POST(req: NextRequest) {
           continue;
         }
 
+        // 处理父分类ID
+        let parentId: number | undefined = categoryData.parent_id;
+
+        // 如果提供了父分类名称，通过名称查找父分类ID
+        if (categoryData.parent_name && !parentId) {
+          try {
+            const parentCategory = await findCategoryByNameWithMinId(categoryData.parent_name.trim());
+            if (parentCategory) {
+              parentId = parentCategory.id;
+              log.info("通过父分类名称找到父分类", {
+                parentName: categoryData.parent_name,
+                parentId: parentId,
+                categoryName: categoryData.name
+              });
+            } else {
+              result.failed++;
+              const errorMessage = `父分类"${categoryData.parent_name}"不存在`;
+              result.errors.push(`${categoryData.name}: ${errorMessage}`);
+              result.details.push({
+                name: categoryData.name,
+                status: 'error',
+                message: errorMessage
+              });
+              continue;
+            }
+          } catch (error) {
+            result.failed++;
+            const errorMessage = `查找父分类"${categoryData.parent_name}"失败`;
+            result.errors.push(`${categoryData.name}: ${errorMessage}`);
+            result.details.push({
+              name: categoryData.name,
+              status: 'error',
+              message: errorMessage
+            });
+            log.error("查找父分类失败", error as Error, {
+              parentName: categoryData.parent_name,
+              categoryName: categoryData.name
+            });
+            continue;
+          }
+        }
+
         // 准备分类数据
         const category = {
           name: categoryData.name.trim(),
           description: categoryData.description?.trim() || undefined,
           icon: categoryData.icon?.trim() || undefined,
           sort_order: categoryData.sort_order || 0,
-          parent_id: categoryData.parent_id || undefined
+          parent_id: parentId
         };
 
         // 创建分类
@@ -187,6 +229,15 @@ function validateCategoryData(data: any, index: number): string | null {
 
   if (data.parent_id !== undefined && typeof data.parent_id !== 'number') {
     return `第${index}项：父分类ID必须是数字类型`;
+  }
+
+  if (data.parent_name !== undefined && typeof data.parent_name !== 'string') {
+    return `第${index}项：父分类名称必须是字符串类型`;
+  }
+
+  // parent_id 和 parent_name 不能同时存在
+  if (data.parent_id !== undefined && data.parent_name !== undefined) {
+    return `第${index}项：不能同时指定父分类ID和父分类名称`;
   }
 
   return null;

@@ -14,14 +14,14 @@ import { CategoryWithChildren } from "@/types/resource";
 import { buildCategoryTree } from "@/models/category";
 import { DynamicIcon } from "@/components/ui/dynamic-icon";
 
-// 分类图标映射 - 作为备用方案保留
+// 分类图标映射 - 对应6个主分类，作为备用方案保留
 const categoryIconFallback = {
-  "文学作品": "file-text",
-  "艺术设计": "palette",
-  "音乐舞蹈": "music",
-  "历史文化": "package",
-  "戏曲表演": "video",
-  "教育资料": "book-open",
+  "文学艺术": "book-open",
+  "历史文化": "landmark",
+  "教育学术": "graduation-cap",
+  "科学技术": "cpu",
+  "社会生活": "users",
+  "媒体娱乐": "play-circle",
 };
 
 interface CategoryCardProps {

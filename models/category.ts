@@ -124,6 +124,26 @@ export async function findCategoryByName(name: string): Promise<Category | undef
   });
 }
 
+// 根据分类名称查找分类（如果有多个同名分类，返回ID最小的那个）
+export async function findCategoryByNameWithMinId(name: string): Promise<Category | undefined> {
+  return withRetry(async () => {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from("categories")
+      .select("*")
+      .eq("name", name.trim())
+      .order("id", { ascending: true })
+      .limit(1);
+
+    if (error) {
+      log.error("根据名称获取分类失败", error, { name });
+      throw error;
+    }
+
+    return data && data.length > 0 ? data[0] : undefined;
+  });
+}
+
 // 创建分类
 export async function createCategory(category: Omit<Category, 'id' | 'created_at'>): Promise<Category> {
   return withRetry(async () => {

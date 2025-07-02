@@ -35,6 +35,20 @@ export default function BatchImportCategories({ open, onOpenChange }: BatchImpor
     "sort_order": 1
   },
   {
+    "name": "前端开发",
+    "description": "HTML、CSS、JavaScript等前端技术",
+    "icon": "monitor",
+    "sort_order": 1,
+    "parent_name": "编程开发"
+  },
+  {
+    "name": "后端开发",
+    "description": "服务器端开发技术",
+    "icon": "server",
+    "sort_order": 2,
+    "parent_name": "编程开发"
+  },
+  {
     "name": "设计素材",
     "description": "UI设计、平面设计等素材",
     "icon": "palette",
@@ -45,18 +59,6 @@ export default function BatchImportCategories({ open, onOpenChange }: BatchImpor
     "description": "各领域学术研究论文",
     "icon": "file-text",
     "sort_order": 3
-  },
-  {
-    "name": "数据库技术",
-    "description": "MySQL、PostgreSQL、MongoDB等数据库技术",
-    "icon": "database",
-    "sort_order": 4
-  },
-  {
-    "name": "云计算",
-    "description": "AWS、Azure、阿里云等云服务技术",
-    "icon": "cloud",
-    "sort_order": 5
   }
 ]`;
 
@@ -105,6 +107,14 @@ export default function BatchImportCategories({ open, onOpenChange }: BatchImpor
 
         if (item.parent_id && typeof item.parent_id !== 'number') {
           throw new Error(`第${i + 1}项：父分类ID必须是数字类型`);
+        }
+
+        if (item.parent_name && typeof item.parent_name !== 'string') {
+          throw new Error(`第${i + 1}项：父分类名称必须是字符串类型`);
+        }
+
+        if (item.parent_id !== undefined && item.parent_name !== undefined) {
+          throw new Error(`第${i + 1}项：不能同时指定父分类ID和父分类名称`);
         }
       }
 
@@ -205,7 +215,13 @@ export default function BatchImportCategories({ open, onOpenChange }: BatchImpor
               <li>• <code>icon</code>: 图标名称（可选，使用kebab-case格式，如 "code", "file-text"）</li>
               <li>• <code>sort_order</code>: 排序号（可选，数字类型）</li>
               <li>• <code>parent_id</code>: 父分类ID（可选，数字类型）</li>
+              <li>• <code>parent_name</code>: 父分类名称（可选，字符串类型，如有多个同名分类则取ID最小的）</li>
             </ul>
+            <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-950 rounded border border-amber-200 dark:border-amber-800">
+              <p className="text-sm text-amber-700 dark:text-amber-300">
+                <strong>父分类设置：</strong>可以使用 <code>parent_id</code> 或 <code>parent_name</code> 指定父分类，但不能同时使用两者。推荐使用 <code>parent_name</code> 更直观。
+              </p>
+            </div>
             <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950 rounded border border-blue-200 dark:border-blue-800">
               <p className="text-sm text-blue-700 dark:text-blue-300">
                 <strong>重名处理：</strong>如果分类名称已存在，将跳过该分类的创建，不会覆盖现有分类。
