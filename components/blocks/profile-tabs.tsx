@@ -59,7 +59,7 @@ const tabs = [
   { id: 'orders', label: '我的订单', icon: ShoppingCart },
   { id: 'credits', label: '我的积分', icon: Coins },
   { id: 'invites', label: '我的邀请', icon: Users },
-  { id: 'apikeys', label: 'API密钥', icon: Key },
+  // { id: 'apikeys', label: 'API密钥', icon: Key }, // 暂时注释掉API密钥功能
 ];
 
 interface ProfileTabsProps {
@@ -110,7 +110,7 @@ export default function ProfileTabs({ user }: ProfileTabsProps) {
           {activeTab === 'orders' && <MyOrders />}
           {activeTab === 'credits' && <MyCredits />}
           {activeTab === 'invites' && <MyInvites user={user} />}
-          {activeTab === 'apikeys' && <MyApiKeys />}
+          {/* {activeTab === 'apikeys' && <MyApiKeys />} */}
         </div>
       </div>
     </div>
