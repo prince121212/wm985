@@ -47,6 +47,14 @@ export default function ResourceUploadForm() {
   const [aiText, setAiText] = useState("");
   const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
 
+  // URL检查相关状态
+  const [isCheckingUrl, setIsCheckingUrl] = useState(false);
+  const [urlCheckResult, setUrlCheckResult] = useState<{
+    checked: boolean;
+    available: boolean;
+    message: string;
+  } | null>(null);
+
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -190,6 +198,64 @@ export default function ResourceUploadForm() {
     router.push('/');
   };
 
+  // 检查URL可用性
+  const handleCheckUrl = async () => {
+    if (!resourceUrl.trim()) {
+      toast.error("请先输入资源链接");
+      return;
+    }
+
+    // 验证URL格式
+    try {
+      new URL(resourceUrl);
+    } catch {
+      toast.error("请输入有效的资源链接");
+      return;
+    }
+
+    setIsCheckingUrl(true);
+    setUrlCheckResult(null);
+
+    try {
+      const response = await fetch('/api/check-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: resourceUrl.trim() }),
+      });
+
+      const result = await response.json();
+
+      if (result.code === 0 && result.data) {
+        setUrlCheckResult({
+          checked: true,
+          available: result.data.available,
+          message: result.data.message,
+        });
+
+        if (result.data.available) {
+          toast.success("链接检查通过！");
+        } else {
+          toast.warning(result.data.message);
+        }
+      } else {
+        throw new Error(result.message || '检查失败');
+      }
+
+    } catch (error) {
+      console.error("URL检查失败:", error);
+      setUrlCheckResult({
+        checked: true,
+        available: false,
+        message: error instanceof Error ? error.message : "检查失败，请稍后再试",
+      });
+      toast.error("链接检查失败，请稍后再试");
+    } finally {
+      setIsCheckingUrl(false);
+    }
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -219,6 +285,17 @@ export default function ResourceUploadForm() {
       new URL(resourceUrl);
     } catch {
       toast.error("请输入有效的资源链接");
+      return;
+    }
+
+    // 验证链接是否已检查且通过
+    if (!urlCheckResult) {
+      toast.error("请先检查资源链接的可用性");
+      return;
+    }
+
+    if (!urlCheckResult.available) {
+      toast.error("资源链接检查未通过，请修改链接后重新检查");
       return;
     }
 
@@ -252,7 +329,7 @@ export default function ResourceUploadForm() {
       if (result.code === 0) {
         toast.success("资源提交成功！审核通过后将公开显示");
 
-        // 重置表单
+        // 重置表单（保留链接和检查结果，方便用户继续提交）
         setFormData({
           title: "",
           description: "",
@@ -262,8 +339,8 @@ export default function ResourceUploadForm() {
           is_free: true,
           credits: undefined,
         });
-        setResourceUrl("");
         setTagInput("");
+        // 不清除 resourceUrl 和 urlCheckResult，方便用户继续使用
 
         // 设置提交成功状态，不自动跳转
         setIsSubmitSuccess(true);
@@ -445,14 +522,59 @@ export default function ResourceUploadForm() {
           {/* 资源链接 */}
           <div className="space-y-2">
             <Label htmlFor="resource-url">资源链接 *</Label>
-            <Input
-              id="resource-url"
-              type="url"
-              value={resourceUrl}
-              onChange={(e) => setResourceUrl(e.target.value)}
-              placeholder="https://example.com/resource"
-              disabled={isSubmitting}
-            />
+            <div className="flex gap-2">
+              <Input
+                id="resource-url"
+                type="url"
+                value={resourceUrl}
+                onChange={(e) => {
+                  setResourceUrl(e.target.value);
+                  // 清除之前的检查结果
+                  setUrlCheckResult(null);
+                }}
+                placeholder="https://example.com/resource"
+                disabled={isSubmitting}
+                className="flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleCheckUrl}
+                disabled={isSubmitting || isCheckingUrl || !resourceUrl.trim()}
+                className="shrink-0"
+              >
+                {isCheckingUrl ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin mr-2" />
+                    检查中
+                  </>
+                ) : (
+                  "检查链接"
+                )}
+              </Button>
+            </div>
+
+            {/* 检查结果显示 */}
+            {urlCheckResult && (
+              <div className={`text-sm p-2 rounded-md ${
+                urlCheckResult.available
+                  ? 'bg-green-50 text-green-700 border border-green-200'
+                  : 'bg-red-50 text-red-700 border border-red-200'
+              }`}>
+                <div className="flex items-center gap-2">
+                  {urlCheckResult.available ? (
+                    <div className="w-4 h-4 rounded-full bg-green-500 flex items-center justify-center">
+                      <div className="w-2 h-2 bg-white rounded-full" />
+                    </div>
+                  ) : (
+                    <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+                      <X className="w-2 h-2 text-white" />
+                    </div>
+                  )}
+                  {urlCheckResult.message}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 详细内容 - 已注释掉，默认为空 */}
@@ -533,7 +655,7 @@ export default function ResourceUploadForm() {
           <div className="flex justify-end">
             <Button
               type="submit"
-              disabled={isSubmitting || isSubmitSuccess}
+              disabled={isSubmitting}
               className="min-w-[120px]"
             >
               {isSubmitting ? "提交中..." : "提交资源"}
