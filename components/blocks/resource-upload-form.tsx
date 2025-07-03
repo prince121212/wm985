@@ -198,19 +198,53 @@ export default function ResourceUploadForm() {
     router.push('/');
   };
 
-  // 检查URL可用性
-  const handleCheckUrl = async () => {
-    if (!resourceUrl.trim()) {
-      toast.error("请先输入资源链接");
-      return;
+  // URL标准化函数：自动补全协议
+  const normalizeUrl = (url: string): string => {
+    const trimmedUrl = url.trim();
+    if (!trimmedUrl) return '';
+
+    // 如果已经有协议，直接返回
+    if (trimmedUrl.startsWith('http://') || trimmedUrl.startsWith('https://')) {
+      return trimmedUrl;
     }
+
+    // 自动添加https://协议
+    return `https://${trimmedUrl}`;
+  };
+
+  // URL验证和标准化函数：统一处理URL验证逻辑
+  const validateAndNormalizeUrl = (url: string): { success: boolean; normalizedUrl: string; error?: string } => {
+    if (!url.trim()) {
+      return { success: false, normalizedUrl: '', error: "请先输入资源链接" };
+    }
+
+    // 标准化URL（自动补全协议）
+    const normalizedUrl = normalizeUrl(url);
 
     // 验证URL格式
     try {
-      new URL(resourceUrl);
+      new URL(normalizedUrl);
     } catch {
-      toast.error("请输入有效的资源链接");
+      return { success: false, normalizedUrl, error: "请输入有效的资源链接格式" };
+    }
+
+    return { success: true, normalizedUrl };
+  };
+
+  // 检查URL可用性
+  const handleCheckUrl = async () => {
+    const validation = validateAndNormalizeUrl(resourceUrl);
+
+    if (!validation.success) {
+      toast.error(validation.error!);
       return;
+    }
+
+    const { normalizedUrl } = validation;
+
+    // 如果URL被标准化了，更新状态
+    if (normalizedUrl !== resourceUrl) {
+      setResourceUrl(normalizedUrl);
     }
 
     setIsCheckingUrl(true);
@@ -222,7 +256,7 @@ export default function ResourceUploadForm() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url: resourceUrl.trim() }),
+        body: JSON.stringify({ url: normalizedUrl }),
       });
 
       const result = await response.json();
@@ -275,17 +309,18 @@ export default function ResourceUploadForm() {
       return;
     }
 
-    if (!resourceUrl.trim()) {
-      toast.error("请输入资源链接");
+    const validation = validateAndNormalizeUrl(resourceUrl);
+
+    if (!validation.success) {
+      toast.error(validation.error!);
       return;
     }
 
-    // 验证URL格式
-    try {
-      new URL(resourceUrl);
-    } catch {
-      toast.error("请输入有效的资源链接");
-      return;
+    const { normalizedUrl } = validation;
+
+    // 如果URL被标准化了，更新状态
+    if (normalizedUrl !== resourceUrl) {
+      setResourceUrl(normalizedUrl);
     }
 
     // 验证链接是否已检查且通过
@@ -309,7 +344,7 @@ export default function ResourceUploadForm() {
         content: formData.content?.trim() || '',
         category_id: formData.category_id,
         tags: formData.tags,
-        file_url: resourceUrl.trim(),
+        file_url: normalizedUrl,
 
         is_free: formData.is_free,
         credits: formData.credits || 0,
@@ -481,7 +516,7 @@ export default function ResourceUploadForm() {
                   value={tagInput}
                   onChange={(e) => setTagInput(e.target.value)}
                   placeholder="输入标签后按回车添加"
-                  onKeyPress={(e) => {
+                  onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
                       handleAddTag();
@@ -532,7 +567,7 @@ export default function ResourceUploadForm() {
                   // 清除之前的检查结果
                   setUrlCheckResult(null);
                 }}
-                placeholder="https://example.com/resource"
+                placeholder="example.com/resource 或 https://example.com/resource"
                 disabled={isSubmitting}
                 className="flex-1"
               />
