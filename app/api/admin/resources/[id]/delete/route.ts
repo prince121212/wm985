@@ -4,6 +4,7 @@ import { log } from "@/lib/logger";
 import { findResourceByUuid } from "@/models/resource";
 import { getSupabaseClient, withRetry } from "@/models/db";
 import { getResourceTags, decrementTagUsage } from "@/models/tag";
+import { updateCategoryResourceCount } from "@/models/category";
 
 interface RouteParams {
   params: Promise<{
@@ -116,6 +117,14 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     // 如果删除的是已通过审核的资源，更新用户的总通过审核资源数
     if (resource.status === 'approved') {
       await updateUserApprovedResourcesCount(resource.author_id);
+
+      // 异步更新分类资源数（不阻塞主流程）
+      updateCategoryResourceCount(resource.category_id).catch((error: Error) => {
+        log.error("删除资源后更新分类资源数失败", error, {
+          resourceId: id,
+          categoryId: resource.category_id
+        });
+      });
     }
 
     log.info("资源已删除", {

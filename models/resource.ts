@@ -85,6 +85,19 @@ export async function updateResource(uuid: string, updates: Partial<Resource>) {
 export async function deleteResource(uuid: string) {
   return withRetry(async () => {
     const supabase = getSupabaseClient();
+
+    // 先获取资源信息以获得分类ID
+    const { data: resource, error: fetchError } = await supabase
+      .from("resources")
+      .select("category_id, status")
+      .eq("uuid", uuid)
+      .single();
+
+    if (fetchError) {
+      log.error("获取资源信息失败", fetchError, { uuid });
+      throw fetchError;
+    }
+
     const { error } = await supabase
       .from("resources")
       .delete()
@@ -97,10 +110,12 @@ export async function deleteResource(uuid: string) {
 
     log.info("资源删除成功", { uuid });
 
-    // 异步更新分类资源数（不阻塞主流程）
-    updateCategoryResourceCount().catch(error => {
-      log.error("删除资源后更新分类资源数失败", error, { uuid });
-    });
+    // 只有删除已审核通过的资源才需要更新分类资源数
+    if (resource?.status === 'approved' && resource?.category_id) {
+      updateCategoryResourceCount(resource.category_id).catch((error: Error) => {
+        log.error("删除资源后更新分类资源数失败", error, { uuid, categoryId: resource.category_id });
+      });
+    }
   });
 }
 
@@ -414,6 +429,19 @@ export async function getPopularResources(limit: number = 6): Promise<ResourceWi
 export async function updateResourceStatus(uuid: string, status: 'pending' | 'approved' | 'rejected'): Promise<void> {
   return withRetry(async () => {
     const supabase = getSupabaseClient();
+
+    // 先获取资源信息以获得分类ID
+    const { data: resource, error: fetchError } = await supabase
+      .from("resources")
+      .select("category_id")
+      .eq("uuid", uuid)
+      .single();
+
+    if (fetchError) {
+      log.error("获取资源信息失败", fetchError, { uuid });
+      throw fetchError;
+    }
+
     const { error } = await supabase
       .from("resources")
       .update({ status, updated_at: new Date().toISOString() })
@@ -427,9 +455,11 @@ export async function updateResourceStatus(uuid: string, status: 'pending' | 'ap
     log.info("资源状态更新成功", { uuid, status });
 
     // 异步更新分类资源数（不阻塞主流程）
-    updateCategoryResourceCount().catch(error => {
-      log.error("更新分类资源数失败", error, { uuid, status });
-    });
+    if (resource?.category_id) {
+      updateCategoryResourceCount(resource.category_id).catch((error: Error) => {
+        log.error("更新分类资源数失败", error, { uuid, status, categoryId: resource.category_id });
+      });
+    }
   });
 }
 

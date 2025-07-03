@@ -3,6 +3,7 @@ import { getUserUuid, isUserAdmin, getUserEmail } from "@/services/user";
 import { log } from "@/lib/logger";
 import { findResourceByUuid, updateResource } from "@/models/resource";
 import { getSupabaseClient, withRetry } from "@/models/db";
+import { updateCategoryResourceCount } from "@/models/category";
 
 interface RouteParams {
   params: Promise<{
@@ -72,6 +73,14 @@ export async function POST(req: Request, { params }: RouteParams) {
     // 如果资源状态从approved变为rejected，更新用户的总通过审核资源数
     if (oldStatus === 'approved') {
       await updateUserApprovedResourcesCount(resource.author_id);
+
+      // 异步更新分类资源数（不阻塞主流程）
+      updateCategoryResourceCount(resource.category_id).catch((error: Error) => {
+        log.error("拒绝资源后更新分类资源数失败", error, {
+          resourceId: id,
+          categoryId: resource.category_id
+        });
+      });
     }
 
     // 审核日志功能已移除

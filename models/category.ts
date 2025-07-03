@@ -3,7 +3,7 @@ import { log } from "@/lib/logger";
 import { Category, CategoryWithChildren } from "@/types/resource";
 
 // 获取所有分类（平铺结构）
-export async function getAllCategories(includeChildren: boolean = false, includeCount: boolean = false): Promise<Category[]> {
+export async function getAllCategories(includeCount: boolean = false): Promise<Category[]> {
   return withRetry(async () => {
     const supabase = getSupabaseClient();
 
@@ -286,10 +286,31 @@ export async function getAllCategoriesResourceCount(): Promise<{ [categoryId: nu
 
 
 
+// 找出分类的层级关系（该分类及其所有父分类）
+function findCategoryHierarchy(categoryId: number, categories: { id: number; parent_id?: number }[]): number[] {
+  const result: number[] = [];
+  const categoryMap = new Map(categories.map(cat => [cat.id, cat]));
+
+  let currentId: number | undefined = categoryId;
+
+  while (currentId !== undefined) {
+    const category = categoryMap.get(currentId);
+    if (!category) {
+      break;
+    }
+
+    result.push(currentId);
+    currentId = category.parent_id;
+  }
+
+  return result;
+}
+
 // 计算层级资源数量：父分类包含所有子分类的资源数
 function calculateHierarchicalResourceCount(
   categories: { id: number; parent_id?: number }[],
-  directCountMap: { [categoryId: number]: number }
+  directCountMap: { [categoryId: number]: number },
+  categoriesToUpdate?: number[]
 ): { [categoryId: number]: number } {
   const totalCountMap: { [categoryId: number]: number } = {};
 
@@ -325,16 +346,17 @@ function calculateHierarchicalResourceCount(
     return totalCount;
   }
 
-  // 为所有分类计算总资源数
-  categories.forEach(category => {
-    calculateTotalCount(category.id);
+  // 根据参数决定计算范围
+  const targetCategories = categoriesToUpdate || categories.map(cat => cat.id);
+  targetCategories.forEach(categoryId => {
+    calculateTotalCount(categoryId);
   });
 
   return totalCountMap;
 }
 
-// 更新分类资源数（简化版本：使用应用层逻辑）
-export async function updateCategoryResourceCount(): Promise<void> {
+// 更新分类资源数（支持全量更新或指定分类更新）
+export async function updateCategoryResourceCount(targetCategoryId?: number): Promise<void> {
   return withRetry(async () => {
     const supabase = getSupabaseClient();
 
@@ -348,48 +370,89 @@ export async function updateCategoryResourceCount(): Promise<void> {
       throw categoriesError;
     }
 
-    // 2. 直接查询资源表，按分类ID分组统计数量（只统计直接关联的资源）
-    const { data: resourcesData, error: resourcesError } = await supabase
-      .from('resources')
-      .select('category_id')
-      .eq('status', 'approved');
-
-    if (resourcesError) {
-      log.error("获取资源数据失败", resourcesError);
-      throw resourcesError;
+    // 2. 确定需要更新的分类
+    let categoriesToUpdate: number[];
+    if (targetCategoryId) {
+      // 只更新指定分类及其父分类
+      categoriesToUpdate = findCategoryHierarchy(targetCategoryId, categoriesData || []);
+      if (categoriesToUpdate.length === 0) {
+        log.warn("未找到需要更新的分类", { targetCategoryId });
+        return;
+      }
+    } else {
+      // 更新所有分类
+      categoriesToUpdate = (categoriesData || []).map(cat => cat.id);
     }
 
-    // 3. 统计每个分类直接关联的资源数量
+    // 3. 获取直接资源数
     const directCountMap: { [categoryId: number]: number } = {};
-    (resourcesData || []).forEach((resource) => {
-      const categoryId = resource.category_id;
-      if (categoryId) {
-        directCountMap[categoryId] = (directCountMap[categoryId] || 0) + 1;
+
+    if (targetCategoryId) {
+      // 优化：只查询需要更新的分类的直接资源数
+      for (const catId of categoriesToUpdate) {
+        const { count, error: countError } = await supabase
+          .from('resources')
+          .select('id', { count: 'exact', head: true })
+          .eq('category_id', catId)
+          .eq('status', 'approved');
+
+        if (countError) {
+          log.error("获取分类直接资源数失败", countError, { categoryId: catId });
+          throw countError;
+        }
+
+        directCountMap[catId] = count || 0;
       }
-    });
+    } else {
+      // 全量更新：查询所有资源
+      const { data: resourcesData, error: resourcesError } = await supabase
+        .from('resources')
+        .select('category_id')
+        .eq('status', 'approved');
+
+      if (resourcesError) {
+        log.error("获取资源数据失败", resourcesError);
+        throw resourcesError;
+      }
+
+      (resourcesData || []).forEach((resource) => {
+        const categoryId = resource.category_id;
+        if (categoryId) {
+          directCountMap[categoryId] = (directCountMap[categoryId] || 0) + 1;
+        }
+      });
+    }
 
     // 4. 计算包含子分类的总资源数
-    const totalCountMap = calculateHierarchicalResourceCount(categoriesData || [], directCountMap);
+    const totalCountMap = calculateHierarchicalResourceCount(
+      categoriesData || [],
+      directCountMap,
+      categoriesToUpdate
+    );
 
-    // 5. 批量更新数据库中的resource_count字段
-    for (const [categoryId, count] of Object.entries(totalCountMap)) {
+    // 5. 更新数据库中的resource_count字段
+    for (const catId of categoriesToUpdate) {
+      const count = totalCountMap[catId] || 0;
       const { error: updateError } = await supabase
         .from('categories')
         .update({ resource_count: count })
-        .eq('id', parseInt(categoryId));
+        .eq('id', catId);
 
       if (updateError) {
-        log.error("更新分类资源数失败", updateError, { categoryId, count });
+        log.error("更新分类资源数失败", updateError, { categoryId: catId, count });
         throw updateError;
       }
     }
 
     log.info("分类资源数更新成功", {
-      categoriesCount: Object.keys(totalCountMap).length,
-      totalResourcesCount: Object.values(totalCountMap).reduce((sum, count) => sum + count, 0)
+      targetCategoryId,
+      updatedCategories: categoriesToUpdate.length,
+      isPartialUpdate: !!targetCategoryId
     });
   });
 }
+
+
 
 // 获取热门分类（按资源数量排序）
 export async function getPopularCategories(limit: number = 10): Promise<Category[]> {
@@ -397,10 +460,7 @@ export async function getPopularCategories(limit: number = 10): Promise<Category
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from("categories")
-      .select(`
-        *,
-        resource_count:resources(count)
-      `)
+      .select("*")
       .order("resource_count", { ascending: false })
       .limit(limit);
 
