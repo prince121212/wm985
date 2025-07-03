@@ -168,6 +168,7 @@ CREATE TABLE IF NOT EXISTS categories (
     parent_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
     icon VARCHAR(100),
     sort_order INTEGER DEFAULT 0,
+    resource_count INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -671,6 +672,8 @@ BEGIN
     RAISE NOTICE '请通过管理后台接口录入分类和标签数据，确保数据安全性。';
 END $$;
 
+-- 为已存在的分类表添加新字段（兼容已有数据库）
+ALTER TABLE categories ADD COLUMN IF NOT EXISTS resource_count INTEGER DEFAULT 0;
 -- 提交事务
 COMMIT;
 

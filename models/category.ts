@@ -253,34 +253,141 @@ export async function getCategoryResourceCount(categoryId: number): Promise<numb
   });
 }
 
-// 批量获取所有分类的资源数量，避免N+1查询
+// 批量获取所有分类的资源数量，优化版本：直接从数据库字段读取
+// 父分类的资源数包含其所有子分类的资源数总和
 export async function getAllCategoriesResourceCount(): Promise<{ [categoryId: number]: number }> {
   return withRetry(async () => {
     const supabase = getSupabaseClient();
 
-    // 直接查询资源表，按分类ID分组统计数量
+    // 直接从categories表的resource_count字段读取
     const { data, error } = await supabase
+      .from('categories')
+      .select('id, resource_count');
+
+    if (error) {
+      log.error("获取分类资源数量失败", error);
+      throw error;
+    }
+
+    // 构建结果映射
+    const countMap: { [categoryId: number]: number } = {};
+    (data || []).forEach((category) => {
+      countMap[category.id] = category.resource_count || 0;
+    });
+
+    log.info("批量获取分类资源数量成功（优化版）", {
+      categoriesCount: Object.keys(countMap).length,
+      totalResourcesCount: Object.values(countMap).reduce((sum, count) => sum + count, 0)
+    });
+
+    return countMap;
+  });
+}
+
+
+
+// 计算层级资源数量：父分类包含所有子分类的资源数
+function calculateHierarchicalResourceCount(
+  categories: { id: number; parent_id?: number }[],
+  directCountMap: { [categoryId: number]: number }
+): { [categoryId: number]: number } {
+  const totalCountMap: { [categoryId: number]: number } = {};
+
+  // 构建子分类映射
+  const childrenMap: { [parentId: number]: number[] } = {};
+  categories.forEach(category => {
+    if (category.parent_id) {
+      if (!childrenMap[category.parent_id]) {
+        childrenMap[category.parent_id] = [];
+      }
+      childrenMap[category.parent_id].push(category.id);
+    }
+  });
+
+  // 递归计算每个分类的总资源数（包含子分类）
+  function calculateTotalCount(categoryId: number): number {
+    // 如果已经计算过，直接返回
+    if (totalCountMap[categoryId] !== undefined) {
+      return totalCountMap[categoryId];
+    }
+
+    // 获取直接关联的资源数
+    let totalCount = directCountMap[categoryId] || 0;
+
+    // 递归计算所有子分类的资源数
+    const children = childrenMap[categoryId] || [];
+    children.forEach(childId => {
+      totalCount += calculateTotalCount(childId);
+    });
+
+    // 缓存结果
+    totalCountMap[categoryId] = totalCount;
+    return totalCount;
+  }
+
+  // 为所有分类计算总资源数
+  categories.forEach(category => {
+    calculateTotalCount(category.id);
+  });
+
+  return totalCountMap;
+}
+
+// 更新分类资源数（简化版本：使用应用层逻辑）
+export async function updateCategoryResourceCount(): Promise<void> {
+  return withRetry(async () => {
+    const supabase = getSupabaseClient();
+
+    // 1. 获取所有分类信息（用于构建层级关系）
+    const { data: categoriesData, error: categoriesError } = await supabase
+      .from('categories')
+      .select('id, parent_id');
+
+    if (categoriesError) {
+      log.error("获取分类信息失败", categoriesError);
+      throw categoriesError;
+    }
+
+    // 2. 直接查询资源表，按分类ID分组统计数量（只统计直接关联的资源）
+    const { data: resourcesData, error: resourcesError } = await supabase
       .from('resources')
       .select('category_id')
       .eq('status', 'approved');
 
-    if (error) {
-      log.error("批量获取分类资源数量失败", error);
-      log.warn("批量获取分类资源数量失败，使用默认值0", { error });
-      return {};
+    if (resourcesError) {
+      log.error("获取资源数据失败", resourcesError);
+      throw resourcesError;
     }
 
-    // 在内存中统计每个分类的资源数量
-    const countMap: { [categoryId: number]: number } = {};
-    (data || []).forEach((resource) => {
+    // 3. 统计每个分类直接关联的资源数量
+    const directCountMap: { [categoryId: number]: number } = {};
+    (resourcesData || []).forEach((resource) => {
       const categoryId = resource.category_id;
       if (categoryId) {
-        countMap[categoryId] = (countMap[categoryId] || 0) + 1;
+        directCountMap[categoryId] = (directCountMap[categoryId] || 0) + 1;
       }
     });
 
-    log.info("批量获取分类资源数量成功", { categoriesCount: Object.keys(countMap).length });
-    return countMap;
+    // 4. 计算包含子分类的总资源数
+    const totalCountMap = calculateHierarchicalResourceCount(categoriesData || [], directCountMap);
+
+    // 5. 批量更新数据库中的resource_count字段
+    for (const [categoryId, count] of Object.entries(totalCountMap)) {
+      const { error: updateError } = await supabase
+        .from('categories')
+        .update({ resource_count: count })
+        .eq('id', parseInt(categoryId));
+
+      if (updateError) {
+        log.error("更新分类资源数失败", updateError, { categoryId, count });
+        throw updateError;
+      }
+    }
+
+    log.info("分类资源数更新成功", {
+      categoriesCount: Object.keys(totalCountMap).length,
+      totalResourcesCount: Object.values(totalCountMap).reduce((sum, count) => sum + count, 0)
+    });
   });
 }
 
@@ -458,39 +565,22 @@ export async function getCategoriesWithPagination(params: {
 }
 
 // 获取指定分类的资源数量（批量查询优化版）
+// 父分类的资源数包含其所有子分类的资源数总和
 export async function getCategoriesResourceCount(categoryIds: number[]): Promise<{ [categoryId: number]: number }> {
   return withRetry(async () => {
     if (categoryIds.length === 0) {
       return {};
     }
 
-    const supabase = getSupabaseClient();
+    // 获取所有分类的资源数量（使用层级统计）
+    const allCategoriesCount = await getAllCategoriesResourceCount();
 
-    // 查询指定分类的资源数量
-    const { data, error } = await supabase
-      .from('resources')
-      .select('category_id')
-      .eq('status', 'approved')
-      .in('category_id', categoryIds);
-
-    if (error) {
-      log.error("获取分类资源数量失败", error, { categoryIds });
-      throw error;
-    }
-
-    // 统计每个分类的资源数量
-    const countMap: { [categoryId: number]: number } = {};
+    // 只返回请求的分类的资源数量
+    const result: { [categoryId: number]: number } = {};
     categoryIds.forEach(id => {
-      countMap[id] = 0; // 初始化为0
+      result[id] = allCategoriesCount[id] || 0;
     });
 
-    (data || []).forEach((resource) => {
-      const categoryId = resource.category_id;
-      if (categoryId && countMap.hasOwnProperty(categoryId)) {
-        countMap[categoryId]++;
-      }
-    });
-
-    return countMap;
+    return result;
   });
 }

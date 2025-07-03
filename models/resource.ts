@@ -2,6 +2,7 @@ import { getSupabaseClient, withRetry } from "./db";
 import { log } from "@/lib/logger";
 import { wrapQueryWithMonitoring } from "@/lib/db-performance";
 import { Resource, ResourceWithDetails } from "@/types/resource";
+import { updateCategoryResourceCount } from "./category";
 
 // 安全的搜索词处理函数
 function sanitizeSearchTerm(searchTerm: string): string {
@@ -95,6 +96,11 @@ export async function deleteResource(uuid: string) {
     }
 
     log.info("资源删除成功", { uuid });
+
+    // 异步更新分类资源数（不阻塞主流程）
+    updateCategoryResourceCount().catch(error => {
+      log.error("删除资源后更新分类资源数失败", error, { uuid });
+    });
   });
 }
 
@@ -419,6 +425,11 @@ export async function updateResourceStatus(uuid: string, status: 'pending' | 'ap
     }
 
     log.info("资源状态更新成功", { uuid, status });
+
+    // 异步更新分类资源数（不阻塞主流程）
+    updateCategoryResourceCount().catch(error => {
+      log.error("更新分类资源数失败", error, { uuid, status });
+    });
   });
 }
 
