@@ -14,7 +14,9 @@ import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import {
   X,
-  Plus
+  Plus,
+  Sparkles,
+  Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 import { ResourceUploadForm as ResourceUploadFormType } from "@/types/resource";
@@ -39,6 +41,10 @@ export default function ResourceUploadForm() {
   const [categories, setCategories] = useState<Array<{id: number; name: string}>>([]);
   const [tagInput, setTagInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // AI功能相关状态
+  const [aiText, setAiText] = useState("");
+  const [isAiAnalyzing, setIsAiAnalyzing] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -101,6 +107,81 @@ export default function ResourceUploadForm() {
       ...prev,
       tags: prev.tags.filter(tag => tag !== tagToRemove)
     }));
+  };
+
+  // AI智能分析函数
+  const handleAiAnalyze = async () => {
+    if (!aiText.trim()) {
+      toast.error("请输入要分析的文本内容");
+      return;
+    }
+
+    if (aiText.trim().length > 2000) {
+      toast.error("文本内容不能超过2000个字符");
+      return;
+    }
+
+    try {
+      setIsAiAnalyzing(true);
+
+      const response = await fetch('/api/ai/analyze-resource', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: aiText.trim() }),
+      });
+
+      const result = await response.json();
+
+      if (result.code === 0 && result.data?.analysis) {
+        const analysis = result.data.analysis;
+
+        // 自动填充表单
+        setFormData(prev => ({
+          ...prev,
+          title: analysis.title || prev.title,
+          description: analysis.description || prev.description,
+          content: analysis.description || prev.content,
+          tags: analysis.tags || prev.tags,
+          is_free: true, // AI建议默认免费
+          credits: 0,
+        }));
+
+        // 填充资源链接
+        if (analysis.file_url) {
+          setResourceUrl(analysis.file_url);
+        }
+
+        // 根据分类名称找到对应的category_id
+        if (analysis.category && categories.length > 0) {
+          const matchedCategory = categories.find(cat =>
+            cat.name.includes(analysis.category) ||
+            analysis.category.includes(cat.name)
+          );
+          if (matchedCategory) {
+            setFormData(prev => ({
+              ...prev,
+              category_id: matchedCategory.id
+            }));
+          }
+        }
+
+        toast.success("AI分析完成！已自动填充表单内容");
+
+        // 清空AI输入框
+        setAiText("");
+
+      } else {
+        throw new Error(result.message || 'AI分析失败');
+      }
+
+    } catch (error) {
+      console.error("AI分析失败:", error);
+      toast.error(error instanceof Error ? error.message : "AI分析失败，请稍后再试");
+    } finally {
+      setIsAiAnalyzing(false);
+    }
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -200,13 +281,67 @@ export default function ResourceUploadForm() {
 
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>资源信息</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* 资源标题 */}
+    <div className="space-y-6">
+      {/* AI智能填充功能 */}
+      <Card className="border-blue-200 bg-blue-50/50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-blue-700">
+            <Sparkles className="h-5 w-5" />
+            AI智能填充
+          </CardTitle>
+          <p className="text-sm text-blue-600">
+            输入一段描述文字，AI将自动为您生成资源标题、描述、分类和标签
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="ai-text">描述文字</Label>
+              <Textarea
+                id="ai-text"
+                value={aiText}
+                onChange={(e) => setAiText(e.target.value)}
+                placeholder="请输入资源的相关描述，例如：这是一个电子书合集，包含了最新最热门的小说，它的链接是..."
+                rows={4}
+                maxLength={2000}
+                disabled={isAiAnalyzing}
+              />
+              <div className="flex justify-between items-center text-xs text-muted-foreground">
+                <span>AI将根据您的描述自动生成资源信息</span>
+                <span>{aiText.length}/2000</span>
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={handleAiAnalyze}
+              disabled={isAiAnalyzing || !aiText.trim()}
+              className="w-full"
+              variant="outline"
+            >
+              {isAiAnalyzing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  AI分析中...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  AI智能填充
+                </>
+              )}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 资源信息表单 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>资源信息</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* 资源标题 */}
           <div className="space-y-2">
             <Label htmlFor="title">资源标题 *</Label>
             <Input
@@ -399,5 +534,6 @@ export default function ResourceUploadForm() {
         </form>
       </CardContent>
     </Card>
+    </div>
   );
 }

@@ -43,3 +43,11 @@ app/
 1. 连接 GitHub 仓库到 Vercel
 2. 配置环境变量
 3. 自动部署
+
+
+已集成的AI服务
+OpenAI: 支持文本生成和图像生成
+DeepSeek: 支持文本生成
+OpenRouter: 支持多种模型
+SiliconFlow: 支持文本生成
+Kling: 支持图像和视频生成
