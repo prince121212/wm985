@@ -3,6 +3,7 @@ import { getUserUuid, isUserAdmin, getUserEmail } from "@/services/user";
 import { log } from "@/lib/logger";
 import { findResourceByUuid } from "@/models/resource";
 import { getSupabaseClient, withRetry } from "@/models/db";
+import { getResourceTags, decrementTagUsage } from "@/models/tag";
 
 interface RouteParams {
   params: Promise<{
@@ -81,10 +82,26 @@ export async function DELETE(req: Request, { params }: RouteParams) {
       authorId: resource.author_id
     };
 
+    // 在删除资源前，先获取资源的标签并减少使用次数
+    if (resource.id) {
+      const resourceTags = await getResourceTags(resource.id);
+      if (resourceTags.length > 0) {
+        // 减少标签使用次数
+        await Promise.all(
+          resourceTags.map(tag => decrementTagUsage(tag.id!))
+        );
+        log.info("已减少标签使用次数", {
+          resourceId: id,
+          tagCount: resourceTags.length,
+          tags: resourceTags.map(t => t.name)
+        });
+      }
+    }
+
     // 删除资源（由于设置了 ON DELETE CASCADE，相关的评论、收藏、评分等会自动删除）
     await withRetry(async () => {
       const supabase = getSupabaseClient();
-      
+
       const { error } = await supabase
         .from("resources")
         .delete()

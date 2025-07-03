@@ -2,7 +2,7 @@ import { respData, respErr, respInvalidParams, respUnauthorized, respNotFound } 
 import { getUserUuid, isUserAdmin } from "@/services/user";
 import { log } from "@/lib/logger";
 import { findResourceByUuid, deleteResource, incrementResourceAccess } from "@/models/resource";
-import { getResourceTags } from "@/models/tag";
+import { getResourceTags, decrementTagUsage } from "@/models/tag";
 
 interface RouteParams {
   params: Promise<{
@@ -89,11 +89,27 @@ export async function DELETE(req: Request, { params }: RouteParams) {
       return respUnauthorized("无权限删除此资源");
     }
 
-    log.info("删除资源", { 
-      resourceId: id, 
+    log.info("删除资源", {
+      resourceId: id,
       title: existingResource.title,
-      user_uuid 
+      user_uuid
     });
+
+    // 在删除资源前，先获取资源的标签并减少使用次数
+    if (existingResource.id) {
+      const resourceTags = await getResourceTags(existingResource.id);
+      if (resourceTags.length > 0) {
+        // 减少标签使用次数
+        await Promise.all(
+          resourceTags.map(tag => decrementTagUsage(tag.id!))
+        );
+        log.info("已减少标签使用次数", {
+          resourceId: id,
+          tagCount: resourceTags.length,
+          tags: resourceTags.map(t => t.name)
+        });
+      }
+    }
 
     // 删除资源
     await deleteResource(id);
