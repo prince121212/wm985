@@ -2,6 +2,7 @@ import { respData, respErr, respUnauthorized } from "@/lib/resp";
 import { getUserUuid } from "@/services/user";
 import { log } from "@/lib/logger";
 import { findUserByUuid } from "@/models/user";
+import { getAffiliateSummary } from "@/models/affiliate";
 
 // GET /api/my-invites - 获取当前用户的邀请信息
 export async function GET(req: Request) {
@@ -24,12 +25,12 @@ export async function GET(req: Request) {
       ? `${process.env.NEXT_PUBLIC_WEB_URL}/i/${user.invite_code}`
       : null;
 
-    // TODO: 获取邀请统计信息
-    // 这里可以添加获取邀请人数、奖励等信息的逻辑
+    // 获取邀请统计信息
+    const affiliateSummary = await getAffiliateSummary(user_uuid);
     const inviteStats = {
-      totalInvites: 0,
-      successfulInvites: 0,
-      totalRewards: 0
+      totalInvites: affiliateSummary.total_invited,
+      successfulInvites: affiliateSummary.total_invited, // 现在注册即算成功邀请
+      totalRewards: affiliateSummary.total_reward
     };
 
     return respData({

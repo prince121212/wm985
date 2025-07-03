@@ -132,9 +132,9 @@ export default function Invite({ summary }: { summary: any }) {
             </p>
           </div>
           <div>
-            <p className="text-2xl font-bold">{summary.total_paid}</p>
+            <p className="text-2xl font-bold">{summary.total_invited}</p>
             <p className="text-sm text-gray-500">
-              {t("my_invites.total_paid_count")}
+              成功邀请数
             </p>
           </div>
           <div>

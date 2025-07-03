@@ -98,7 +98,7 @@
     "invite_tip": "每邀请 1 位朋友注册文明知识库，您立即获得10积分，朋友获得15积分（10+5奖励）。",
     "invite_balance": "邀请奖励余额",
     "total_invite_count": "总邀请人数",
-    "total_paid_count": "已充值人数",
+    "total_paid_count": "成功邀请数",
     "total_award_amount": "总奖励金额",
     "update_invite_code": "设置邀请码",
     "update_invite_code_tip": "输入你的自定义邀请码",
