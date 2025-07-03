@@ -80,9 +80,9 @@ export async function getAffiliateSummary(user_uuid: string) {
     invited_users.add(item.user_uuid);
     if (item.paid_amount > 0) {
       paid_users.add(item.user_uuid);
-
-      summary.total_reward += item.reward_amount;
     }
+    // 现在所有邀请记录都会有奖励（注册奖励或付费奖励）
+    summary.total_reward += item.reward_amount;
   });
 
   summary.total_invited = invited_users.size;

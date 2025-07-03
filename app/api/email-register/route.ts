@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findEmailVerification, markEmailVerificationAsUsed } from "@/models/email-verification";
-import { createEmailUser, findEmailUser } from "@/models/user";
+import { createEmailUser, findEmailUser, findUserByInviteCode } from "@/models/user";
 import { getUuid } from "@/lib/hash";
 import { getIsoTimestr } from "@/lib/time";
 import { getClientIp } from "@/lib/ip";
 import { User } from "@/types/user";
 import { CreditsAmount, CreditsTransType, increaseCredits } from "@/services/credit";
+import { AffiliateRewardAmount, AffiliateRewardPercent, AffiliateStatus } from "@/services/constant";
+import { insertAffiliate } from "@/models/affiliate";
+import { updateUserInvitedBy } from "@/models/user";
 import { getOneYearLaterTimestr } from "@/lib/time";
 import { emailService } from "@/services/email";
 import { DEFAULT_AVATAR_URL, PASSWORD_CONFIG } from "@/lib/constants";
@@ -121,7 +124,7 @@ export async function POST(request: NextRequest) {
       created_at: getIsoTimestr(),
       email_verified: true,
       email_verified_at: getIsoTimestr(),
-      invited_by: inviteCode || '',
+      invited_by: '', // 初始为空，后续在邀请处理中设置
     };
 
     try {
@@ -138,6 +141,73 @@ export async function POST(request: NextRequest) {
         credits: CreditsAmount.NewUserGet,
         expired_at: getOneYearLaterTimestr(),
       });
+
+      // 如果有邀请码，检查并处理邀请关系
+      if (inviteCode && inviteCode.trim()) {
+        try {
+          const inviteUser = await findUserByInviteCode(inviteCode.trim());
+          if (inviteUser && inviteUser.uuid) {
+            // 检查不能邀请自己
+            if (inviteUser.email !== email) {
+              // 1. 更新被邀请者的invited_by字段
+              await updateUserInvitedBy(userUuid, inviteUser.uuid);
+
+              // 2. 给被邀请者发放额外奖励
+              await increaseCredits({
+                user_uuid: userUuid,
+                trans_type: CreditsTransType.InviteeBonus,
+                credits: CreditsAmount.InviteeBonus,
+                expired_at: getOneYearLaterTimestr(),
+                order_no: `INVITEE_BONUS_${userUuid}_${Date.now()}`
+              });
+
+              // 3. 给邀请者发放奖励
+              await increaseCredits({
+                user_uuid: inviteUser.uuid,
+                trans_type: CreditsTransType.SystemAdd,
+                credits: AffiliateRewardAmount.Invited,
+                expired_at: getOneYearLaterTimestr(),
+                order_no: `INVITE_REWARD_${userUuid}_${Date.now()}`
+              });
+
+              // 4. 创建邀请关系记录
+              await insertAffiliate({
+                user_uuid: userUuid,
+                invited_by: inviteUser.uuid,
+                created_at: getIsoTimestr(),
+                status: AffiliateStatus.Completed,
+                paid_order_no: "",
+                paid_amount: 0,
+                reward_percent: AffiliateRewardPercent.Invited,
+                reward_amount: AffiliateRewardAmount.Invited,
+              });
+
+              log.info("邀请关系建立成功", {
+                invitee_uuid: userUuid,
+                inviter_uuid: inviteUser.uuid,
+                invite_code: inviteCode,
+                invitee_bonus: CreditsAmount.InviteeBonus,
+                inviter_reward: AffiliateRewardAmount.Invited
+              });
+            } else {
+              log.warn("不能邀请自己，跳过邀请处理", {
+                invitee_uuid: userUuid,
+                invite_code: inviteCode
+              });
+            }
+          } else {
+            log.warn("邀请码无效，跳过邀请处理", {
+              invitee_uuid: userUuid,
+              invite_code: inviteCode
+            });
+          }
+        } catch (error) {
+          log.error("处理邀请关系失败", error as Error, {
+            invitee_uuid: userUuid,
+            invite_code: inviteCode
+          });
+        }
+      }
 
       // 发送欢迎邮件（非阻塞）
       emailService.sendWelcomeEmail(email, nickname)

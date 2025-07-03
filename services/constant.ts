@@ -16,6 +16,6 @@ export const AffiliateRewardPercent = {
 };
 
 export const AffiliateRewardAmount = {
-  Invited: 0,
+  Invited: 10, // 邀请者注册奖励：10积分
   Paied: 5000, // $50
 };

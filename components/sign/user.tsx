@@ -18,12 +18,13 @@ import { signOut } from "next-auth/react";
 import { useTranslations } from "next-intl";
 import { useAppContext } from "@/contexts/app";
 
-export default function SignUser({ user }: { user: User }) {
+export default function SignUser({ user, onNavigate }: { user: User; onNavigate?: () => void }) {
   const t = useTranslations();
   const { isAdmin } = useAppContext();
+  const [open, setOpen] = React.useState(false);
 
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Avatar className="cursor-pointer">
           <AvatarImage src={user.avatar_url} alt={user.nickname} />
@@ -36,16 +37,24 @@ export default function SignUser({ user }: { user: User }) {
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem className="flex justify-center cursor-pointer">
-          <Link href="/user-center">{t("user.user_center")}</Link>
+        <DropdownMenuItem className="flex justify-center cursor-pointer" asChild>
+          <Link href="/user-center" onClick={() => {
+            setOpen(false);
+            onNavigate?.();
+          }}>
+            {t("user.user_center")}
+          </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />
 
         {/* 只有管理员才显示管理后台入口 */}
         {isAdmin && (
           <>
-            <DropdownMenuItem className="flex justify-center cursor-pointer">
-              <Link href="/admin/users" target="_blank">
+            <DropdownMenuItem className="flex justify-center cursor-pointer" asChild>
+              <Link href="/admin/users" target="_blank" onClick={() => {
+                setOpen(false);
+                onNavigate?.();
+              }}>
                 {t("user.admin_system")}
               </Link>
             </DropdownMenuItem>
@@ -56,6 +65,8 @@ export default function SignUser({ user }: { user: User }) {
         <DropdownMenuItem
           className="flex justify-center cursor-pointer"
           onClick={() => {
+            setOpen(false);
+            onNavigate?.();
             localStorage.removeItem('USER_INFO');
             localStorage.removeItem('ADMIN_STATUS');
             signOut();

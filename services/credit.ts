@@ -17,12 +17,14 @@ export enum CreditsTransType {
   NewUser = "new_user", // initial credits for new user
   OrderPay = "order_pay", // user pay for credits
   SystemAdd = "system_add", // system add credits
+  InviteeBonus = "invitee_bonus", // bonus credits for being invited
   Ping = "ping", // cost for ping api
   ResourceAccess = "resource_access", // cost for accessing paid resources
 }
 
 export enum CreditsAmount {
-  NewUserGet = 10,
+  NewUserGet = 10, // 新用户注册奖励：10积分
+  InviteeBonus = 5, // 被邀请者额外奖励：5积分
   PingCost = 1,
 }
 

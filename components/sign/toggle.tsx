@@ -4,7 +4,7 @@ import SignIn from "./sign_in";
 import User from "./user";
 import { useAppContext } from "@/contexts/app";
 
-export default function SignToggle() {
+export default function SignToggle({ onNavigate }: { onNavigate?: () => void }) {
   const { user, isHydrated } = useAppContext();
 
   // 水合完成前显示加载状态
@@ -18,7 +18,7 @@ export default function SignToggle() {
 
   return (
     <div className="flex items-center gap-x-2 px-2">
-      {user ? <User user={user} /> : <SignIn />}
+      {user ? <User user={user} onNavigate={onNavigate} /> : <SignIn />}
     </div>
   );
 }

@@ -27,6 +27,7 @@ import {
 import { Header as HeaderType } from "@/types/blocks/header";
 import Icon from "@/components/icon";
 import Link from "next/link";
+import { useState } from "react";
 import LocaleToggle from "@/components/locale/toggle";
 import { Menu } from "lucide-react";
 import SignToggle from "@/components/sign/toggle";
@@ -34,6 +35,8 @@ import ThemeToggle from "@/components/theme/toggle";
 import { cn } from "@/lib/utils";
 
 export default function Header({ header }: { header: HeaderType }) {
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+
   if (header.disabled) {
     return null;
   }
@@ -183,7 +186,7 @@ export default function Header({ header }: { header: HeaderType }) {
                 </span>
               )}
             </div>
-            <Sheet>
+            <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
               <SheetTrigger asChild>
                 <Button variant="default" size="icon">
                   <Menu className="size-2" />
@@ -230,6 +233,7 @@ export default function Header({ header }: { header: HeaderType }) {
                                   )}
                                   href={iitem.url}
                                   target={iitem.target}
+                                  onClick={() => setIsSheetOpen(false)}
                                 >
                                   {iitem.icon && (
                                     <Icon
@@ -257,6 +261,7 @@ export default function Header({ header }: { header: HeaderType }) {
                           href={item.url}
                           target={item.target}
                           className="font-semibold my-4 flex items-center gap-2"
+                          onClick={() => setIsSheetOpen(false)}
                         >
                           {item.title}
                           {item.icon && (
@@ -280,6 +285,7 @@ export default function Header({ header }: { header: HeaderType }) {
                             href={item.url || ""}
                             target={item.target || ""}
                             className="flex items-center gap-1"
+                            onClick={() => setIsSheetOpen(false)}
                           >
                             {item.title}
                             {item.icon && (
@@ -293,7 +299,7 @@ export default function Header({ header }: { header: HeaderType }) {
                       );
                     })}
 
-                    {header.show_sign && <SignToggle />}
+                    {header.show_sign && <SignToggle onNavigate={() => setIsSheetOpen(false)} />}
                   </div>
 
                   <div className="mt-4 flex items-center gap-2">

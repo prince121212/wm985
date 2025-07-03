@@ -10,6 +10,8 @@ import { toast } from "sonner";
 import { signIn } from "next-auth/react";
 import { DEFAULT_AVATAR_URL, PASSWORD_CONFIG } from "@/lib/constants";
 import { useAppContext } from "@/contexts/app";
+import { cacheGet } from "@/lib/cache";
+import { CacheKey } from "@/services/constant";
 
 interface EmailRegisterFormProps {
   onBack: () => void;
@@ -30,6 +32,17 @@ export default function EmailRegisterForm({ onBack }: EmailRegisterFormProps) {
     inviteCode: '',
   });
   const [countdown, setCountdown] = useState(0);
+
+  // 初始化时获取缓存的邀请码
+  useEffect(() => {
+    const cachedInviteCode = cacheGet(CacheKey.InviteCode);
+    if (cachedInviteCode) {
+      setFormData(prev => ({
+        ...prev,
+        inviteCode: cachedInviteCode
+      }));
+    }
+  }, []);
 
   // 处理注册成功后的操作
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { CreditsAmount, CreditsTransType } from "./credit";
-import { findUserByEmail, findUserByUuid, insertUser } from "@/models/user";
+import { findUserByEmail, findUserByUuid, findUserByInviteCode, insertUser } from "@/models/user";
 
 import { User } from "@/types/user";
 import { auth } from "@/auth";
@@ -25,6 +25,40 @@ export async function saveUser(user: User) {
         credits: CreditsAmount.NewUserGet,
         expired_at: getOneYearLaterTimestr(),
       });
+
+      // 如果有邀请码，检查并发放被邀请奖励
+      if (user.invited_by && user.invited_by.trim()) {
+        try {
+          const inviteUser = await findUserByInviteCode(user.invited_by.trim());
+          if (inviteUser && inviteUser.uuid) {
+            // 给被邀请者发放额外奖励
+            await increaseCredits({
+              user_uuid: user.uuid || "",
+              trans_type: CreditsTransType.InviteeBonus,
+              credits: CreditsAmount.InviteeBonus,
+              expired_at: getOneYearLaterTimestr(),
+              order_no: `INVITEE_BONUS_${user.uuid}_${Date.now()}`
+            });
+
+            log.info("OAuth被邀请者奖励发放成功", {
+              invitee_uuid: user.uuid,
+              inviter_uuid: inviteUser.uuid,
+              invite_code: user.invited_by,
+              bonus_credits: CreditsAmount.InviteeBonus
+            });
+          } else {
+            log.warn("OAuth邀请码无效，跳过被邀请奖励", {
+              invitee_uuid: user.uuid,
+              invite_code: user.invited_by
+            });
+          }
+        } catch (error) {
+          log.error("OAuth处理被邀请奖励失败", error as Error, {
+            invitee_uuid: user.uuid,
+            invite_code: user.invited_by
+          });
+        }
+      }
 
       // 发送欢迎邮件（非阻塞）
       if (user.email && user.uuid) {
