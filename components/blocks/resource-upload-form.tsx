@@ -41,6 +41,7 @@ export default function ResourceUploadForm() {
   const [categories, setCategories] = useState<Array<{id: number; name: string}>>([]);
   const [tagInput, setTagInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitSuccess, setIsSubmitSuccess] = useState(false);
 
   // AI功能相关状态
   const [aiText, setAiText] = useState("");
@@ -184,6 +185,11 @@ export default function ResourceUploadForm() {
     }
   };
 
+  // 处理回到首页
+  const handleGoHome = () => {
+    router.push('/');
+  };
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -259,8 +265,8 @@ export default function ResourceUploadForm() {
         setResourceUrl("");
         setTagInput("");
 
-        // 跳转到资源库页面
-        router.push('/resources');
+        // 设置提交成功状态，不自动跳转
+        setIsSubmitSuccess(true);
       } else {
         throw new Error(result.message || '提交失败');
       }
@@ -527,7 +533,7 @@ export default function ResourceUploadForm() {
           <div className="flex justify-end">
             <Button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isSubmitSuccess}
               className="min-w-[120px]"
             >
               {isSubmitting ? "提交中..." : "提交资源"}
@@ -536,6 +542,35 @@ export default function ResourceUploadForm() {
         </form>
       </CardContent>
     </Card>
+
+    {/* 提交成功提示 */}
+    {isSubmitSuccess && (
+      <Card className="border-green-200 bg-green-50/50">
+        <CardContent className="pt-6">
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-green-800 mb-2">资源提交成功！</h3>
+              <p className="text-green-700 mb-4">
+                您的资源已成功提交，我们会尽快进行审核。审核通过后将在资源库中公开显示。
+              </p>
+              <Button
+                onClick={handleGoHome}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                回到首页
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    )}
     </div>
   );
 }
