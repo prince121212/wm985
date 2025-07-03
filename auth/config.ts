@@ -186,6 +186,14 @@ export const authOptions: NextAuthConfig = {
   pages: {
     signIn: "/auth/signin",
   },
+  session: {
+    strategy: "jwt",
+    maxAge: 3650 * 24 * 60 * 60, // 3650天（约10年）
+    updateAge: 30 * 24 * 60 * 60, // 30天活跃时自动刷新
+  },
+  jwt: {
+    maxAge: 3650 * 24 * 60 * 60, // 3650天（约10年）
+  },
   callbacks: {
     async signIn({ user, account }) {
       try {
