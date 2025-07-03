@@ -7,7 +7,6 @@ import {
 import { Credit } from "@/types/credit";
 import { Order } from "@/types/order";
 import { UserCredits } from "@/types/user";
-import { findUserByUuid } from "@/models/user";
 import { getFirstPaidOrderByUserUuid } from "@/models/order";
 import { getIsoTimestr } from "@/lib/time";
 import { getSnowId } from "@/lib/hash";
@@ -20,6 +19,7 @@ export enum CreditsTransType {
   InviteeBonus = "invitee_bonus", // bonus credits for being invited
   Ping = "ping", // cost for ping api
   ResourceAccess = "resource_access", // cost for accessing paid resources
+  ResourceReward = "resource_reward", // reward credits for resource author
 }
 
 export enum CreditsAmount {

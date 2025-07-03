@@ -3,7 +3,7 @@ import { getUserUuid } from "@/services/user";
 import { log } from "@/lib/logger";
 import { findResourceByUuid, incrementResourceAccess } from "@/models/resource";
 
-import { getUserCredits, decreaseCredits, CreditsTransType } from "@/services/credit";
+import { getUserCredits, decreaseCredits, increaseCredits, CreditsTransType } from "@/services/credit";
 
 interface RouteParams {
   params: Promise<{
@@ -67,6 +67,32 @@ export async function POST(req: Request, { params }: RouteParams) {
             resourceUuid: id,
             creditsDeducted: requiredCredits
           });
+
+          // 给资源上传者奖励积分（永久有效，不设置过期时间）
+          try {
+            await increaseCredits({
+              user_uuid: resource.author_id,
+              trans_type: CreditsTransType.ResourceReward,
+              credits: requiredCredits,
+              order_no: `RESOURCE_REWARD_${resource.uuid}_${Date.now()}`,
+              // 不设置 expired_at，积分永久有效
+            });
+
+            log.info("资源上传者奖励积分发放成功", {
+              author_id: resource.author_id,
+              resourceUuid: id,
+              rewardCredits: requiredCredits,
+              accessor_uuid: user_uuid
+            });
+          } catch (rewardError) {
+            log.error("资源上传者奖励积分发放失败", rewardError as Error, {
+              author_id: resource.author_id,
+              resourceUuid: id,
+              rewardCredits: requiredCredits,
+              accessor_uuid: user_uuid
+            });
+            // 奖励失败不影响资源访问，只记录错误日志
+          }
         } catch (error) {
           log.error("积分扣除失败", error as Error, {
             user_uuid,
