@@ -11,7 +11,6 @@ import {
   Layout
 } from "lucide-react";
 import { CategoryWithChildren } from "@/types/resource";
-import { buildCategoryTree } from "@/models/category";
 import { DynamicIcon } from "@/components/ui/dynamic-icon";
 
 // 分类图标映射 - 对应6个主分类，作为备用方案保留
@@ -129,9 +128,8 @@ export default function CategoriesList() {
       if (response.ok) {
         const data = await response.json();
         if (data.code === 0) {
-          // 构建树形结构
-          const categoriesWithChildren = buildCategoryTree(data.data.categories || []);
-          setCategories(categoriesWithChildren);
+          // API已经返回树形结构，直接使用
+          setCategories(data.data.categories || []);
           return;
         }
       }

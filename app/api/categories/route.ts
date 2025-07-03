@@ -1,7 +1,7 @@
 import { respData, respErr, respInvalidParams, respUnauthorized } from "@/lib/resp";
 import { getUserUuid } from "@/services/user";
 import { log } from "@/lib/logger";
-import { getAllCategories, createCategory } from "@/models/category";
+import { getAllCategories, createCategory, getCategoriesTree, buildCategoryTree } from "@/models/category";
 
 // GET /api/categories - 获取分类列表
 export async function GET(req: Request) {
@@ -12,12 +12,24 @@ export async function GET(req: Request) {
 
     log.info("获取分类列表", { includeChildren, includeCount });
 
-    const categories = await getAllCategories(includeChildren, includeCount);
+    if (includeChildren) {
+      // 返回树形结构
+      const flatCategories = await getAllCategories(includeCount);
+      const treeCategories = buildCategoryTree(flatCategories);
 
-    return respData({
-      categories,
-      total: categories.length
-    });
+      return respData({
+        categories: treeCategories,
+        total: flatCategories.length
+      });
+    } else {
+      // 返回平铺结构
+      const categories = await getAllCategories(includeCount);
+
+      return respData({
+        categories,
+        total: categories.length
+      });
+    }
 
   } catch (error) {
     log.error("获取分类列表失败", error as Error);

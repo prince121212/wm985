@@ -388,21 +388,25 @@ export async function updateCategoryResourceCount(targetCategoryId?: number): Pr
     const directCountMap: { [categoryId: number]: number } = {};
 
     if (targetCategoryId) {
-      // 优化：只查询需要更新的分类的直接资源数
-      for (const catId of categoriesToUpdate) {
-        const { count, error: countError } = await supabase
-          .from('resources')
-          .select('id', { count: 'exact', head: true })
-          .eq('category_id', catId)
-          .eq('status', 'approved');
+      // 修复：需要查询所有分类的直接资源数，因为父分类计算需要所有子分类的数据
+      // 获取所有分类的直接资源数
+      const { data: resourcesData, error: resourcesError } = await supabase
+        .from('resources')
+        .select('category_id')
+        .eq('status', 'approved');
 
-        if (countError) {
-          log.error("获取分类直接资源数失败", countError, { categoryId: catId });
-          throw countError;
-        }
-
-        directCountMap[catId] = count || 0;
+      if (resourcesError) {
+        log.error("获取资源数据失败", resourcesError);
+        throw resourcesError;
       }
+
+      // 统计每个分类的直接资源数
+      (resourcesData || []).forEach((resource) => {
+        const categoryId = resource.category_id;
+        if (categoryId) {
+          directCountMap[categoryId] = (directCountMap[categoryId] || 0) + 1;
+        }
+      });
     } else {
       // 全量更新：查询所有资源
       const { data: resourcesData, error: resourcesError } = await supabase

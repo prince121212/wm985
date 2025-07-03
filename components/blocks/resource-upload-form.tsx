@@ -158,8 +158,10 @@ export default function ResourceUploadForm() {
         }));
 
         // 填充资源链接
+        let shouldCheckUrl = false;
         if (analysis.file_url) {
           setResourceUrl(analysis.file_url);
+          shouldCheckUrl = true;
         }
 
         // 根据分类名称找到对应的category_id
@@ -180,6 +182,12 @@ export default function ResourceUploadForm() {
 
         // 清空AI输入框
         setAiText("");
+
+        // 如果AI填充了资源链接，自动触发链接检查
+        if (shouldCheckUrl && analysis.file_url) {
+          // 直接使用AI提取的URL进行检查，无需延迟
+          handleCheckUrlWithUrl(analysis.file_url);
+        }
 
       } else {
         throw new Error(result.message || 'AI分析失败');
@@ -231,9 +239,9 @@ export default function ResourceUploadForm() {
     return { success: true, normalizedUrl };
   };
 
-  // 检查URL可用性
-  const handleCheckUrl = async () => {
-    const validation = validateAndNormalizeUrl(resourceUrl);
+  // 检查URL可用性的通用函数
+  const checkUrlAvailability = async (urlToCheck: string) => {
+    const validation = validateAndNormalizeUrl(urlToCheck);
 
     if (!validation.success) {
       toast.error(validation.error!);
@@ -243,7 +251,7 @@ export default function ResourceUploadForm() {
     const { normalizedUrl } = validation;
 
     // 如果URL被标准化了，更新状态
-    if (normalizedUrl !== resourceUrl) {
+    if (normalizedUrl !== urlToCheck) {
       setResourceUrl(normalizedUrl);
     }
 
@@ -288,6 +296,16 @@ export default function ResourceUploadForm() {
     } finally {
       setIsCheckingUrl(false);
     }
+  };
+
+  // 检查当前resourceUrl状态中的URL
+  const handleCheckUrl = async () => {
+    await checkUrlAvailability(resourceUrl);
+  };
+
+  // 检查指定的URL（用于AI填充后自动检查）
+  const handleCheckUrlWithUrl = async (url: string) => {
+    await checkUrlAvailability(url);
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
