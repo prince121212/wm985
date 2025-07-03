@@ -142,7 +142,7 @@ export default function ResourceUploadForm() {
           ...prev,
           title: analysis.title || prev.title,
           description: analysis.description || prev.description,
-          content: analysis.description || prev.content,
+          // content: 不再填充详细内容，保持为空
           tags: analysis.tags || prev.tags,
           is_free: true, // AI建议默认免费
           credits: 0,
@@ -449,7 +449,8 @@ export default function ResourceUploadForm() {
             />
           </div>
 
-          {/* 详细内容 */}
+          {/* 详细内容 - 已注释掉，默认为空 */}
+          {/*
           <div className="space-y-2">
             <Label htmlFor="content">详细内容</Label>
             <Textarea
@@ -462,6 +463,7 @@ export default function ResourceUploadForm() {
               disabled={isSubmitting}
             />
           </div>
+          */}
 
 
 
