@@ -146,6 +146,23 @@
     "error_too_long": "Feedback is too long, maximum 1000 characters",
     "error_network": "Network error, please try again later"
   },
+  "ai_chat": {
+    "title": "AI Support",
+    "description": "Feel free to ask me anything! 😊",
+    "welcome_message": "Hello! I'm the AI assistant for Civilization Knowledge Base",
+    "welcome_tip": "Feel free to ask me anything! 😊",
+    "input_placeholder": "Enter your question...",
+    "send": "Send",
+    "clear_history": "Clear chat history",
+    "thinking": "Thinking...",
+    "error_empty": "Please enter your question",
+    "error_too_long": "Question content cannot exceed 500 characters",
+    "error_network": "AI support is temporarily unavailable, please try again later",
+    "error_rate_limit": "Too many requests, please try again later",
+    "history_cleared": "Chat history cleared",
+    "mode_chat": "AI Support",
+    "mode_feedback": "Feedback"
+  },
   "resources": {
     "title": "Resources",
     "description": "Discover and access various quality resources",

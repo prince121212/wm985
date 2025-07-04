@@ -2,7 +2,7 @@ import DashboardLayout from "@/components/dashboard/layout";
 import Empty from "@/components/blocks/empty";
 import { ReactNode } from "react";
 import { Sidebar } from "@/types/blocks/sidebar";
-import { getUserInfo } from "@/services/user";
+import { getUserUuid, isUserAdmin } from "@/services/user";
 import { redirect } from "next/navigation";
 
 export default async function AdminLayout({
@@ -10,14 +10,14 @@ export default async function AdminLayout({
 }: {
   children: ReactNode;
 }) {
-  const userInfo = await getUserInfo();
-  if (!userInfo || !userInfo.email) {
+  const user_uuid = await getUserUuid();
+  if (!user_uuid) {
     redirect("/auth/signin");
   }
 
-  const adminEmails = process.env.ADMIN_EMAILS?.split(",");
-  if (!adminEmails?.includes(userInfo?.email)) {
-    return <Empty message="No access" />;
+  const isAdmin = await isUserAdmin();
+  if (!isAdmin) {
+    return <Empty message="无访问权限" />;
   }
 
   const sidebar: Sidebar = {
@@ -77,6 +77,11 @@ export default async function AdminLayout({
           icon: "RiMessage2Line",
         },
         {
+          title: "AI客服管理",
+          url: "/admin/ai-service",
+          icon: "RiRobotLine",
+        },
+        {
           title: "统计报告",
           url: "/admin/statistics",
           icon: "RiBarChartLine",
@@ -100,18 +105,6 @@ export default async function AdminLayout({
           url: "/",
           target: "_blank",
           icon: "RiHomeLine",
-        },
-        {
-          title: "QQ",
-          url: "https://qm.qq.com/q/lfdZh1vQFG",
-          target: "_blank",
-          icon: "RiQqFill",
-        },
-        {
-          title: "QQ",
-          url: "https://qm.qq.com/q/lfdZh1vQFG",
-          target: "_blank",
-          icon: "RiQqFill",
         },
         {
           title: "QQ",
