@@ -135,6 +135,29 @@ export async function POST(req: NextRequest) {
     // 2. 验证回调签名
     const authorizationHeader = req.headers.get('authorization') || '';
 
+    // 检查所有可能包含签名的header字段
+    const possibleSignatureHeaders = [
+      'authorization',
+      'x-signature',
+      'x-sqb-signature',
+      'signature',
+      'sign'
+    ];
+
+    const headerInfo: Record<string, string> = {};
+    possibleSignatureHeaders.forEach(headerName => {
+      const value = req.headers.get(headerName);
+      if (value) {
+        headerInfo[headerName] = value;
+      }
+    });
+
+    log.info('检查所有可能的签名header', {
+      client_sn,
+      found_headers: headerInfo,
+      total_headers: Object.keys(Object.fromEntries(req.headers.entries())).length
+    });
+
     let signature = '';
     let signatureVerified = false;
     let signatureError = '';
@@ -163,6 +186,21 @@ export async function POST(req: NextRequest) {
         signature_length: signature.length,
         signature_preview: signature ? signature.substring(0, 50) + '...' : 'empty'
       });
+    } else {
+      // 检查其他可能的签名字段
+      for (const headerName of ['x-signature', 'x-sqb-signature', 'signature', 'sign']) {
+        const headerValue = req.headers.get(headerName);
+        if (headerValue) {
+          signature = headerValue;
+          log.info(`在${headerName}中找到签名`, {
+            client_sn,
+            header_name: headerName,
+            signature_length: signature.length,
+            signature_preview: signature.substring(0, 50) + '...'
+          });
+          break;
+        }
+      }
     }
 
     if (signature) {
