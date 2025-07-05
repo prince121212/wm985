@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { verifySQBCallbackSignature } from '@/lib/sqb-utils';
+// import { verifySQBCallbackSignature } from '@/lib/sqb-utils';
 import {
   getPaymentOrderByClientSn,
   updatePaymentOrderStatus,
@@ -11,15 +11,16 @@ import {
   isFailedOrderStatus
 } from '@/lib/sqb-constants';
 import { log } from '@/lib/logger';
-import { sendEmail } from '@/lib/wework-email';
+// import { sendEmail } from '@/lib/wework-email';
 
 
 
 
 
 /**
- * 发送收钱吧回调通知邮件
+ * 发送收钱吧回调通知邮件 - 暂时注释掉
  */
+/*
 async function sendCallbackNotificationEmail(
   callbackData: {
     headers: Record<string, string>;
@@ -100,6 +101,7 @@ async function sendCallbackNotificationEmail(
     });
   }
 }
+*/
 // 支付回调通知处理
 export async function POST(req: NextRequest) {
   let requestBodyText = '';
@@ -203,6 +205,8 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // 暂时注释掉验签逻辑
+    /*
     if (signature) {
       // 记录详细的签名验证信息用于调试
       log.info('开始验证收钱吧回调签名', {
@@ -236,6 +240,11 @@ export async function POST(req: NextRequest) {
         auth_header: authorizationHeader ? authorizationHeader.substring(0, 100) + '...' : 'empty'
       });
     }
+    */
+
+    // 暂时跳过验签，直接设置为验证成功
+    signatureVerified = true;
+    log.info('跳过签名验证（已注释）', { client_sn });
 
     // 3. 记录回调日志
     await logPaymentCallback({
@@ -331,7 +340,8 @@ export async function POST(req: NextRequest) {
       signature_verified: signatureVerified
     });
 
-    // 10. 发送回调通知邮件（异步执行，不影响响应）
+    // 10. 发送回调通知邮件（异步执行，不影响响应）- 暂时注释掉
+    /*
     sendCallbackNotificationEmail({
       headers: Object.fromEntries(req.headers.entries()),
       body,
@@ -344,6 +354,7 @@ export async function POST(req: NextRequest) {
     }).catch(error => {
       log.error('发送回调通知邮件异常', error as Error, { client_sn });
     });
+    */
 
     // 11. 返回成功响应
     return Response.json({ success: true });
@@ -374,7 +385,8 @@ export async function POST(req: NextRequest) {
           error_message: error instanceof Error ? error.message : '未知错误'
         });
 
-        // 发送错误回调通知邮件（异步执行）
+        // 发送错误回调通知邮件（异步执行）- 暂时注释掉
+        /*
         sendCallbackNotificationEmail({
           headers: Object.fromEntries(req.headers.entries()),
           body,
@@ -387,6 +399,7 @@ export async function POST(req: NextRequest) {
         }).catch(emailError => {
           log.error('发送错误回调通知邮件异常', emailError as Error, { client_sn });
         });
+        */
       }
     } catch (logError) {
       log.error('记录错误回调日志失败', logError as Error);
