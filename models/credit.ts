@@ -88,7 +88,7 @@ export async function getCreditsByUserUuid(
     .range((page - 1) * limit, page * limit - 1);
 
   // 添加调试日志
-  console.log("getCreditsByUserUuid 查询结果:", { data, error, count: data?.length });
+  // console.log("getCreditsByUserUuid 查询结果:", { data, error, count: data?.length });
 
   if (error) {
     console.error("getCreditsByUserUuid 查询错误:", error);
