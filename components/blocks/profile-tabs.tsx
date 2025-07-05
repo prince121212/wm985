@@ -14,11 +14,11 @@ import {
   isFailedOrderStatus,
   getOrderStatusMessage
 } from '@/lib/sqb-constants';
-import type {
+import {
   PaymentMethod,
-  PaymentSuccessData,
-  PaymentResult,
-  DEFAULT_POLLING_CONFIG
+  type PaymentSuccessData,
+  type PaymentResult,
+  type DEFAULT_POLLING_CONFIG
 } from '@/types/payment';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -1641,7 +1641,7 @@ function RechargeDialog({ onSuccess }: { onSuccess: () => void }) {
   const [loading, setLoading] = useState(false);
   const [amount, setAmount] = useState<number>(1);
   const [customAmount, setCustomAmount] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('3'); // 3=微信, 2=支付宝
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.WECHAT); // 微信支付
   const [orderData, setOrderData] = useState<any>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [statusChecking, setStatusChecking] = useState(false);
@@ -1708,7 +1708,7 @@ function RechargeDialog({ onSuccess }: { onSuccess: () => void }) {
     setLoading(false);
     setAmount(1);
     setCustomAmount('');
-    setPaymentMethod('3');
+    setPaymentMethod(PaymentMethod.WECHAT);
     setOrderData(null);
     setQrCodeUrl('');
     setStatusChecking(false);
@@ -2052,7 +2052,7 @@ function RechargeDialog({ onSuccess }: { onSuccess: () => void }) {
           </DialogTitle>
           {step === 'qrcode' && (
             <DialogDescription>
-              请使用{paymentMethod === '3' ? '微信' : '支付宝'}扫描下方二维码完成支付
+              请使用{paymentMethod === PaymentMethod.WECHAT ? '微信' : '支付宝'}扫描下方二维码完成支付
             </DialogDescription>
           )}
           {step === 'success' && (
@@ -2129,18 +2129,18 @@ function RechargeDialog({ onSuccess }: { onSuccess: () => void }) {
               <Label className="text-sm font-medium">支付方式</Label>
               <div className="grid grid-cols-2 gap-2 mt-2">
                 <Button
-                  variant={paymentMethod === '3' ? "default" : "outline"}
+                  variant={paymentMethod === PaymentMethod.WECHAT ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setPaymentMethod('3')}
+                  onClick={() => setPaymentMethod(PaymentMethod.WECHAT)}
                   className="flex items-center gap-2"
                 >
                   <span className="text-green-600">💬</span>
                   微信支付
                 </Button>
                 <Button
-                  variant={paymentMethod === '2' ? "default" : "outline"}
+                  variant={paymentMethod === PaymentMethod.ALIPAY ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setPaymentMethod('2')}
+                  onClick={() => setPaymentMethod(PaymentMethod.ALIPAY)}
                   className="flex items-center gap-2"
                 >
                   <span className="text-blue-600">🅰️</span>

@@ -5,7 +5,6 @@ import {
   createPayment,
   queryPayment,
   generateDeviceId,
-  SQB_CONFIG,
   diagnoseSQBConnection
 } from '@/lib/sqb-utils';
 import {
@@ -25,9 +24,49 @@ import {
   updatePaymentOrderStatus,
   type SQBPaymentOrder
 } from '@/lib/sqb-db';
+import {
+  SQB_ORDER_STATUS,
+  isFinalOrderStatus,
+  isSuccessOrderStatus,
+  isFailedOrderStatus
+} from '@/lib/sqb-constants';
 import { getSnowId } from '@/lib/hash';
 import { log } from '@/lib/logger';
 import { getUserUuid, isUserAdmin } from '@/services/user';
+
+
+
+/**
+ * 处理支付成功后的积分充值
+ */
+async function processCreditsForSuccessfulPayment(clientSn: string, userUuid: string, creditsAmount: number): Promise<void> {
+  log.info('轮询中发现支付成功，开始处理积分充值', {
+    client_sn: clientSn,
+    user_uuid: userUuid,
+    credits_amount: creditsAmount
+  });
+
+  try {
+    const { processPaymentCredits } = await import('@/lib/sqb-db');
+    const creditsResult = await processPaymentCredits(clientSn, userUuid, creditsAmount);
+
+    if (creditsResult.success) {
+      log.info('轮询中积分充值成功', {
+        client_sn: clientSn,
+        credits: creditsAmount,
+        trans_no: creditsResult.transNo,
+        already_processed: creditsResult.already_processed
+      });
+    } else {
+      log.error('轮询中积分充值失败', undefined, {
+        client_sn: clientSn,
+        error: creditsResult.error
+      });
+    }
+  } catch (creditsError) {
+    log.error('轮询中处理积分充值异常', creditsError as Error, { client_sn: clientSn });
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -161,71 +200,55 @@ export async function GET(req: NextRequest) {
           });
         }
 
-        // 如果支付成功，更新订单状态并处理积分充值
-        // 检查正确的数据路径：queryResult.data.biz_response.data.order_status
-        const orderStatus = queryResult.data?.biz_response?.data?.order_status;
-        if (orderStatus === 'PAID') {
-          // 获取订单信息
+        // 处理订单状态更新和积分充值
+        const sqbOrderStatus = queryResult.data?.biz_response?.data?.order_status;
+
+        // 如果是最终状态且需要更新数据库
+        if (isFinalOrderStatus(sqbOrderStatus)) {
           const orderInfo = await getPaymentOrderByClientSn(clientSn);
+
           if (orderInfo && orderInfo.status === 'CREATED') {
-            // 更新订单状态为成功
+            // 映射状态
+            let internalStatus: 'SUCCESS' | 'FAILED' | 'CANCELLED' = 'FAILED';
+            if (sqbOrderStatus === SQB_ORDER_STATUS.PAID) internalStatus = 'SUCCESS';
+            else if (sqbOrderStatus === SQB_ORDER_STATUS.CANCELED) internalStatus = 'CANCELLED';
+
+            // 更新订单状态
             await updatePaymentOrderStatus(clientSn, {
-              status: 'SUCCESS',
-              order_status: 'PAID',
+              status: internalStatus,
+              order_status: sqbOrderStatus,
               finish_time: new Date(),
               trade_no: queryResult.data?.biz_response?.data?.trade_no || null,
               sn: queryResult.data?.biz_response?.data?.sn || null
             });
 
-            log.info('支付成功，订单状态已更新', {
+            log.info('订单状态已更新', {
               client_sn: clientSn,
               user_uuid: userUuid,
+              sqb_status: sqbOrderStatus,
+              internal_status: internalStatus,
               trade_no: queryResult.data?.biz_response?.data?.trade_no
             });
-          }
 
-          // 处理积分充值
-          if (orderInfo && !orderInfo.credits_processed && orderInfo.credits_amount) {
-            log.info('轮询中发现支付成功，开始处理积分充值', {
-              client_sn: clientSn,
-              user_uuid: userUuid,
-              credits_amount: orderInfo.credits_amount
-            });
-
-            try {
-              const { processPaymentCredits } = await import('@/lib/sqb-db');
-              const creditsResult = await processPaymentCredits(clientSn, userUuid, orderInfo.credits_amount);
-
-              if (creditsResult.success) {
-                log.info('轮询中积分充值成功', {
-                  client_sn: clientSn,
-                  credits: orderInfo.credits_amount,
-                  trans_no: creditsResult.transNo,
-                  already_processed: creditsResult.already_processed
-                });
-              } else {
-                log.error('轮询中积分充值失败', undefined, {
-                  client_sn: clientSn,
-                  error: creditsResult.error
-                });
-              }
-            } catch (creditsError) {
-              log.error('轮询中处理积分充值异常', creditsError as Error, { client_sn: clientSn });
+            // 如果支付成功，处理积分充值
+            if (isSuccessOrderStatus(sqbOrderStatus) && !orderInfo.credits_processed && orderInfo.credits_amount) {
+              await processCreditsForSuccessfulPayment(clientSn, userUuid, orderInfo.credits_amount);
             }
           }
         }
 
         // 构建返回数据
         const responseData = {
-          status: orderStatus === 'PAID' ? 'SUCCESS' : 'PENDING',
+          status: isSuccessOrderStatus(sqbOrderStatus) ? 'SUCCESS' : 'PENDING',
           result_code: queryResult.data?.result_code,
           error_code: queryResult.data?.error_code,
           error_message: queryResult.data?.error_message,
-          biz_response: queryResult.data
+          biz_response: queryResult.data,
+          payment_success_info: undefined as any
         };
 
         // 如果支付成功，添加积分信息到响应中
-        if (orderStatus === 'PAID') {
+        if (isSuccessOrderStatus(sqbOrderStatus)) {
           try {
             // 获取最新的订单信息（包含积分处理结果）
             const updatedOrder = await getPaymentOrderByClientSn(clientSn);
@@ -262,7 +285,7 @@ export async function GET(req: NextRequest) {
 
       case 'reactivate':
         // 重新激活终端
-        const newActivationCode = '84038959';
+        const newActivationCode = process.env.SQB_TEST_ACTIVATION_CODE || '84038959';
         const deviceId = generateDeviceId();
 
         log.info('开始重新激活终端', { deviceId, activationCode: newActivationCode });
@@ -384,7 +407,7 @@ export async function POST(req: NextRequest) {
         log.info('缓存中无终端信息，开始激活新终端...');
         const deviceId = generateDeviceId();
 
-        const activateResult = await activateTerminal(deviceId, SQB_CONFIG.TEST_ACTIVATION_CODE);
+        const activateResult = await activateTerminal(deviceId, process.env.SQB_TEST_ACTIVATION_CODE || '84038959');
 
         if (!activateResult.success) {
           return Response.json({
@@ -838,7 +861,7 @@ export async function POST(req: NextRequest) {
         }
 
         // 检查订单是否已支付成功
-        if (order.status !== 'PAID' && order.status !== 'SUCCESS') {
+        if (order.status !== 'SUCCESS') {
           return Response.json({
             success: false,
             message: '订单尚未支付成功'

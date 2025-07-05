@@ -1,13 +1,18 @@
 import { NextRequest } from 'next/server';
-import { generateMD5Sign, verifySQBCallbackSignature } from '@/lib/sqb-utils';
-import { getCachedPaymentOrder } from '@/lib/redis-cache';
+import { verifySQBCallbackSignature } from '@/lib/sqb-utils';
 import {
   getPaymentOrderByClientSn,
   updatePaymentOrderStatus,
   logPaymentCallback,
   processPaymentCredits
 } from '@/lib/sqb-db';
+import {
+  isSuccessOrderStatus,
+  isFailedOrderStatus
+} from '@/lib/sqb-constants';
 import { log } from '@/lib/logger';
+
+
 
 
 
@@ -36,7 +41,7 @@ export async function POST(req: NextRequest) {
     });
 
     // 1. 提取关键信息
-    const { client_sn, trade_state, total_amount, subject, sn, trade_no } = body;
+    const { client_sn, trade_state, sn, trade_no } = body;
 
     if (!client_sn) {
       log.error('支付回调缺少订单号');
@@ -114,16 +119,16 @@ export async function POST(req: NextRequest) {
     };
 
     // 8. 处理不同的支付状态
-    if (trade_state === 'SUCCESS') {
+    if (isSuccessOrderStatus(trade_state)) {
+      updateData.status = 'SUCCESS';
+      updateData.finish_time = new Date();
+
       log.info('支付成功，开始处理积分充值', {
         client_sn,
         trade_no,
         user_uuid: dbOrder.user_uuid,
         credits_amount: dbOrder.credits_amount
       });
-
-      updateData.status = 'SUCCESS';
-      updateData.finish_time = new Date();
 
       // 处理积分充值
       if (dbOrder.credits_amount && !dbOrder.credits_processed) {
@@ -148,8 +153,8 @@ export async function POST(req: NextRequest) {
         }
       }
 
-    } else if (trade_state === 'FAILED' || trade_state === 'CANCELLED') {
-      updateData.status = trade_state;
+    } else if (isFailedOrderStatus(trade_state)) {
+      updateData.status = trade_state === 'CANCELED' ? 'CANCELLED' : 'FAILED';
       log.info('支付失败或取消', { client_sn, trade_state });
     }
 

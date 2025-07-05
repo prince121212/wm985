@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
     log.info('开始重新激活收钱吧终端', { timestamp: new Date().toISOString() });
 
     // 使用新的激活码
-    const newActivationCode = '84038959';
+    const newActivationCode = process.env.SQB_TEST_ACTIVATION_CODE || '84038959';
     const deviceId = generateDeviceId();
     
     log.info('开始重新激活终端', { deviceId, activationCode: newActivationCode });
