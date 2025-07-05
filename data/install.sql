@@ -674,6 +674,208 @@ END $$;
 
 -- 为已存在的分类表添加新字段（兼容已有数据库）
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS resource_count INTEGER DEFAULT 0;
+
+-- ============================================
+-- 收钱吧支付系统数据库表设计
+-- 版本：v1.0
+-- 创建时间：2025-07-04
+-- 说明：为文明知识库系统添加收钱吧支付功能相关表
+-- ============================================
+
+-- 支付订单表
+CREATE TABLE IF NOT EXISTS sqb_payment_orders (
+    id BIGSERIAL PRIMARY KEY,
+    -- 基础订单信息
+    client_sn VARCHAR(255) UNIQUE NOT NULL,           -- 商户订单号（我们生成的唯一订单号）
+    sn VARCHAR(255),                                  -- 收钱吧订单号
+    trade_no VARCHAR(255),                            -- 第三方支付订单号（微信/支付宝）
+
+    -- 用户信息
+    user_uuid VARCHAR(255) NOT NULL,                  -- 用户UUID
+
+    -- 支付信息
+    total_amount INTEGER NOT NULL,                    -- 支付金额（分）
+    net_amount INTEGER,                               -- 实际到账金额（分）
+    subject VARCHAR(255) NOT NULL,                    -- 订单标题
+    description TEXT,                                 -- 订单描述
+    payway VARCHAR(10) NOT NULL,                      -- 支付方式：2=支付宝，3=微信
+    payway_name VARCHAR(50),                          -- 支付方式名称
+
+    -- 终端信息
+    terminal_sn VARCHAR(255) NOT NULL,                -- 终端序列号
+    device_id VARCHAR(255) NOT NULL,                  -- 设备ID
+
+    -- 支付状态
+    status VARCHAR(50) NOT NULL DEFAULT 'CREATED',    -- 订单状态：CREATED, SUCCESS, FAILED, CANCELLED
+    order_status VARCHAR(50),                         -- 收钱吧订单状态
+
+    -- 支付者信息
+    payer_uid VARCHAR(255),                           -- 支付者用户ID
+    payer_login VARCHAR(255),                         -- 支付者登录名
+
+    -- 二维码信息
+    qr_code TEXT,                                     -- 支付二维码链接
+    qr_code_image_url TEXT,                           -- 二维码图片链接
+
+    -- 时间信息
+    created_at TIMESTAMPTZ DEFAULT NOW(),             -- 创建时间
+    updated_at TIMESTAMPTZ DEFAULT NOW(),             -- 更新时间
+    finish_time TIMESTAMPTZ,                          -- 支付完成时间
+    channel_finish_time TIMESTAMPTZ,                  -- 渠道完成时间
+    expired_at TIMESTAMPTZ,                           -- 订单过期时间（默认30分钟）
+
+    -- 回调处理
+    notify_processed BOOLEAN DEFAULT FALSE,           -- 是否已处理回调通知
+    notify_processed_at TIMESTAMPTZ,                  -- 回调处理时间
+
+    -- 积分充值信息
+    credits_amount INTEGER,                           -- 充值积分数量
+    credits_processed BOOLEAN DEFAULT FALSE,          -- 是否已处理积分充值
+    credits_processed_at TIMESTAMPTZ,                 -- 积分充值处理时间
+    credits_trans_no VARCHAR(255),                    -- 积分充值交易号
+
+    -- 其他信息
+    operator VARCHAR(100) DEFAULT 'system',           -- 操作员
+    remark TEXT                                       -- 备注
+);
+
+-- 支付回调日志表
+CREATE TABLE IF NOT EXISTS sqb_payment_callbacks (
+    id BIGSERIAL PRIMARY KEY,
+    client_sn VARCHAR(255) NOT NULL,                  -- 商户订单号
+    callback_data JSONB NOT NULL,                     -- 完整的回调数据
+    signature VARCHAR(255),                           -- 回调签名
+    signature_verified BOOLEAN DEFAULT FALSE,         -- 签名是否验证通过
+    signature_error TEXT,                             -- 签名验证错误信息
+    processed BOOLEAN DEFAULT FALSE,                  -- 是否已处理
+    processed_at TIMESTAMPTZ,                         -- 处理时间
+    error_message TEXT,                               -- 处理错误信息
+    created_at TIMESTAMPTZ DEFAULT NOW()              -- 接收时间
+);
+
+-- 终端管理表（可选，用于多终端管理）
+CREATE TABLE IF NOT EXISTS sqb_terminals (
+    id BIGSERIAL PRIMARY KEY,
+    device_id VARCHAR(255) UNIQUE NOT NULL,           -- 设备ID
+    terminal_sn VARCHAR(255) UNIQUE NOT NULL,         -- 终端序列号
+    terminal_key VARCHAR(255) NOT NULL,               -- 终端密钥
+    activation_code VARCHAR(255),                     -- 激活码
+    status VARCHAR(50) DEFAULT 'ACTIVE',              -- 终端状态：ACTIVE, INACTIVE
+    last_checkin_at TIMESTAMPTZ,                      -- 最后签到时间
+    created_at TIMESTAMPTZ DEFAULT NOW(),             -- 创建时间
+    updated_at TIMESTAMPTZ DEFAULT NOW(),             -- 更新时间
+    remark TEXT                                       -- 备注
+);
+
+-- 创建索引
+CREATE INDEX IF NOT EXISTS idx_sqb_orders_client_sn ON sqb_payment_orders(client_sn);
+CREATE INDEX IF NOT EXISTS idx_sqb_orders_user_uuid ON sqb_payment_orders(user_uuid);
+CREATE INDEX IF NOT EXISTS idx_sqb_orders_status ON sqb_payment_orders(status);
+CREATE INDEX IF NOT EXISTS idx_sqb_orders_created_at ON sqb_payment_orders(created_at);
+CREATE INDEX IF NOT EXISTS idx_sqb_orders_payway ON sqb_payment_orders(payway);
+CREATE INDEX IF NOT EXISTS idx_sqb_orders_terminal_sn ON sqb_payment_orders(terminal_sn);
+
+CREATE INDEX IF NOT EXISTS idx_sqb_callbacks_client_sn ON sqb_payment_callbacks(client_sn);
+CREATE INDEX IF NOT EXISTS idx_sqb_callbacks_created_at ON sqb_payment_callbacks(created_at);
+CREATE INDEX IF NOT EXISTS idx_sqb_callbacks_processed ON sqb_payment_callbacks(processed);
+CREATE INDEX IF NOT EXISTS idx_sqb_callbacks_signature_verified ON sqb_payment_callbacks(signature_verified);
+
+CREATE INDEX IF NOT EXISTS idx_sqb_terminals_device_id ON sqb_terminals(device_id);
+CREATE INDEX IF NOT EXISTS idx_sqb_terminals_status ON sqb_terminals(status);
+
+-- 扩展现有 credits 表以支持收钱吧支付
+ALTER TABLE credits ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50);
+ALTER TABLE credits ADD COLUMN IF NOT EXISTS payment_order_sn VARCHAR(255);
+
+-- 创建支付相关索引
+CREATE INDEX IF NOT EXISTS idx_credits_payment_method ON credits(payment_method);
+CREATE INDEX IF NOT EXISTS idx_credits_payment_order_sn ON credits(payment_order_sn);
+
+-- 创建支付积分充值事务处理函数
+CREATE OR REPLACE FUNCTION process_payment_credits_transaction(
+    p_client_sn VARCHAR(255),
+    p_user_uuid VARCHAR(255),
+    p_credits_amount INTEGER,
+    p_trans_no VARCHAR(255)
+) RETURNS JSONB AS $$
+DECLARE
+    v_order_record RECORD;
+    v_result JSONB;
+BEGIN
+    -- 开始事务（函数内部自动处理）
+
+    -- 1. 检查订单是否已经处理过积分（使用FOR UPDATE锁定记录）
+    SELECT credits_processed, credits_trans_no
+    INTO v_order_record
+    FROM sqb_payment_orders
+    WHERE client_sn = p_client_sn
+    FOR UPDATE;
+
+    -- 检查订单是否存在
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', '支付订单不存在'
+        );
+    END IF;
+
+    -- 检查是否已经处理过
+    IF v_order_record.credits_processed THEN
+        RETURN jsonb_build_object(
+            'success', true,
+            'trans_no', v_order_record.credits_trans_no,
+            'already_processed', true
+        );
+    END IF;
+
+    -- 2. 插入积分记录
+    INSERT INTO credits (
+        trans_no,
+        user_uuid,
+        trans_type,
+        credits,
+        order_no,
+        payment_method,
+        payment_order_sn,
+        created_at
+    ) VALUES (
+        p_trans_no,
+        p_user_uuid,
+        'RECHARGE',
+        p_credits_amount,
+        p_client_sn,
+        'SQB',
+        p_client_sn,
+        NOW()
+    );
+
+    -- 3. 更新支付订单的积分处理状态
+    UPDATE sqb_payment_orders
+    SET
+        credits_amount = p_credits_amount,
+        credits_processed = true,
+        credits_processed_at = NOW(),
+        credits_trans_no = p_trans_no,
+        updated_at = NOW()
+    WHERE client_sn = p_client_sn;
+
+    -- 返回成功结果
+    RETURN jsonb_build_object(
+        'success', true,
+        'trans_no', p_trans_no,
+        'already_processed', false
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- 发生错误时自动回滚
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', SQLERRM
+        );
+END;
+$$ LANGUAGE plpgsql;
+
 -- 提交事务
 COMMIT;
 

@@ -5,6 +5,7 @@
 export const TRANSACTION_TYPE_MAP: Record<string, string> = {
   'new_user': '新用户奖励',
   'order_pay': '充值',
+  'RECHARGE': '充值积分',
   'system_add': '系统赠送',
   'invitee_bonus': '被邀请奖励',
   'ping': 'API测试',
