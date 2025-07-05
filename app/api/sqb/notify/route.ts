@@ -11,11 +11,95 @@ import {
   isFailedOrderStatus
 } from '@/lib/sqb-constants';
 import { log } from '@/lib/logger';
+import { sendEmail } from '@/lib/wework-email';
 
 
 
 
 
+/**
+ * 发送收钱吧回调通知邮件
+ */
+async function sendCallbackNotificationEmail(
+  callbackData: {
+    headers: Record<string, string>;
+    body: any;
+    requestBodyText: string;
+    client_sn: string;
+    signature?: string;
+    signatureVerified: boolean;
+    signatureError?: string;
+    timestamp: string;
+  }
+): Promise<void> {
+  try {
+    const emailContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
+        <h2 style="color: #333; border-bottom: 2px solid #007cba; padding-bottom: 10px;">
+          收钱吧支付回调通知
+        </h2>
+
+        <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h3 style="color: #495057; margin-top: 0;">基本信息</h3>
+          <p><strong>时间:</strong> ${callbackData.timestamp}</p>
+          <p><strong>订单号:</strong> ${callbackData.client_sn}</p>
+          <p><strong>签名验证:</strong>
+            <span style="color: ${callbackData.signatureVerified ? '#28a745' : '#dc3545'};">
+              ${callbackData.signatureVerified ? '✅ 验证成功' : '❌ 验证失败'}
+            </span>
+          </p>
+          ${callbackData.signatureError ? `<p><strong>签名错误:</strong> <span style="color: #dc3545;">${callbackData.signatureError}</span></p>` : ''}
+        </div>
+
+        <div style="background-color: #e9ecef; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h3 style="color: #495057; margin-top: 0;">请求头信息</h3>
+          <pre style="background-color: #fff; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px;">${JSON.stringify(callbackData.headers, null, 2)}</pre>
+        </div>
+
+        <div style="background-color: #d4edda; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h3 style="color: #495057; margin-top: 0;">回调数据</h3>
+          <pre style="background-color: #fff; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px;">${JSON.stringify(callbackData.body, null, 2)}</pre>
+        </div>
+
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h3 style="color: #495057; margin-top: 0;">原始请求体</h3>
+          <pre style="background-color: #fff; padding: 10px; border-radius: 3px; overflow-x: auto; font-size: 12px;">${callbackData.requestBodyText}</pre>
+        </div>
+
+        ${callbackData.signature ? `
+        <div style="background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 15px 0;">
+          <h3 style="color: #495057; margin-top: 0;">签名信息</h3>
+          <p><strong>签名长度:</strong> ${callbackData.signature.length}</p>
+          <p><strong>签名预览:</strong> ${callbackData.signature.substring(0, 100)}...</p>
+        </div>
+        ` : ''}
+
+        <div style="margin-top: 20px; padding: 10px; background-color: #d1ecf1; border-radius: 5px;">
+          <p style="margin: 0; font-size: 12px; color: #0c5460;">
+            此邮件由文明知识库系统自动发送，用于收钱吧支付回调监控和问题追踪。
+          </p>
+        </div>
+      </div>
+    `;
+
+    await sendEmail({
+      to: '1608840095@qq.com',
+      subject: `收钱吧回调通知 - ${callbackData.client_sn} - ${callbackData.signatureVerified ? '验证成功' : '验证失败'}`,
+      html: emailContent,
+      text: `收钱吧回调通知\n订单号: ${callbackData.client_sn}\n时间: ${callbackData.timestamp}\n签名验证: ${callbackData.signatureVerified ? '成功' : '失败'}\n\n回调数据:\n${JSON.stringify(callbackData.body, null, 2)}`
+    });
+
+    log.info('收钱吧回调通知邮件发送成功', {
+      client_sn: callbackData.client_sn,
+      signature_verified: callbackData.signatureVerified
+    });
+
+  } catch (error) {
+    log.error('发送收钱吧回调通知邮件失败', error as Error, {
+      client_sn: callbackData.client_sn
+    });
+  }
+}
 // 支付回调通知处理
 export async function POST(req: NextRequest) {
   let requestBodyText = '';
@@ -50,12 +134,46 @@ export async function POST(req: NextRequest) {
 
     // 2. 验证回调签名
     const authorizationHeader = req.headers.get('authorization') || '';
-    const signature = authorizationHeader; // Authorization header中直接包含签名
 
+    let signature = '';
     let signatureVerified = false;
     let signatureError = '';
 
+    // 解析Authorization header获取签名
+    if (authorizationHeader) {
+      // 根据收钱吧文档，Authorization header可能的格式：
+      // 1. 直接是签名：Authorization: signature_value
+      // 2. 包含终端号：Authorization: terminal_sn signature_value
+      const authParts = authorizationHeader.trim().split(' ');
+
+      if (authParts.length === 1) {
+        // 格式1：直接是签名
+        signature = authParts[0];
+      } else if (authParts.length === 2) {
+        // 格式2：terminal_sn + 签名，取第二部分
+        signature = authParts[1];
+      } else {
+        signatureError = 'Authorization header格式不正确';
+      }
+
+      log.info('解析Authorization header', {
+        client_sn,
+        auth_header_length: authorizationHeader.length,
+        auth_parts_count: authParts.length,
+        signature_length: signature.length,
+        signature_preview: signature ? signature.substring(0, 50) + '...' : 'empty'
+      });
+    }
+
     if (signature) {
+      // 记录详细的签名验证信息用于调试
+      log.info('开始验证收钱吧回调签名', {
+        client_sn,
+        signature_length: signature.length,
+        body_length: requestBodyText.length,
+        body_preview: requestBodyText.substring(0, 100) + '...'
+      });
+
       const verifyResult = verifySQBCallbackSignature(requestBodyText, signature);
       signatureVerified = verifyResult.success;
       if (!verifyResult.success) {
@@ -63,14 +181,22 @@ export async function POST(req: NextRequest) {
         log.warn('支付回调签名验证失败', {
           client_sn,
           error: signatureError,
-          signature: signature.substring(0, 20) + '...' // 只记录签名的前20个字符
+          signature_length: signature.length,
+          body_length: requestBodyText.length
         });
       } else {
         log.info('支付回调签名验证成功', { client_sn });
       }
     } else {
-      signatureError = '缺少签名信息';
-      log.warn('支付回调缺少签名信息', { client_sn });
+      if (!signatureError) {
+        signatureError = '缺少签名信息';
+      }
+      log.warn('支付回调签名问题', {
+        client_sn,
+        error: signatureError,
+        has_auth_header: !!authorizationHeader,
+        auth_header: authorizationHeader ? authorizationHeader.substring(0, 100) + '...' : 'empty'
+      });
     }
 
     // 3. 记录回调日志
@@ -167,7 +293,21 @@ export async function POST(req: NextRequest) {
       signature_verified: signatureVerified
     });
 
-    // 10. 返回成功响应
+    // 10. 发送回调通知邮件（异步执行，不影响响应）
+    sendCallbackNotificationEmail({
+      headers: Object.fromEntries(req.headers.entries()),
+      body,
+      requestBodyText,
+      client_sn,
+      signature,
+      signatureVerified,
+      signatureError,
+      timestamp: new Date().toISOString()
+    }).catch(error => {
+      log.error('发送回调通知邮件异常', error as Error, { client_sn });
+    });
+
+    // 11. 返回成功响应
     return Response.json({ success: true });
 
   } catch (error) {
@@ -194,6 +334,20 @@ export async function POST(req: NextRequest) {
           signature_verified: false,
           signature_error: '处理异常时无法验证签名',
           error_message: error instanceof Error ? error.message : '未知错误'
+        });
+
+        // 发送错误回调通知邮件（异步执行）
+        sendCallbackNotificationEmail({
+          headers: Object.fromEntries(req.headers.entries()),
+          body,
+          requestBodyText,
+          client_sn,
+          signature: undefined,
+          signatureVerified: false,
+          signatureError: `处理异常: ${error instanceof Error ? error.message : '未知错误'}`,
+          timestamp: new Date().toISOString()
+        }).catch(emailError => {
+          log.error('发送错误回调通知邮件异常', emailError as Error, { client_sn });
         });
       }
     } catch (logError) {

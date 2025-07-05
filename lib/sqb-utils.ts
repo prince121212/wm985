@@ -21,8 +21,16 @@ export function generateMD5Sign(content: string, key: string): string {
 /**
  * 验证收钱吧回调签名
  * 使用RSA SHA256WithRSA算法验证签名
+ *
+ * 根据收钱吧官方文档验签流程：
+ * 1. 获取回调请求请求头header里面Authorization中的sign
+ * 2. 解析回调通知请求报文获取到请求体body
+ * 3. 获取收钱吧公钥
+ * 4. 采用RSA的SHA256WithRSA签名算法，对获取的回调信息进行验签
+ * 5. 返回验签结果
+ *
  * @param requestBody 回调请求体（JSON字符串）
- * @param signature 从Authorization header中获取的签名
+ * @param signature 从Authorization header中提取的签名
  * @param publicKey 收钱吧提供的公钥
  * @returns 验签结果
  */
@@ -55,19 +63,32 @@ export function verifySQBCallbackSignature(
       formattedPublicKey = `-----BEGIN PUBLIC KEY-----\n${formattedPublicKey}\n-----END PUBLIC KEY-----`;
     }
 
-    // 创建验证器
+    // 创建验证器，使用RSA-SHA256算法
     const verifier = crypto.createVerify('RSA-SHA256');
+
+    // 对请求体进行验签（根据收钱吧文档：对获取的回调信息进行验签）
     verifier.update(requestBody, 'utf8');
 
-    // 验证签名（签名应该是base64编码的）
+    // 验证签名（收钱吧的签名通常是base64编码）
     const isValid = verifier.verify(formattedPublicKey, signature, 'base64');
 
-    return {
-      success: isValid,
-      error: isValid ? undefined : '签名验证失败'
-    };
+    if (isValid) {
+      console.log('收钱吧回调签名验证成功');
+      return { success: true };
+    } else {
+      console.log('收钱吧回调签名验证失败', {
+        signatureLength: signature.length,
+        bodyLength: requestBody.length,
+        publicKeyLength: formattedPublicKey.length
+      });
+      return {
+        success: false,
+        error: '签名验证失败'
+      };
+    }
 
   } catch (error) {
+    console.error('收钱吧签名验证异常:', error);
     return {
       success: false,
       error: `签名验证异常: ${error instanceof Error ? error.message : '未知错误'}`
@@ -77,7 +98,7 @@ export function verifySQBCallbackSignature(
 
 // 生成设备ID
 export function generateDeviceId(): string {
-  return `WMZS_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `WMZS_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 }
 
 // API响应接口定义
