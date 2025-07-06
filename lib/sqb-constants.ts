@@ -116,3 +116,62 @@ export function isPendingOrderStatus(status: string): boolean {
 export function getOrderStatusMessage(status: string): string {
   return SQB_ORDER_STATUS_MESSAGES[status as SQBOrderStatus] || '未知状态';
 }
+
+// 核验状态枚举
+export const VERIFICATION_STATUS = {
+  UNVERIFIED: 'UNVERIFIED',           // 未核验
+  VERIFIED_CORRECT: 'VERIFIED_CORRECT', // 核验正确
+  VERIFIED_ERROR: 'VERIFIED_ERROR',     // 核验错误
+  VERIFICATION_FAILED: 'VERIFICATION_FAILED' // 核验失败
+} as const;
+
+// 核验状态类型
+export type VerificationStatus = typeof VERIFICATION_STATUS[keyof typeof VERIFICATION_STATUS];
+
+// 核验状态描述映射
+export const VERIFICATION_STATUS_MESSAGES = {
+  [VERIFICATION_STATUS.UNVERIFIED]: '未核验',
+  [VERIFICATION_STATUS.VERIFIED_CORRECT]: '核验正确',
+  [VERIFICATION_STATUS.VERIFIED_ERROR]: '核验错误',
+  [VERIFICATION_STATUS.VERIFICATION_FAILED]: '核验失败'
+} as const;
+
+/**
+ * 获取核验状态的用户友好描述
+ */
+export function getVerificationStatusMessage(status: string): string {
+  return VERIFICATION_STATUS_MESSAGES[status as VerificationStatus] || '未知状态';
+}
+
+/**
+ * 判断核验状态是否需要重新核验
+ */
+export function needsVerification(status: string): boolean {
+  return status === VERIFICATION_STATUS.UNVERIFIED || status === VERIFICATION_STATUS.VERIFICATION_FAILED;
+}
+
+/**
+ * 根据收钱吧API响应和当前订单状态判断核验结果
+ */
+export function determineVerificationResult(
+  currentOrderStatus: string,
+  sqbApiOrderStatus: string
+): VerificationStatus {
+  // 状态映射：将我们的内部状态映射到收钱吧状态
+  const statusMapping: Record<string, string> = {
+    'CREATED': SQB_ORDER_STATUS.CREATED,
+    'SUCCESS': SQB_ORDER_STATUS.PAID,
+    'FAILED': SQB_ORDER_STATUS.PAY_CANCELED,
+    'CANCELLED': SQB_ORDER_STATUS.CANCELED
+  };
+
+  const expectedSqbStatus = statusMapping[currentOrderStatus];
+
+  // 如果状态一致，核验正确
+  if (expectedSqbStatus === sqbApiOrderStatus) {
+    return VERIFICATION_STATUS.VERIFIED_CORRECT;
+  }
+
+  // 如果状态不一致，核验错误
+  return VERIFICATION_STATUS.VERIFIED_ERROR;
+}

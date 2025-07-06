@@ -36,6 +36,9 @@ export interface SQBPaymentOrder {
   credits_trans_no?: string;
   operator?: string;
   remark?: string;
+  verification_status?: string;
+  verification_time?: Date;
+  verification_error?: string;
 }
 
 // 支付回调日志接口
@@ -447,4 +450,73 @@ export async function getUserPaymentOrders(
   });
 }
 
+/**
+ * 获取需要核验的订单列表
+ */
+export async function getOrdersNeedingVerification(): Promise<SQBPaymentOrder[]> {
+  return withRetry(async () => {
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('sqb_payment_orders')
+        .select('*')
+        .in('verification_status', ['UNVERIFIED', 'VERIFICATION_FAILED', 'VERIFIED_ERROR'])
+        .order('created_at', { ascending: true });
 
+      if (error) {
+        log.error('获取需要核验的订单失败', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      log.error('获取需要核验的订单异常', error as Error);
+      throw error;
+    }
+  });
+}
+
+/**
+ * 更新订单核验状态
+ */
+export async function updateOrderVerificationStatus(
+  clientSn: string,
+  verificationStatus: string,
+  verificationError?: string
+): Promise<SQBPaymentOrder | null> {
+  return withRetry(async () => {
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('sqb_payment_orders')
+        .update({
+          verification_status: verificationStatus,
+          verification_time: new Date().toISOString(),
+          verification_error: verificationError || null,
+          updated_at: new Date().toISOString()
+        })
+        .eq('client_sn', clientSn)
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          log.warn('订单不存在', { client_sn: clientSn });
+          return null;
+        }
+        log.error('更新订单核验状态失败', error);
+        throw error;
+      }
+
+      log.info('订单核验状态更新成功', {
+        client_sn: clientSn,
+        verification_status: verificationStatus,
+        has_error: !!verificationError
+      });
+      return data;
+    } catch (error) {
+      log.error('更新订单核验状态异常', error as Error);
+      throw error;
+    }
+  });
+}

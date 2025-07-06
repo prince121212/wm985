@@ -787,6 +787,14 @@ CREATE INDEX IF NOT EXISTS idx_sqb_terminals_status ON sqb_terminals(status);
 ALTER TABLE credits ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50);
 ALTER TABLE credits ADD COLUMN IF NOT EXISTS payment_order_sn VARCHAR(255);
 
+-- 为收钱吧支付订单表添加核验状态字段
+ALTER TABLE sqb_payment_orders ADD COLUMN IF NOT EXISTS verification_status VARCHAR(50) DEFAULT 'UNVERIFIED';
+ALTER TABLE sqb_payment_orders ADD COLUMN IF NOT EXISTS verification_time TIMESTAMPTZ;
+ALTER TABLE sqb_payment_orders ADD COLUMN IF NOT EXISTS verification_error TEXT;
+
+-- 为核验状态创建索引
+CREATE INDEX IF NOT EXISTS idx_sqb_orders_verification_status ON sqb_payment_orders(verification_status);
+
 -- 创建支付相关索引
 CREATE INDEX IF NOT EXISTS idx_credits_payment_method ON credits(payment_method);
 CREATE INDEX IF NOT EXISTS idx_credits_payment_order_sn ON credits(payment_order_sn);
