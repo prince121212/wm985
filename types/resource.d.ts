@@ -17,6 +17,7 @@ export interface Resource {
   is_featured: boolean;
   is_free: boolean;
   credits?: number;
+  top?: boolean; // 置顶标识
   rejection_reason?: string;
   created_at?: string;
   updated_at?: string;

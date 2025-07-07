@@ -6,7 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Loader2, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { RefreshCw, Loader2, Trash2, Search, Pin, PinOff } from "lucide-react";
 import Header from "@/components/dashboard/header";
 import TableBlock from "@/components/blocks/table";
 import { TableColumn } from "@/types/blocks/table";
@@ -14,6 +15,7 @@ import { ResourceWithDetails } from "@/types/resource";
 import moment from "moment";
 import { toast } from "sonner";
 import PendingResourceActions from "@/components/admin/pending-resource-actions";
+import { log } from "@/lib/logger";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,8 +33,10 @@ export default function AdminResourcesPage() {
   const [resources, setResources] = useState<ResourceWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("pending"); // 默认选中待审核
+  const [searchQuery, setSearchQuery] = useState<string>(""); // 搜索关键词
   const [refreshing, setRefreshing] = useState(false);
   const [deletingResource, setDeletingResource] = useState<string | null>(null);
+  const [togglingTop, setTogglingTop] = useState<string | null>(null); // 正在切换置顶状态的资源
 
   // 获取资源列表
   const fetchResources = async () => {
@@ -44,6 +48,10 @@ export default function AdminResourcesPage() {
       } else {
         // 对于管理员，全部状态应该包含所有状态的资源
         params.set("status", "all");
+      }
+      // 添加搜索参数
+      if (searchQuery.trim()) {
+        params.set("search", searchQuery.trim());
       }
       params.set("limit", "50");
       params.set("offset", "0");
@@ -93,17 +101,72 @@ export default function AdminResourcesPage() {
         throw new Error(data.message || '删除失败');
       }
     } catch (error) {
-      console.error('删除资源失败:', error);
+      log.error('删除资源失败', error as Error, {
+        component: 'AdminResourcesPage',
+        action: 'deleteResource',
+        resourceId: resourceUuid,
+        resourceTitle
+      });
       toast.error(`删除资源失败: ${error instanceof Error ? error.message : '未知错误'}`);
     } finally {
       setDeletingResource(null);
     }
   };
 
-  // 状态筛选变化时重新获取数据
+  // 切换置顶状态
+  const handleToggleTop = async (resourceUuid: string, resourceTitle: string, currentTopStatus: boolean) => {
+    try {
+      setTogglingTop(resourceUuid);
+
+      const response = await fetch(`/api/admin/resources/${resourceUuid}/toggle-top`, {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (data.code === 0) {
+        const actionText = currentTopStatus ? '取消置顶' : '置顶';
+        log.audit(`资源${actionText}成功`, {
+          component: 'AdminResourcesPage',
+          action: 'toggleTop',
+          resourceId: resourceUuid,
+          resourceTitle,
+          newTopStatus: !currentTopStatus
+        });
+        toast.success(`资源"${resourceTitle}"已${actionText}`);
+        // 重新获取资源列表
+        await fetchResources();
+      } else {
+        throw new Error(data.message || '操作失败');
+      }
+    } catch (error) {
+      log.error('切换置顶状态失败', error as Error, {
+        component: 'AdminResourcesPage',
+        action: 'toggleTop',
+        resourceId: resourceUuid,
+        resourceTitle,
+        currentTopStatus
+      });
+      toast.error(`操作失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setTogglingTop(null);
+    }
+  };
+
+  // 状态筛选和搜索变化时重新获取数据
   useEffect(() => {
     fetchResources();
-  }, [statusFilter]);
+  }, [statusFilter, searchQuery]);
+
+  // 处理搜索输入
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  // 清空搜索
+  const handleClearSearch = () => {
+    setSearchQuery("");
+  };
 
   const crumb = {
     items: [
@@ -114,12 +177,17 @@ export default function AdminResourcesPage() {
   };
 
   const columns: TableColumn[] = [
-    { 
-      name: "title", 
+    {
+      name: "title",
       title: "资源标题",
       callback: (row) => (
         <div className="max-w-xs">
-          <p className="font-medium truncate">{row.title}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-medium truncate">{row.title}</p>
+            {row.top && (
+              <Pin className="h-4 w-4 text-orange-500 flex-shrink-0" title="置顶资源" />
+            )}
+          </div>
           <p className="text-xs text-muted-foreground truncate">{row.description}</p>
         </div>
       )
@@ -210,6 +278,25 @@ export default function AdminResourcesPage() {
               />
             )}
 
+            {/* 置顶按钮 - 只有已通过审核的资源才能置顶 */}
+            {row.status === 'approved' && (
+              <Button
+                variant={row.top ? "default" : "outline"}
+                size="sm"
+                onClick={() => handleToggleTop(row.uuid, row.title, row.top || false)}
+                disabled={togglingTop === row.uuid}
+                title={row.top ? "取消置顶" : "置顶资源"}
+              >
+                {togglingTop === row.uuid ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : row.top ? (
+                  <PinOff className="h-4 w-4" />
+                ) : (
+                  <Pin className="h-4 w-4" />
+                )}
+              </Button>
+            )}
+
             {/* 删除按钮 - 所有状态的资源都可以删除 */}
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -260,7 +347,8 @@ export default function AdminResourcesPage() {
       rejected: "已拒绝资源"
     };
     const statusText = statusMap[statusFilter as keyof typeof statusMap] || "所有资源";
-    return `共 ${resources.length} 个${statusText}`;
+    const searchText = searchQuery.trim() ? `（搜索："${searchQuery.trim()}"）` : "";
+    return `共 ${resources.length} 个${statusText}${searchText}`;
   };
 
   return (
@@ -279,6 +367,30 @@ export default function AdminResourcesPage() {
           {/* 筛选和操作栏 */}
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              {/* 搜索框 */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">搜索:</span>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="搜索资源标题或描述..."
+                    value={searchQuery}
+                    onChange={handleSearchChange}
+                    className="pl-10 w-64"
+                  />
+                  {searchQuery && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                      onClick={handleClearSearch}
+                    >
+                      ×
+                    </Button>
+                  )}
+                </div>
+              </div>
+
               {/* 状态筛选 */}
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">状态筛选:</span>

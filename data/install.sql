@@ -675,6 +675,9 @@ END $$;
 -- 为已存在的分类表添加新字段（兼容已有数据库）
 ALTER TABLE categories ADD COLUMN IF NOT EXISTS resource_count INTEGER DEFAULT 0;
 
+-- 为已存在的资源表添加置顶字段（兼容已有数据库）
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS top BOOLEAN DEFAULT FALSE;
+
 -- ============================================
 -- 收钱吧支付系统数据库表设计
 -- 版本：v1.0

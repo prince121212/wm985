@@ -34,8 +34,11 @@ class Logger {
   private logLevel: LogLevel;
 
   constructor() {
-    // 根据环境设置日志级别
-    this.logLevel = process.env.NODE_ENV === 'production' ? LogLevel.INFO : LogLevel.DEBUG;
+    // 根据环境设置日志级别，支持客户端和服务端
+    const isProduction = typeof window !== 'undefined'
+      ? process.env.NODE_ENV === 'production'
+      : process.env.NODE_ENV === 'production';
+    this.logLevel = isProduction ? LogLevel.INFO : LogLevel.DEBUG;
   }
 
   public static getInstance(): Logger {
@@ -62,10 +65,13 @@ class Logger {
   private output(logEntry: LogEntry): void {
     const { timestamp, level, message, context, error } = logEntry;
     const levelName = LogLevel[level];
+    const isProduction = typeof window !== 'undefined'
+      ? process.env.NODE_ENV === 'production'
+      : process.env.NODE_ENV === 'production';
 
     // 在生产环境使用结构化日志
-    if (process.env.NODE_ENV === 'production') {
-      console.log(JSON.stringify({
+    if (isProduction) {
+      const logData = {
         timestamp,
         level: levelName,
         message,
@@ -75,15 +81,37 @@ class Logger {
           message: error.message,
           stack: error.stack,
         } : undefined,
-      }));
+        client: typeof window !== 'undefined' // 标识是否为客户端日志
+      };
+      console.log(JSON.stringify(logData));
     } else {
       // 开发环境使用可读格式
+      const clientPrefix = typeof window !== 'undefined' ? '[CLIENT] ' : '[SERVER] ';
       const contextStr = context ? ` | Context: ${JSON.stringify(context)}` : '';
       const errorStr = error ? ` | Error: ${error.message}` : '';
-      console.log(`[${timestamp}] ${levelName}: ${message}${contextStr}${errorStr}`);
+
+      // 根据日志级别使用不同的console方法
+      const logMessage = `${clientPrefix}[${timestamp}] ${levelName}: ${message}${contextStr}${errorStr}`;
+
+      switch (level) {
+        case LogLevel.DEBUG:
+          console.debug(logMessage);
+          break;
+        case LogLevel.INFO:
+          console.info(logMessage);
+          break;
+        case LogLevel.WARN:
+          console.warn(logMessage);
+          break;
+        case LogLevel.ERROR:
+          console.error(logMessage);
+          break;
+        default:
+          console.log(logMessage);
+      }
 
       if (error && error.stack) {
-        console.log(error.stack);
+        console.error(error.stack);
       }
     }
   }

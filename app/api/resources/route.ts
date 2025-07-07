@@ -233,6 +233,7 @@ export async function POST(req: Request) {
       is_featured: false,
       is_free: is_free ?? true,
       credits: is_free ? 0 : (credits || 0),
+      top: false, // 默认不置顶
     };
 
     log.info("创建资源", {

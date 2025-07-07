@@ -4,6 +4,37 @@ import { wrapQueryWithMonitoring } from "@/lib/db-performance";
 import { Resource, ResourceWithDetails } from "@/types/resource";
 import { updateCategoryResourceCount } from "./category";
 
+// 缓存字段存在性检查结果
+let topFieldExists: boolean | null = null;
+
+// 检查top字段是否存在
+async function checkTopFieldExists(): Promise<boolean> {
+  if (topFieldExists !== null) {
+    return topFieldExists;
+  }
+
+  try {
+    const supabase = getSupabaseClient();
+    await supabase.from('resources').select('top').limit(1);
+    topFieldExists = true;
+    log.info("top字段存在性检查通过");
+    return true;
+  } catch (error) {
+    topFieldExists = false;
+    log.warn("top字段不存在，将跳过置顶排序", error as Error);
+    return false;
+  }
+}
+
+// 应用置顶优先排序（如果字段存在）
+async function applyTopPrioritySort(query: any, primarySort: string, ascending: boolean = false): Promise<any> {
+  const hasTopField = await checkTopFieldExists();
+  if (hasTopField) {
+    query = query.order('top', { ascending: false });
+  }
+  return query.order(primarySort, { ascending });
+}
+
 // 安全的搜索词处理函数
 function sanitizeSearchTerm(searchTerm: string): string {
   if (!searchTerm) return '';
@@ -147,43 +178,40 @@ export async function getResourcesCount(params: {
         query = query.eq("category_id", params.category);
       }
 
-      // 标签筛选
+      // 标签筛选 - 使用JOIN查询优化性能，避免N+1查询问题
       if (params.tags && params.tags.length > 0) {
         const validTags = params.tags.filter(tag =>
           tag && typeof tag === 'string' && tag.trim().length > 0
         ).map(tag => tag.trim());
 
         if (validTags.length > 0) {
-          const { data: tagIds, error: tagError } = await supabase
-            .from('tags')
-            .select('id')
-            .in('name', validTags);
+          // 使用单次JOIN查询获取包含指定标签的资源ID，优化N+1查询问题
+          log.debug("执行标签筛选查询", { tags: validTags, queryType: 'count' });
+
+          const { data: resourceIds, error: tagError } = await supabase
+            .from('resource_tags')
+            .select(`
+              resource_id,
+              tags!inner(id, name)
+            `)
+            .in('tags.name', validTags);
 
           if (tagError) {
-            log.error("查询标签ID失败", tagError, { tags: validTags });
+            log.error("查询标签资源关联失败", tagError, { tags: validTags });
             throw tagError;
           }
 
-          if (tagIds && tagIds.length > 0) {
-            const tagIdList = tagIds.map(t => t.id);
-            const { data: resourceIds, error: resourceError } = await supabase
-              .from('resource_tags')
-              .select('resource_id')
-              .in('tag_id', tagIdList);
-
-            if (resourceError) {
-              log.error("查询标签资源关联失败", resourceError, { tagIds: tagIdList });
-              throw resourceError;
-            }
-
-            if (resourceIds && resourceIds.length > 0) {
-              const resourceIdList = resourceIds.map(r => r.resource_id);
-              query = query.in('id', resourceIdList);
-            } else {
-              return 0; // 没有找到相关资源
-            }
+          if (resourceIds && resourceIds.length > 0) {
+            const resourceIdList = [...new Set(resourceIds.map(r => r.resource_id))]; // 去重
+            log.debug("标签筛选查询完成", {
+              tags: validTags,
+              foundResources: resourceIdList.length,
+              totalMatches: resourceIds.length
+            });
+            query = query.in('id', resourceIdList);
           } else {
-            return 0; // 标签不存在
+            log.debug("标签筛选未找到匹配资源", { tags: validTags });
+            return 0; // 没有找到相关资源
           }
         }
       }
@@ -246,7 +274,7 @@ export async function getResourcesList(params: {
       query = query.eq("category_id", params.category);
     }
 
-    // 标签筛选 - 使用安全的参数化查询
+    // 标签筛选 - 使用JOIN查询优化性能，避免N+1查询问题
     if (params.tags && params.tags.length > 0) {
       // 验证标签参数
       const validTags = params.tags.filter(tag =>
@@ -254,41 +282,35 @@ export async function getResourcesList(params: {
       ).map(tag => tag.trim());
 
       if (validTags.length > 0) {
-        // 使用安全的IN查询，通过标签名称查找资源
-        const { data: tagIds, error: tagError } = await supabase
-          .from('tags')
-          .select('id')
-          .in('name', validTags);
+        // 使用单次JOIN查询获取包含指定标签的资源ID，优化N+1查询问题
+        // 通过JOIN避免多次数据库查询
+        log.debug("执行标签筛选查询", { tags: validTags, queryType: 'list' });
+
+        const { data: resourceIds, error: tagError } = await supabase
+          .from('resource_tags')
+          .select(`
+            resource_id,
+            tags!inner(id, name)
+          `)
+          .in('tags.name', validTags);
 
         if (tagError) {
-          log.error("查询标签ID失败", tagError, { tags: validTags });
+          log.error("查询标签资源关联失败", tagError, { tags: validTags });
           throw tagError;
         }
 
-        if (tagIds && tagIds.length > 0) {
-          const tagIdList = tagIds.map(t => t.id);
-
-          // 查找包含这些标签的资源
-          const { data: resourceIds, error: resourceError } = await supabase
-            .from('resource_tags')
-            .select('resource_id')
-            .in('tag_id', tagIdList);
-
-          if (resourceError) {
-            log.error("查询标签资源关联失败", resourceError, { tagIds: tagIdList });
-            throw resourceError;
-          }
-
-          if (resourceIds && resourceIds.length > 0) {
-            const resourceIdList = resourceIds.map(r => r.resource_id);
-            query = query.in('id', resourceIdList);
-          } else {
-            // 如果没有找到相关资源，返回空结果
-            query = query.eq('id', -1); // 不存在的ID，确保返回空结果
-          }
+        if (resourceIds && resourceIds.length > 0) {
+          const resourceIdList = [...new Set(resourceIds.map(r => r.resource_id))]; // 去重
+          log.debug("标签筛选查询完成", {
+            tags: validTags,
+            foundResources: resourceIdList.length,
+            totalMatches: resourceIds.length
+          });
+          query = query.in('id', resourceIdList);
         } else {
-          // 如果标签不存在，返回空结果
-          query = query.eq('id', -1);
+          // 如果没有找到相关资源，返回空结果
+          log.debug("标签筛选未找到匹配资源", { tags: validTags });
+          query = query.eq('id', -1); // 不存在的ID，确保返回空结果
         }
       }
     }
@@ -302,22 +324,22 @@ export async function getResourcesList(params: {
       }
     }
 
-    // 排序
+    // 排序 - 置顶资源始终排在前面（如果字段存在）
     switch (params.sort) {
       case 'latest':
-        query = query.order('created_at', { ascending: false });
+        query = await applyTopPrioritySort(query, 'created_at');
         break;
       case 'popular':
-        query = query.order('access_count', { ascending: false });
+        query = await applyTopPrioritySort(query, 'access_count');
         break;
       case 'rating':
-        query = query.order('rating_avg', { ascending: false });
+        query = await applyTopPrioritySort(query, 'rating_avg');
         break;
       case 'views':
-        query = query.order('view_count', { ascending: false });
+        query = await applyTopPrioritySort(query, 'view_count');
         break;
       default:
-        query = query.order('created_at', { ascending: false });
+        query = await applyTopPrioritySort(query, 'created_at');
     }
 
     // 分页
@@ -401,20 +423,24 @@ export async function updateResourceRatingStats(resourceId: number) {
   });
 }
 
-// 获取热门资源 (按访问次数排序)
+// 获取热门资源 (置顶资源优先，然后按访问次数排序)
 export async function getPopularResources(limit: number = 6): Promise<ResourceWithDetails[]> {
   return withRetry(async () => {
     const supabase = getSupabaseClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from("resources")
       .select(`
         *,
         author:users!resources_author_id_fkey(uuid, nickname, avatar_url),
         category:categories!resources_category_id_fkey(id, name, description)
       `)
-      .eq("status", "approved")
-      .order("view_count", { ascending: false })
-      .limit(limit);
+      .eq("status", "approved");
+
+    // 安全地应用置顶排序
+    query = await applyTopPrioritySort(query, 'view_count');
+    query = query.limit(limit);
+
+    const { data, error } = await query;
 
     if (error) {
       log.error("获取热门资源失败", error);
@@ -594,20 +620,20 @@ export async function getUserResources(params: {
         }
       }
 
-      // 排序
+      // 排序 - 置顶资源始终排在前面（如果字段存在）
       switch (params.sort) {
         case 'popular':
-          query = query.order('view_count', { ascending: false });
+          query = await applyTopPrioritySort(query, 'view_count');
           break;
         case 'rating':
-          query = query.order('rating_avg', { ascending: false });
+          query = await applyTopPrioritySort(query, 'rating_avg');
           break;
         case 'views':
-          query = query.order('view_count', { ascending: false });
+          query = await applyTopPrioritySort(query, 'view_count');
           break;
         case 'latest':
         default:
-          query = query.order('created_at', { ascending: false });
+          query = await applyTopPrioritySort(query, 'created_at');
           break;
       }
 
