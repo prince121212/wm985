@@ -795,12 +795,57 @@ ALTER TABLE sqb_payment_orders ADD COLUMN IF NOT EXISTS verification_status VARC
 ALTER TABLE sqb_payment_orders ADD COLUMN IF NOT EXISTS verification_time TIMESTAMPTZ;
 ALTER TABLE sqb_payment_orders ADD COLUMN IF NOT EXISTS verification_error TEXT;
 
+-- 为收钱吧支付订单表添加退款相关字段
+ALTER TABLE sqb_payment_orders ADD COLUMN IF NOT EXISTS refund_amount INTEGER DEFAULT 0;
+ALTER TABLE sqb_payment_orders ADD COLUMN IF NOT EXISTS refund_count INTEGER DEFAULT 0;
+
 -- 为核验状态创建索引
 CREATE INDEX IF NOT EXISTS idx_sqb_orders_verification_status ON sqb_payment_orders(verification_status);
+
+-- 退款记录表
+CREATE TABLE IF NOT EXISTS sqb_refunds (
+    id BIGSERIAL PRIMARY KEY,
+    client_sn VARCHAR(255) NOT NULL,                    -- 原订单号
+    refund_request_no VARCHAR(255) UNIQUE NOT NULL,     -- 退款序列号（商户生成的唯一退款标识）
+    refund_amount INTEGER NOT NULL,                     -- 退款金额（分）
+    refund_reason TEXT,                                 -- 退款原因
+    status VARCHAR(50) NOT NULL DEFAULT 'PENDING',      -- 退款状态：PENDING, SUCCESS, FAILED
+    operator VARCHAR(100) NOT NULL,                     -- 操作员
+    created_at TIMESTAMPTZ DEFAULT NOW(),               -- 创建时间
+    updated_at TIMESTAMPTZ DEFAULT NOW(),               -- 更新时间
+    finish_time TIMESTAMPTZ,                            -- 退款完成时间
+    channel_finish_time TIMESTAMPTZ,                    -- 渠道完成时间
+    sqb_response JSONB,                                 -- 收钱吧响应数据
+    error_message TEXT,                                 -- 错误信息
+
+    -- 收钱吧返回的退款信息
+    sn VARCHAR(255),                                    -- 收钱吧订单号
+    trade_no VARCHAR(255),                              -- 第三方支付订单号
+    settlement_amount INTEGER,                          -- 本次操作金额
+    net_amount INTEGER,                                 -- 剩余金额
+
+    -- 外键约束
+    FOREIGN KEY (client_sn) REFERENCES sqb_payment_orders(client_sn)
+);
+
+-- 退款记录表索引
+CREATE INDEX IF NOT EXISTS idx_sqb_refunds_client_sn ON sqb_refunds(client_sn);
+CREATE INDEX IF NOT EXISTS idx_sqb_refunds_status ON sqb_refunds(status);
+CREATE INDEX IF NOT EXISTS idx_sqb_refunds_created_at ON sqb_refunds(created_at);
+CREATE INDEX IF NOT EXISTS idx_sqb_refunds_operator ON sqb_refunds(operator);
 
 -- 创建支付相关索引
 CREATE INDEX IF NOT EXISTS idx_credits_payment_method ON credits(payment_method);
 CREATE INDEX IF NOT EXISTS idx_credits_payment_order_sn ON credits(payment_order_sn);
+
+-- 优化订单查询性能的索引
+CREATE INDEX IF NOT EXISTS idx_sqb_orders_user_uuid ON sqb_payment_orders(user_uuid);
+CREATE INDEX IF NOT EXISTS idx_sqb_orders_status_created_at ON sqb_payment_orders(status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sqb_orders_verification_status_created_at ON sqb_payment_orders(verification_status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_sqb_orders_composite_query ON sqb_payment_orders(status, verification_status, created_at DESC);
+
+-- 用户表索引优化
+CREATE INDEX IF NOT EXISTS idx_users_uuid_email_nickname ON users(uuid, email, nickname);
 
 -- 创建支付积分充值事务处理函数
 CREATE OR REPLACE FUNCTION process_payment_credits_transaction(
@@ -884,6 +929,192 @@ EXCEPTION
             'success', false,
             'error', SQLERRM
         );
+END;
+$$ LANGUAGE plpgsql;
+
+-- 创建退款事务处理函数
+CREATE OR REPLACE FUNCTION process_refund_transaction(
+    p_client_sn VARCHAR(255),
+    p_refund_request_no VARCHAR(255),
+    p_refund_amount INTEGER,
+    p_new_status VARCHAR(50),
+    p_finish_time TIMESTAMPTZ DEFAULT NULL,
+    p_channel_finish_time TIMESTAMPTZ DEFAULT NULL,
+    p_sqb_response JSONB DEFAULT NULL,
+    p_sn VARCHAR(255) DEFAULT NULL,
+    p_trade_no VARCHAR(255) DEFAULT NULL,
+    p_settlement_amount INTEGER DEFAULT NULL,
+    p_net_amount INTEGER DEFAULT NULL
+) RETURNS JSONB AS $$
+DECLARE
+    v_order_record RECORD;
+    v_current_refund_amount INTEGER;
+    v_current_refund_count INTEGER;
+    v_new_refund_amount INTEGER;
+    v_new_refund_count INTEGER;
+    v_new_order_status VARCHAR(50);
+BEGIN
+    -- 开始事务（函数内部自动处理）
+
+    -- 1. 锁定订单记录防止并发修改
+    SELECT total_amount, refund_amount, refund_count, status
+    INTO v_order_record
+    FROM sqb_payment_orders
+    WHERE client_sn = p_client_sn
+    FOR UPDATE;
+
+    -- 检查订单是否存在
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', '订单不存在'
+        );
+    END IF;
+
+    -- 2. 计算新的退款金额和次数
+    v_current_refund_amount := COALESCE(v_order_record.refund_amount, 0);
+    v_current_refund_count := COALESCE(v_order_record.refund_count, 0);
+    v_new_refund_amount := v_current_refund_amount + p_refund_amount;
+    v_new_refund_count := v_current_refund_count + 1;
+
+    -- 3. 验证退款金额不超过订单总金额
+    IF v_new_refund_amount > v_order_record.total_amount THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', '退款金额超过订单总金额'
+        );
+    END IF;
+
+    -- 4. 确定新的订单状态
+    IF v_new_refund_amount >= v_order_record.total_amount THEN
+        v_new_order_status := 'REFUNDED';  -- 全额退款
+    ELSE
+        v_new_order_status := 'PARTIAL_REFUNDED';  -- 部分退款
+    END IF;
+
+    -- 如果指定了新状态，使用指定的状态
+    IF p_new_status IS NOT NULL THEN
+        v_new_order_status := p_new_status;
+    END IF;
+
+    -- 5. 更新退款记录状态
+    UPDATE sqb_refunds
+    SET
+        status = 'SUCCESS',
+        finish_time = COALESCE(p_finish_time, NOW()),
+        channel_finish_time = p_channel_finish_time,
+        sqb_response = p_sqb_response,
+        sn = p_sn,
+        trade_no = p_trade_no,
+        settlement_amount = p_settlement_amount,
+        net_amount = p_net_amount,
+        updated_at = NOW()
+    WHERE refund_request_no = p_refund_request_no;
+
+    -- 检查退款记录是否存在
+    IF NOT FOUND THEN
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', '退款记录不存在'
+        );
+    END IF;
+
+    -- 6. 更新订单退款信息
+    UPDATE sqb_payment_orders
+    SET
+        refund_amount = v_new_refund_amount,
+        refund_count = v_new_refund_count,
+        status = v_new_order_status,
+        updated_at = NOW()
+    WHERE client_sn = p_client_sn;
+
+    -- 7. 返回成功结果
+    RETURN jsonb_build_object(
+        'success', true,
+        'new_refund_amount', v_new_refund_amount,
+        'new_refund_count', v_new_refund_count,
+        'new_order_status', v_new_order_status,
+        'remaining_amount', v_order_record.total_amount - v_new_refund_amount
+    );
+
+EXCEPTION
+    WHEN OTHERS THEN
+        -- 发生任何错误时回滚事务并返回错误信息
+        RETURN jsonb_build_object(
+            'success', false,
+            'error', SQLERRM
+        );
+END;
+$$ LANGUAGE plpgsql;
+
+-- 创建订单计数查询函数（性能优化）
+CREATE OR REPLACE FUNCTION get_sqb_orders_count(
+    p_status VARCHAR(50) DEFAULT NULL,
+    p_verification_status VARCHAR(50) DEFAULT NULL
+) RETURNS INTEGER AS $$
+DECLARE
+    v_count INTEGER;
+BEGIN
+    SELECT COUNT(*)
+    INTO v_count
+    FROM sqb_payment_orders
+    WHERE (p_status IS NULL OR status = p_status)
+      AND (p_verification_status IS NULL OR verification_status = p_verification_status);
+
+    RETURN v_count;
+END;
+$$ LANGUAGE plpgsql;
+
+-- 创建订单JOIN查询函数（性能优化）
+CREATE OR REPLACE FUNCTION get_sqb_orders_with_users(
+    p_page INTEGER,
+    p_limit INTEGER,
+    p_status VARCHAR(50) DEFAULT NULL,
+    p_verification_status VARCHAR(50) DEFAULT NULL
+) RETURNS TABLE (
+    client_sn VARCHAR(255),
+    user_email VARCHAR(255),
+    user_nickname VARCHAR(255),
+    subject VARCHAR(255),
+    total_amount INTEGER,
+    payway VARCHAR(50),
+    payway_name VARCHAR(255),
+    status VARCHAR(50),
+    credits_amount INTEGER,
+    created_at TIMESTAMPTZ,
+    finish_time TIMESTAMPTZ,
+    verification_status VARCHAR(50),
+    verification_time TIMESTAMPTZ,
+    verification_error TEXT,
+    refund_amount INTEGER,
+    refund_count INTEGER
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT
+        o.client_sn,
+        u.email as user_email,
+        u.nickname as user_nickname,
+        o.subject,
+        o.total_amount,
+        o.payway,
+        o.payway_name,
+        o.status,
+        o.credits_amount,
+        o.created_at,
+        o.finish_time,
+        o.verification_status,
+        o.verification_time,
+        o.verification_error,
+        o.refund_amount,
+        o.refund_count
+    FROM sqb_payment_orders o
+    LEFT JOIN users u ON o.user_uuid = u.uuid
+    WHERE (p_status IS NULL OR o.status = p_status)
+      AND (p_verification_status IS NULL OR o.verification_status = p_verification_status)
+    ORDER BY o.created_at DESC
+    LIMIT p_limit
+    OFFSET (p_page - 1) * p_limit;
 END;
 $$ LANGUAGE plpgsql;
 

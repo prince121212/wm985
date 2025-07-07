@@ -17,7 +17,7 @@ export interface SQBPaymentOrder {
   payway_name?: string;
   terminal_sn: string;
   device_id: string;
-  status: 'CREATED' | 'SUCCESS' | 'FAILED' | 'CANCELLED';
+  status: 'CREATED' | 'SUCCESS' | 'FAILED' | 'CANCELLED' | 'PAID' | 'REFUNDED' | 'PARTIAL_REFUNDED' | 'REFUND_INPROGRESS' | 'REFUND_ERROR';
   order_status?: string;
   payer_uid?: string;
   payer_login?: string;
@@ -39,6 +39,29 @@ export interface SQBPaymentOrder {
   verification_status?: string;
   verification_time?: Date;
   verification_error?: string;
+  refund_amount?: number;
+  refund_count?: number;
+}
+
+// 退款记录接口
+export interface SQBRefund {
+  id?: number;
+  client_sn: string;
+  refund_request_no: string;
+  refund_amount: number;
+  refund_reason?: string;
+  status: 'PENDING' | 'SUCCESS' | 'FAILED';
+  operator: string;
+  created_at?: Date;
+  updated_at?: Date;
+  finish_time?: Date;
+  channel_finish_time?: Date;
+  sqb_response?: any;
+  error_message?: string;
+  sn?: string;
+  trade_no?: string;
+  settlement_amount?: number;
+  net_amount?: number;
 }
 
 // 支付回调日志接口
@@ -519,4 +542,375 @@ export async function updateOrderVerificationStatus(
       throw error;
     }
   });
+}
+
+/**
+ * 创建退款记录
+ */
+export async function createRefundRecord(refundData: Omit<SQBRefund, 'id' | 'created_at' | 'updated_at'>): Promise<SQBRefund> {
+  return withRetry(async () => {
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('sqb_refunds')
+        .insert({
+          client_sn: refundData.client_sn,
+          refund_request_no: refundData.refund_request_no,
+          refund_amount: refundData.refund_amount,
+          refund_reason: refundData.refund_reason,
+          status: refundData.status,
+          operator: refundData.operator,
+          sqb_response: refundData.sqb_response,
+          error_message: refundData.error_message,
+          sn: refundData.sn,
+          trade_no: refundData.trade_no,
+          settlement_amount: refundData.settlement_amount,
+          net_amount: refundData.net_amount
+        })
+        .select()
+        .single();
+
+      if (error) {
+        log.error('创建退款记录失败', error);
+        throw error;
+      }
+
+      log.info('退款记录已创建', {
+        client_sn: refundData.client_sn,
+        refund_request_no: refundData.refund_request_no,
+        refund_amount: refundData.refund_amount
+      });
+
+      return data;
+    } catch (error) {
+      log.error('创建退款记录失败', error as Error);
+      throw error;
+    }
+  });
+}
+
+/**
+ * 更新退款记录状态
+ */
+export async function updateRefundRecord(
+  refundRequestNo: string,
+  updateData: Partial<Pick<SQBRefund, 'status' | 'finish_time' | 'channel_finish_time' | 'sqb_response' | 'error_message' | 'sn' | 'trade_no' | 'settlement_amount' | 'net_amount'>>
+): Promise<SQBRefund | null> {
+  return withRetry(async () => {
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('sqb_refunds')
+        .update({
+          ...updateData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('refund_request_no', refundRequestNo)
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        log.error('更新退款记录失败', error);
+        throw error;
+      }
+
+      log.info('退款记录已更新', {
+        refund_request_no: refundRequestNo,
+        status: updateData.status
+      });
+
+      return data;
+    } catch (error) {
+      log.error('更新退款记录失败', error as Error);
+      throw error;
+    }
+  });
+}
+
+/**
+ * 获取订单的退款记录列表
+ */
+export async function getRefundsByOrderSn(clientSn: string): Promise<SQBRefund[]> {
+  return withRetry(async () => {
+    try {
+      const supabase = getSupabaseClient();
+      const { data, error } = await supabase
+        .from('sqb_refunds')
+        .select('*')
+        .eq('client_sn', clientSn)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        log.error('获取退款记录失败', error);
+        throw error;
+      }
+
+      return data || [];
+    } catch (error) {
+      log.error('获取退款记录失败', error as Error);
+      throw error;
+    }
+  });
+}
+
+/**
+ * 更新订单退款信息
+ */
+export async function updateOrderRefundInfo(
+  clientSn: string,
+  refundAmount: number,
+  refundCount: number,
+  newStatus?: string
+): Promise<SQBPaymentOrder | null> {
+  return withRetry(async () => {
+    try {
+      const supabase = getSupabaseClient();
+
+      const updateData: any = {
+        refund_amount: refundAmount,
+        refund_count: refundCount,
+        updated_at: new Date().toISOString()
+      };
+
+      // 如果提供了新状态，则更新状态
+      if (newStatus) {
+        updateData.status = newStatus;
+      }
+
+      const { data, error } = await supabase
+        .from('sqb_payment_orders')
+        .update(updateData)
+        .eq('client_sn', clientSn)
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return null;
+        }
+        log.error('更新订单退款信息失败', error);
+        throw error;
+      }
+
+      log.info('订单退款信息已更新', {
+        client_sn: clientSn,
+        refund_amount: refundAmount,
+        refund_count: refundCount,
+        new_status: newStatus
+      });
+
+      return data;
+    } catch (error) {
+      log.error('更新订单退款信息失败', error as Error);
+      throw error;
+    }
+  });
+}
+
+/**
+ * 使用数据库事务处理退款操作（推荐使用）
+ */
+export async function processRefundTransaction(
+  clientSn: string,
+  refundRequestNo: string,
+  refundAmount: number,
+  refundData?: {
+    newStatus?: string;
+    finishTime?: Date;
+    channelFinishTime?: Date;
+    sqbResponse?: any;
+    sn?: string;
+    tradeNo?: string;
+    settlementAmount?: number;
+    netAmount?: number;
+  }
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  return withRetry(async () => {
+    const supabase = getSupabaseClient();
+
+    try {
+      // 使用数据库RPC函数确保事务原子性
+      const { data, error } = await supabase.rpc('process_refund_transaction', {
+        p_client_sn: clientSn,
+        p_refund_request_no: refundRequestNo,
+        p_refund_amount: refundAmount,
+        p_new_status: refundData?.newStatus || null,
+        p_finish_time: refundData?.finishTime?.toISOString() || null,
+        p_channel_finish_time: refundData?.channelFinishTime?.toISOString() || null,
+        p_sqb_response: refundData?.sqbResponse || null,
+        p_sn: refundData?.sn || null,
+        p_trade_no: refundData?.tradeNo || null,
+        p_settlement_amount: refundData?.settlementAmount || null,
+        p_net_amount: refundData?.netAmount || null
+      });
+
+      if (error) {
+        // 如果RPC函数不存在，回退到手动事务处理
+        if (error.code === '42883') { // function does not exist
+          log.warn('RPC函数不存在，使用手动事务处理', { client_sn: clientSn });
+          return await processRefundTransactionManual(clientSn, refundRequestNo, refundAmount, refundData);
+        }
+        throw error;
+      }
+
+      const result = data as { success: boolean; error?: string; [key: string]: any };
+
+      if (result.success) {
+        log.info('退款事务处理完成', {
+          client_sn: clientSn,
+          refund_request_no: refundRequestNo,
+          refund_amount: refundAmount,
+          new_order_status: result.new_order_status,
+          remaining_amount: result.remaining_amount
+        });
+      } else {
+        log.error('退款事务处理失败', new Error(result.error || '未知错误'), {
+          client_sn: clientSn,
+          refund_request_no: refundRequestNo
+        });
+      }
+
+      return result;
+
+    } catch (error) {
+      log.error('退款事务处理异常', error as Error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : '未知错误'
+      };
+    }
+  });
+}
+
+/**
+ * 手动事务处理退款（当RPC函数不可用时的回退方案）
+ */
+async function processRefundTransactionManual(
+  clientSn: string,
+  refundRequestNo: string,
+  refundAmount: number,
+  refundData?: {
+    newStatus?: string;
+    finishTime?: Date;
+    channelFinishTime?: Date;
+    sqbResponse?: any;
+    sn?: string;
+    tradeNo?: string;
+    settlementAmount?: number;
+    netAmount?: number;
+  }
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  const supabase = getSupabaseClient();
+
+  try {
+    // 1. 获取并锁定订单记录（模拟FOR UPDATE）
+    const { data: order, error: orderError } = await supabase
+      .from('sqb_payment_orders')
+      .select('total_amount, refund_amount, refund_count, status')
+      .eq('client_sn', clientSn)
+      .single();
+
+    if (orderError) {
+      if (orderError.code === 'PGRST116') {
+        return { success: false, error: '订单不存在' };
+      }
+      throw orderError;
+    }
+
+    // 2. 计算新的退款金额和次数
+    const currentRefundAmount = order.refund_amount || 0;
+    const currentRefundCount = order.refund_count || 0;
+    const newRefundAmount = currentRefundAmount + refundAmount;
+    const newRefundCount = currentRefundCount + 1;
+
+    // 3. 验证退款金额
+    if (newRefundAmount > order.total_amount) {
+      return { success: false, error: '退款金额超过订单总金额' };
+    }
+
+    // 4. 确定新的订单状态
+    let newOrderStatus = refundData?.newStatus;
+    if (!newOrderStatus) {
+      newOrderStatus = newRefundAmount >= order.total_amount ? 'REFUNDED' : 'PARTIAL_REFUNDED';
+    }
+
+    // 5. 更新退款记录
+    const { error: updateRefundError } = await supabase
+      .from('sqb_refunds')
+      .update({
+        status: 'SUCCESS',
+        finish_time: refundData?.finishTime?.toISOString() || new Date().toISOString(),
+        channel_finish_time: refundData?.channelFinishTime?.toISOString(),
+        sqb_response: refundData?.sqbResponse,
+        sn: refundData?.sn,
+        trade_no: refundData?.tradeNo,
+        settlement_amount: refundData?.settlementAmount,
+        net_amount: refundData?.netAmount,
+        updated_at: new Date().toISOString()
+      })
+      .eq('refund_request_no', refundRequestNo);
+
+    if (updateRefundError) {
+      throw updateRefundError;
+    }
+
+    // 6. 更新订单退款信息
+    const { error: updateOrderError } = await supabase
+      .from('sqb_payment_orders')
+      .update({
+        refund_amount: newRefundAmount,
+        refund_count: newRefundCount,
+        status: newOrderStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('client_sn', clientSn)
+      .eq('refund_amount', currentRefundAmount) // 添加条件防止并发修改
+      .eq('refund_count', currentRefundCount);
+
+    if (updateOrderError) {
+      // 如果更新订单失败，尝试回滚退款记录
+      try {
+        await supabase
+          .from('sqb_refunds')
+          .update({
+            status: 'FAILED',
+            error_message: '订单更新失败，事务回滚',
+            updated_at: new Date().toISOString()
+          })
+          .eq('refund_request_no', refundRequestNo);
+      } catch (rollbackError) {
+        log.error('回滚退款记录失败', rollbackError as Error, { refund_request_no: refundRequestNo });
+      }
+      throw updateOrderError;
+    }
+
+    const result = {
+      success: true,
+      data: {
+        new_refund_amount: newRefundAmount,
+        new_refund_count: newRefundCount,
+        new_order_status: newOrderStatus,
+        remaining_amount: order.total_amount - newRefundAmount
+      }
+    };
+
+    log.info('退款事务处理完成（手动事务）', {
+      client_sn: clientSn,
+      refund_request_no: refundRequestNo,
+      refund_amount: refundAmount,
+      new_order_status: newOrderStatus
+    });
+
+    return result;
+
+  } catch (error) {
+    log.error('手动退款事务处理失败', error as Error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '未知错误'
+    };
+  }
 }

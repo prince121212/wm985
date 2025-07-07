@@ -1,12 +1,19 @@
 /**
  * 收钱吧支付系统常量定义
+ * 如果未支付，订单创建 4分钟后状态变为PAY_ERROR
+ * 6分钟后变为PAY_CANCELED 失败已撤单
+ * 估计1小时后就查不到了
+ * 刚创建未扫码的时候，这个订单是无法被查询到的 如果直到过期都没人扫码，会永远无法查询
+ * 按照目前的收钱吧机制 185秒内没有扫码就会导致订单号不存在[EG11]
+ * 以上是微信支付 以下是支付宝支付
+ * 支付宝创建订单就有记录
  */
 
 // 订单状态枚举
 export const SQB_ORDER_STATUS = {
   CREATED: 'CREATED',                    // 订单已创建/支付中
   PAID: 'PAID',                         // 订单支付成功
-  PAY_CANCELED: 'PAY_CANCELED',         // 支付失败并且已经成功充正
+  PAY_CANCELED: 'PAY_CANCELED',         // 支付失败并且已经成功充正 失败已撤单
   PAY_ERROR: 'PAY_ERROR',               // 支付异常，不确定是否已经成功充正,请联系收钱吧客服确认是否支付成功
   REFUNDED: 'REFUNDED',                 // 已成功全额退款
   PARTIAL_REFUNDED: 'PARTIAL_REFUNDED', // 已成功部分退款

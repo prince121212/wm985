@@ -153,7 +153,6 @@ export async function updateOrderSubscription(
 export async function getOrdersByUserUuid(
   user_uuid: string
 ): Promise<Order[] | undefined> {
-  const now = new Date().toISOString();
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("orders")
@@ -173,7 +172,6 @@ export async function getOrdersByUserUuid(
 export async function getOrdersByUserEmail(
   user_email: string
 ): Promise<Order[] | undefined> {
-  const now = new Date().toISOString();
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("orders")
@@ -193,7 +191,6 @@ export async function getOrdersByUserEmail(
 export async function getOrdersByPaidEmail(
   paid_email: string
 ): Promise<Order[] | undefined> {
-  const now = new Date().toISOString();
   const supabase = getSupabaseClient();
   const { data, error } = await supabase
     .from("orders")
@@ -259,8 +256,131 @@ export async function getSQBPaidOrders(
   status?: string,
   verificationStatus?: string
 ): Promise<{ orders: SQBPaidOrderForAdmin[]; total: number } | undefined> {
-  // 直接使用备用方案，不再尝试调用不存在的RPC函数
+  // 优先使用JOIN查询优化版本
+  const result = await getSQBPaidOrdersOptimized(page, limit, status, verificationStatus);
+  if (result) {
+    return result;
+  }
+
+  // 如果优化版本失败，回退到原始方案
   return await getSQBPaidOrdersFallback(page, limit, status, verificationStatus);
+}
+
+/**
+ * 优化版本：使用JOIN查询避免N+1问题
+ */
+async function getSQBPaidOrdersOptimized(
+  page: number,
+  limit: number,
+  status?: string,
+  verificationStatus?: string
+): Promise<{ orders: SQBPaidOrderForAdmin[]; total: number } | undefined> {
+  const supabase = getSupabaseClient();
+
+  try {
+    // 1. 获取总数（使用优化的查询）
+    const { data: countData, error: countError } = await supabase
+      .rpc('get_sqb_orders_count', {
+        p_status: status || null,
+        p_verification_status: verificationStatus || null
+      });
+
+    let total = 0;
+    if (countError) {
+      // 如果RPC函数不存在，回退到原始计数方式
+      if (countError.code === '42883') {
+        let countQuery = supabase
+          .from("sqb_payment_orders")
+          .select('*', { count: 'exact', head: true });
+
+        if (status) {
+          countQuery = countQuery.eq("status", status);
+        }
+        if (verificationStatus) {
+          countQuery = countQuery.eq("verification_status", verificationStatus);
+        }
+
+        const { count } = await countQuery;
+        total = count || 0;
+      } else {
+        throw countError;
+      }
+    } else {
+      total = countData || 0;
+    }
+
+    // 2. 使用JOIN查询获取订单和用户信息
+    const { data: joinedData, error: joinError } = await supabase
+      .rpc('get_sqb_orders_with_users', {
+        p_page: page,
+        p_limit: limit,
+        p_status: status || null,
+        p_verification_status: verificationStatus || null
+      });
+
+    if (joinError) {
+      // 如果RPC函数不存在，回退到原始方案
+      if (joinError.code === '42883') {
+        log.info("JOIN查询函数不存在，回退到原始方案326");
+        return undefined; // 让调用者回退到原始方案
+      }
+      throw joinError;
+    }
+
+    // 3. 处理查询结果
+    const processedOrders = (joinedData || []).map((row: any) => {
+      // 支付方式映射
+      let payway_display = row.payway_name || '未知';
+      if (row.payway === '2') payway_display = '支付宝';
+      else if (row.payway === '3') payway_display = '微信支付';
+
+      // 状态映射
+      let status_display = '未知';
+      if (row.status === 'SUCCESS') status_display = '支付成功';
+      else if (row.status === 'PAID') status_display = '支付成功';
+      else if (row.status === 'CREATED') status_display = '待支付';
+      else if (row.status === 'CANCELLED') status_display = '已取消';
+      else if (row.status === 'FAILED') status_display = '支付失败';
+      else if (row.status === 'PARTIAL_REFUNDED') status_display = '部分退款';
+      else if (row.status === 'REFUNDED') status_display = '已退款';
+      else if (row.status === 'REFUND_INPROGRESS') status_display = '退款中';
+      else if (row.status === 'REFUND_ERROR') status_display = '退款异常';
+
+      // 核验状态映射
+      const verification_status = row.verification_status || 'UNVERIFIED';
+      let verification_status_display = '未核验';
+      if (verification_status === 'VERIFIED_CORRECT') verification_status_display = '核验正确';
+      else if (verification_status === 'VERIFIED_ERROR') verification_status_display = '核验错误';
+      else if (verification_status === 'VERIFICATION_FAILED') verification_status_display = '核验失败';
+
+      return {
+        client_sn: row.client_sn,
+        user_email: row.user_email || '未知用户',
+        user_nickname: row.user_nickname,
+        subject: row.subject,
+        total_amount: row.total_amount,
+        amount_yuan: `¥${(row.total_amount / 100).toFixed(2)}`,
+        payway: row.payway,
+        payway_display,
+        status: row.status,
+        status_display,
+        credits_amount: row.credits_amount,
+        created_at: row.created_at,
+        finish_time: row.finish_time,
+        verification_status: verification_status,
+        verification_status_display,
+        verification_time: row.verification_time,
+        verification_error: row.verification_error,
+        refund_amount: row.refund_amount,
+        refund_count: row.refund_count
+      };
+    });
+
+    return { orders: processedOrders, total };
+
+  } catch (error) {
+    return undefined; // 让调用者回退到原始方案
+  }
 }
 
 /**
@@ -375,9 +495,14 @@ async function getSQBPaidOrdersFallback(
       // 状态映射
       let status_display = '未知';
       if (order.status === 'SUCCESS') status_display = '支付成功';
+      else if (order.status === 'PAID') status_display = '支付成功';
       else if (order.status === 'CREATED') status_display = '待支付';
       else if (order.status === 'CANCELLED') status_display = '已取消';
       else if (order.status === 'FAILED') status_display = '支付失败';
+      else if (order.status === 'PARTIAL_REFUNDED') status_display = '部分退款';
+      else if (order.status === 'REFUNDED') status_display = '已退款';
+      else if (order.status === 'REFUND_INPROGRESS') status_display = '退款中';
+      else if (order.status === 'REFUND_ERROR') status_display = '退款异常';
 
       // 核验状态映射
       const verification_status = order.verification_status || 'UNVERIFIED';

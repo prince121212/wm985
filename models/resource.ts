@@ -7,15 +7,36 @@ import { updateCategoryResourceCount } from "./category";
 // 缓存字段存在性检查结果
 let topFieldExists: boolean | null = null;
 
+// 重置top字段存在性缓存（用于调试）
+function resetTopFieldCache() {
+  topFieldExists = null;
+  log.info("已重置top字段存在性缓存");
+}
+
 // 检查top字段是否存在
 async function checkTopFieldExists(): Promise<boolean> {
   if (topFieldExists !== null) {
+    log.info("使用缓存的top字段存在性结果", { topFieldExists });
     return topFieldExists;
   }
 
   try {
     const supabase = getSupabaseClient();
-    await supabase.from('resources').select('top').limit(1);
+    const { error } = await supabase.from('resources').select('top').limit(1);
+
+    if (error) {
+      // 如果是字段不存在的错误，记录并返回false
+      if (error.code === '42703' || error.message.includes('column') || error.message.includes('does not exist')) {
+        topFieldExists = false;
+        log.warn("top字段不存在，将跳过置顶排序", error);
+        return false;
+      }
+      // 其他错误也当作字段不存在处理
+      topFieldExists = false;
+      log.warn("检查top字段时发生错误，将跳过置顶排序", error);
+      return false;
+    }
+
     topFieldExists = true;
     log.info("top字段存在性检查通过");
     return true;
@@ -28,11 +49,38 @@ async function checkTopFieldExists(): Promise<boolean> {
 
 // 应用置顶优先排序（如果字段存在）
 async function applyTopPrioritySort(query: any, primarySort: string, ascending: boolean = false): Promise<any> {
-  const hasTopField = await checkTopFieldExists();
-  if (hasTopField) {
-    query = query.order('top', { ascending: false });
+  try {
+    log.info("开始应用置顶排序", { primarySort, ascending });
+    const hasTopField = await checkTopFieldExists();
+    log.info("字段存在性检查结果", { hasTopField, topFieldExists });
+
+    if (hasTopField) {
+      query = query.order('top', { ascending: false });
+      log.info("已添加top字段排序");
+    }
+
+    const finalQuery = query.order(primarySort, { ascending });
+    log.info("排序应用完成，返回查询对象", {
+      primarySort,
+      ascending,
+      hasTopField,
+      queryHasLimit: typeof finalQuery?.limit === 'function'
+    });
+
+    return finalQuery;
+  } catch (error) {
+    log.error("应用置顶排序失败，使用默认排序", error as Error);
+    try {
+      const fallbackQuery = query.order(primarySort, { ascending });
+      log.info("回退查询创建成功", {
+        queryHasLimit: typeof fallbackQuery?.limit === 'function'
+      });
+      return fallbackQuery;
+    } catch (fallbackError) {
+      log.error("回退查询也失败", fallbackError as Error);
+      throw fallbackError;
+    }
   }
-  return query.order(primarySort, { ascending });
 }
 
 // 安全的搜索词处理函数
@@ -426,6 +474,8 @@ export async function updateResourceRatingStats(resourceId: number) {
 // 获取热门资源 (置顶资源优先，然后按访问次数排序)
 export async function getPopularResources(limit: number = 6): Promise<ResourceWithDetails[]> {
   return withRetry(async () => {
+    // 临时重置缓存以确保重新检查字段存在性
+    resetTopFieldCache();
     const supabase = getSupabaseClient();
     let query = supabase
       .from("resources")
@@ -436,9 +486,37 @@ export async function getPopularResources(limit: number = 6): Promise<ResourceWi
       `)
       .eq("status", "approved");
 
-    // 安全地应用置顶排序
-    query = await applyTopPrioritySort(query, 'view_count');
-    query = query.limit(limit);
+    // 直接应用排序，避免使用可能有问题的applyTopPrioritySort函数
+    log.info("开始应用排序", { limit });
+
+    try {
+      // 检查top字段是否存在
+      const hasTopField = await checkTopFieldExists();
+      log.info("字段检查结果", { hasTopField });
+
+      if (hasTopField) {
+        query = query.order('top', { ascending: false });
+        log.info("已添加top排序");
+      }
+
+      query = query.order('view_count', { ascending: false });
+      log.info("已添加view_count排序");
+
+      // 验证查询对象
+      if (!query || typeof query.limit !== 'function') {
+        log.error("查询对象无效", { queryType: typeof query } as any);
+        throw new Error("查询对象构建失败");
+      }
+
+      query = query.limit(limit);
+      log.info("已应用limit", { limit });
+
+    } catch (error) {
+      log.error("排序应用失败", error as Error);
+      // 使用最简单的排序作为回退
+      query = query.order('created_at', { ascending: false }).limit(limit);
+      log.info("使用回退排序");
+    }
 
     const { data, error } = await query;
 

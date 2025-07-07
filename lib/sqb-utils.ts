@@ -346,3 +346,83 @@ export async function queryPayment(
     };
   }
 }
+
+// 收钱吧退款接口
+export async function refundPayment(
+  terminalSn: string,
+  terminalKey: string,
+  params: {
+    client_sn?: string;           // 商户订单号
+    sn?: string;                  // 收钱吧订单号
+    refund_request_no: string;    // 退款序列号
+    refund_amount: number;        // 退款金额（分）
+    operator: string;             // 操作员
+    refund_reason?: string;       // 退款原因
+  }
+): Promise<SQBApiResponse> {
+  // 验证必要参数
+  if (!params.client_sn && !params.sn) {
+    return {
+      success: false,
+      error: 'client_sn和sn不能同时为空'
+    };
+  }
+
+  // 构建请求体
+  const requestBody: any = {
+    terminal_sn: terminalSn,
+    refund_request_no: params.refund_request_no,
+    refund_amount: params.refund_amount.toString(),
+    operator: params.operator
+  };
+
+  // 添加订单标识（优先使用sn）
+  if (params.sn) {
+    requestBody.sn = params.sn;
+  } else if (params.client_sn) {
+    requestBody.client_sn = params.client_sn;
+  }
+
+  // 添加退款原因（可选）
+  if (params.refund_reason) {
+    requestBody.reflect = JSON.stringify({ reason: params.refund_reason });
+  }
+
+  const bodyString = JSON.stringify(requestBody);
+  const sign = generateMD5Sign(bodyString, terminalKey);
+  const authorization = `${terminalSn} ${sign}`;
+
+  console.log('退款请求详情:', {
+    url: `${SQB_CONFIG.API_BASE_URL}/upay/v2/refund`,
+    terminalSn,
+    terminalKey: terminalKey ? '***' + terminalKey.slice(-4) : 'undefined',
+    bodyString,
+    sign: sign ? '***' + sign.slice(-4) : 'undefined',
+    authorization: authorization ? authorization.split(' ')[0] + ' ***' + authorization.split(' ')[1]?.slice(-4) : 'undefined'
+  });
+
+  try {
+    const response = await fetch(`${SQB_CONFIG.API_BASE_URL}/upay/v2/refund`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authorization,
+      },
+      body: bodyString,
+      signal: AbortSignal.timeout(30000),
+    });
+
+    const result = await response.json();
+    return {
+      success: response.ok,
+      data: result,
+      status: response.status,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : '网络请求失败',
+      details: error,
+    };
+  }
+}

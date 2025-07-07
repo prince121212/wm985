@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import moment from "moment";
 import Header from "@/components/dashboard/header";
 import dynamic from "next/dynamic";
+import RefundModal from "@/components/RefundModal";
 
 // 动态导入 TableBlock 以避免服务器端渲染问题
 const TableBlock = dynamic(() => import("@/components/blocks/table"), {
@@ -34,6 +35,8 @@ interface SQBPaidOrderForAdmin {
   verification_status_display?: string;
   verification_time?: string;
   verification_error?: string;
+  refund_amount?: number;
+  refund_count?: number;
 }
 
 interface PaginationData {
@@ -61,6 +64,11 @@ export default function AdminPaidOrdersPage() {
 
   // 核验状态
   const [verifying, setVerifying] = useState(false);
+
+  // 退款状态
+  const [refunding, setRefunding] = useState(false);
+  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<SQBPaidOrderForAdmin | null>(null);
 
   // 获取订单数据
   useEffect(() => {
@@ -167,6 +175,56 @@ export default function AdminPaidOrdersPage() {
     }
   };
 
+  // 打开退款弹窗
+  const handleOpenRefundModal = (order: SQBPaidOrderForAdmin) => {
+    setSelectedOrder(order);
+    setRefundModalOpen(true);
+  };
+
+  // 关闭退款弹窗
+  const handleCloseRefundModal = () => {
+    setRefundModalOpen(false);
+    setSelectedOrder(null);
+  };
+
+  // 处理退款
+  const handleRefund = async (refundAmount: number, refundReason: string) => {
+    if (!selectedOrder) return;
+
+    try {
+      setRefunding(true);
+      toast.info("正在处理退款...");
+
+      const response = await fetch('/api/admin/refund', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          client_sn: selectedOrder.client_sn,
+          refund_amount: refundAmount * 100, // 转换为分
+          refund_reason: refundReason
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.code === 0) {
+        toast.success(`退款成功！退款金额：${refundAmount} 元`);
+        handleCloseRefundModal();
+        // 刷新订单列表
+        await fetchOrders();
+      } else {
+        toast.error(`退款失败：${result.message}`);
+      }
+    } catch (error) {
+      console.error('退款处理失败:', error);
+      toast.error('退款处理失败，请稍后重试');
+    } finally {
+      setRefunding(false);
+    }
+  };
+
   const columns: TableColumn[] = [
     {
       name: "client_sn",
@@ -245,6 +303,62 @@ export default function AdminPaidOrdersPage() {
       name: "finish_time",
       title: "完成时间",
       callback: (row) => row.finish_time ? moment(row.finish_time).format("YYYY-MM-DD HH:mm:ss") : '-',
+    },
+    {
+      name: "refund_info",
+      title: "退款信息",
+      callback: (row) => {
+        const refundAmount = row.refund_amount || 0;
+        const refundCount = row.refund_count || 0;
+
+        if (refundAmount > 0) {
+          return (
+            <div className="text-sm">
+              <div className="text-orange-600">
+                已退款：¥{(refundAmount / 100).toFixed(2)}
+              </div>
+              <div className="text-gray-500">
+                退款次数：{refundCount}
+              </div>
+            </div>
+          );
+        }
+        return <span className="text-gray-400">未退款</span>;
+      },
+    },
+    {
+      name: "actions",
+      title: "操作",
+      callback: (row) => {
+        // 判断是否可以退款（支持多种状态判断）
+        const allowedStatuses = ['SUCCESS', 'PAID'];
+        const allowedDisplayStatuses = ['支付成功', '部分退款'];
+        const canRefund = allowedStatuses.includes(row.status) ||
+                         allowedDisplayStatuses.includes(row.status_display) ||
+                         row.status === 'PARTIAL_REFUNDED';
+
+        if (!canRefund) {
+          return <span className="text-gray-400">-</span>;
+        }
+
+        // 计算可退款金额
+        const totalAmount = row.total_amount;
+        const refundedAmount = row.refund_amount || 0;
+        const availableAmount = totalAmount - refundedAmount;
+
+        if (availableAmount <= 0) {
+          return <span className="text-gray-400">已全额退款</span>;
+        }
+
+        return (
+          <button
+            onClick={() => handleOpenRefundModal(row)}
+            className="px-3 py-1 text-sm bg-orange-500 text-white rounded hover:bg-orange-600 transition-colors"
+          >
+            退款
+          </button>
+        );
+      },
     },
   ];
 
@@ -421,6 +535,15 @@ export default function AdminPaidOrdersPage() {
         )}
         </div>
       </div>
+
+      {/* 退款弹窗 */}
+      <RefundModal
+        isOpen={refundModalOpen}
+        onClose={handleCloseRefundModal}
+        onConfirm={handleRefund}
+        order={selectedOrder}
+        loading={refunding}
+      />
     </>
   );
 }
