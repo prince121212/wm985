@@ -1,5 +1,6 @@
 import { Order } from "@/types/order";
 import { getSupabaseClient } from "@/models/db";
+import { log } from "@/lib/logger";
 
 export enum OrderStatus {
   Created = "created",

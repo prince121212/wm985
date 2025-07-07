@@ -185,7 +185,9 @@ export default function AdminResourcesPage() {
           <div className="flex items-center gap-2">
             <p className="font-medium truncate">{row.title}</p>
             {row.top && (
-              <Pin className="h-4 w-4 text-orange-500 flex-shrink-0" title="置顶资源" />
+              <div title="置顶资源">
+                <Pin className="h-4 w-4 text-orange-500 flex-shrink-0" />
+              </div>
             )}
           </div>
           <p className="text-xs text-muted-foreground truncate">{row.description}</p>
