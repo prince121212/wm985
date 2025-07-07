@@ -1,11 +1,13 @@
 import { respData, respErr, respInvalidParams, respUnauthorized } from "@/lib/resp";
 import { getUserUuid } from "@/services/user";
 import { log } from "@/lib/logger";
-import { getResourcesList, getResourcesCount, insertResource } from "@/models/resource";
+import { getResourcesList, getResourcesCount, insertResource, updateResourceAIScore } from "@/models/resource";
 import { addResourceTags } from "@/models/tag";
 import { findCategoryByName } from "@/models/category";
 import { getUuid } from "@/lib/hash";
 import { ResourceUploadForm } from "@/types/resource";
+import { scoreResourceWithAI, ResourceForReview } from "@/lib/ai-review";
+import { isAIReviewEnabled } from "@/lib/ai-review-config";
 
 // GET /api/resources - 获取资源列表
 export async function GET(req: Request) {
@@ -254,11 +256,18 @@ export async function POST(req: Request) {
       log.info("资源标签添加成功", { resourceId: createdResource.id, tags });
     }
 
-    log.info("资源创建成功", { 
-      resourceId: createdResource.id, 
+    log.info("资源创建成功", {
+      resourceId: createdResource.id,
       resourceUuid,
-      title: resource.title 
+      title: resource.title
     });
+
+    // 异步触发AI评分（不阻塞用户响应）
+    if (isAIReviewEnabled()) {
+      performAIReview(createdResource, user_uuid).catch(error => {
+        log.error("AI评分失败", error, { resourceUuid });
+      });
+    }
 
     return respData({
       resource: {
@@ -285,5 +294,61 @@ export async function POST(req: Request) {
     }
 
     return respErr("创建资源失败，请稍后再试");
+  }
+}
+
+// 异步AI评分处理函数
+async function performAIReview(resource: any, user_uuid: string) {
+  try {
+    log.info("开始AI评分", { resourceUuid: resource.uuid, title: resource.title });
+
+    // 构建评分输入数据
+    const reviewData: ResourceForReview = {
+      title: resource.title,
+      description: resource.description,
+      content: resource.content,
+      file_url: resource.file_url
+    };
+
+    // 调用AI评分
+    const reviewResult = await scoreResourceWithAI(reviewData, user_uuid);
+
+    // 更新资源的AI评分信息
+    await updateResourceAIScore(resource.uuid, {
+      ai_risk_score: reviewResult.riskScore,
+      ai_review_result: reviewResult.reasoning,
+      ai_reviewed_at: new Date().toISOString(),
+      auto_approved: reviewResult.shouldAutoApprove,
+      // 如果评分低于阈值，自动通过审核
+      status: reviewResult.shouldAutoApprove ? 'approved' : 'pending'
+    });
+
+    log.info("AI评分完成", {
+      resourceUuid: resource.uuid,
+      riskScore: reviewResult.riskScore,
+      autoApproved: reviewResult.shouldAutoApprove,
+      statusChanged: reviewResult.shouldAutoApprove
+    });
+
+  } catch (error) {
+    log.error("AI评分处理失败", error as Error, {
+      resourceUuid: resource.uuid,
+      title: resource.title
+    });
+
+    // AI评分失败时，记录失败信息但不影响资源状态
+    try {
+      await updateResourceAIScore(resource.uuid, {
+        ai_risk_score: 50, // 默认中等风险分数
+        ai_review_result: `AI评分失败：${(error as Error).message}`,
+        ai_reviewed_at: new Date().toISOString(),
+        auto_approved: false
+        // 不改变status，保持pending状态等待人工审核
+      });
+    } catch (updateError) {
+      log.error("更新AI评分失败信息时出错", updateError as Error, {
+        resourceUuid: resource.uuid
+      });
+    }
   }
 }

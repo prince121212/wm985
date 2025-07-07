@@ -191,6 +191,10 @@ CREATE TABLE IF NOT EXISTS resources (
     is_free BOOLEAN DEFAULT TRUE,
     credits INTEGER DEFAULT 0,
     rejection_reason TEXT,
+    ai_risk_score INTEGER DEFAULT NULL,
+    ai_review_result TEXT DEFAULT NULL,
+    ai_reviewed_at TIMESTAMPTZ DEFAULT NULL,
+    auto_approved BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -677,6 +681,12 @@ ALTER TABLE categories ADD COLUMN IF NOT EXISTS resource_count INTEGER DEFAULT 0
 
 -- 为已存在的资源表添加置顶字段（兼容已有数据库）
 ALTER TABLE resources ADD COLUMN IF NOT EXISTS top BOOLEAN DEFAULT FALSE;
+
+-- 为已存在的资源表添加AI评分字段（兼容已有数据库）
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS ai_risk_score INTEGER DEFAULT NULL;
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS ai_review_result TEXT DEFAULT NULL;
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS ai_reviewed_at TIMESTAMPTZ DEFAULT NULL;
+ALTER TABLE resources ADD COLUMN IF NOT EXISTS auto_approved BOOLEAN DEFAULT FALSE;
 
 -- ============================================
 -- 收钱吧支付系统数据库表设计

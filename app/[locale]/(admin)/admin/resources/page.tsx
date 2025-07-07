@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Loader2, Trash2, Search, Pin, PinOff } from "lucide-react";
+import { RefreshCw, Loader2, Trash2, Search, Pin, PinOff, Info } from "lucide-react";
 import Header from "@/components/dashboard/header";
 import TableBlock from "@/components/blocks/table";
 import { TableColumn } from "@/types/blocks/table";
@@ -233,6 +233,60 @@ export default function AdminResourcesPage() {
           <Badge variant={config.variant} className="text-xs">
             {config.label}
           </Badge>
+        );
+      }
+    },
+    {
+      name: "ai_score",
+      title: "AI评分",
+      callback: (row) => {
+        if (row.ai_risk_score === null || row.ai_risk_score === undefined) {
+          return (
+            <span className="text-xs text-muted-foreground">未评分</span>
+          );
+        }
+
+        const score = row.ai_risk_score;
+        const getScoreColor = (score: number) => {
+          if (score < 60) return "text-green-600";
+          if (score < 80) return "text-yellow-600";
+          return "text-red-600";
+        };
+
+        return (
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2">
+              <span className={`font-medium text-sm ${getScoreColor(score)}`}>
+                {score}分
+              </span>
+              {row.auto_approved && (
+                <Badge variant="outline" className="text-xs">
+                  自动通过
+                </Badge>
+              )}
+              {row.ai_review_result && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0"
+                  title="查看AI评分详情"
+                  onClick={() => {
+                    toast.info("AI评分详情", {
+                      description: row.ai_review_result,
+                      duration: 8000,
+                    });
+                  }}
+                >
+                  <Info className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
+            {row.ai_reviewed_at && (
+              <span className="text-xs text-muted-foreground">
+                {new Date(row.ai_reviewed_at).toLocaleDateString()}
+              </span>
+            )}
+          </div>
         );
       }
     },

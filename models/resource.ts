@@ -464,6 +464,64 @@ export async function updateResourceStatus(uuid: string, status: 'pending' | 'ap
   });
 }
 
+// 更新资源AI评分信息
+export async function updateResourceAIScore(uuid: string, aiData: {
+  ai_risk_score: number;
+  ai_review_result: string;
+  ai_reviewed_at: string;
+  auto_approved: boolean;
+  status?: 'pending' | 'approved' | 'rejected';
+}): Promise<void> {
+  return withRetry(async () => {
+    const supabase = getSupabaseClient();
+
+    // 先获取资源信息以获得分类ID（用于可能的状态变更）
+    const { data: resource, error: fetchError } = await supabase
+      .from("resources")
+      .select("category_id, status")
+      .eq("uuid", uuid)
+      .single();
+
+    if (fetchError) {
+      log.error("获取资源信息失败", fetchError, { uuid });
+      throw fetchError;
+    }
+
+    const oldStatus = resource.status;
+    const updateData = {
+      ...aiData,
+      updated_at: new Date().toISOString()
+    };
+
+    const { error } = await supabase
+      .from("resources")
+      .update(updateData)
+      .eq("uuid", uuid);
+
+    if (error) {
+      log.error("更新资源AI评分失败", error, { uuid, aiData });
+      throw error;
+    }
+
+    log.info("资源AI评分更新成功", {
+      uuid,
+      riskScore: aiData.ai_risk_score,
+      autoApproved: aiData.auto_approved,
+      statusChanged: oldStatus !== aiData.status
+    });
+
+    // 如果状态从非approved变为approved，异步更新分类资源数
+    if (oldStatus !== 'approved' && aiData.status === 'approved' && resource?.category_id) {
+      updateCategoryResourceCount(resource.category_id).catch((error: Error) => {
+        log.error("AI自动通过后更新分类资源数失败", error, {
+          uuid,
+          categoryId: resource.category_id
+        });
+      });
+    }
+  });
+}
+
 
 
 export async function getResourcesStats(): Promise<{

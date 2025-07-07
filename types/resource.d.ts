@@ -19,6 +19,10 @@ export interface Resource {
   credits?: number;
   top?: boolean; // 置顶标识
   rejection_reason?: string;
+  ai_risk_score?: number; // AI风险评分 0-100
+  ai_review_result?: string; // AI评分详细结果
+  ai_reviewed_at?: string; // AI评分时间
+  auto_approved?: boolean; // 是否自动通过审核
   created_at?: string;
   updated_at?: string;
 }
