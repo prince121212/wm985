@@ -78,6 +78,20 @@ export default function ResourceDetail({ resourceUuid }: ResourceDetailProps) {
     totalVisitors: number;
   } | null>(null);
 
+  // 根据上传资源数量获取用户称号
+  const getUserTitle = (uploadedCount: number): string => {
+    if (uploadedCount === 0) return "小萌新";
+    if (uploadedCount >= 1 && uploadedCount <= 5) return "初级贡献者";
+    if (uploadedCount >= 6 && uploadedCount <= 15) return "活跃贡献者";
+    if (uploadedCount >= 16 && uploadedCount <= 30) return "资深贡献者";
+    if (uploadedCount >= 31 && uploadedCount <= 50) return "专业分享者";
+    if (uploadedCount >= 51 && uploadedCount <= 100) return "知识达人";
+    if (uploadedCount >= 101 && uploadedCount <= 200) return "资源专家";
+    if (uploadedCount >= 201 && uploadedCount <= 500) return "传术师";
+    if (uploadedCount >= 501) return "传道者";
+    return "贡献者";
+  };
+
   // 防止重复请求的ref
   const fetchingResource = useRef(false);
   const lastResourceUuid = useRef<string | null>(null);
@@ -528,7 +542,9 @@ export default function ResourceDetail({ resourceUuid }: ResourceDetailProps) {
             </Avatar>
             <div className="flex-1">
               <h4 className="font-bold text-base lg:text-lg">{resource.author?.nickname || "张教授"}</h4>
-              <p className="text-muted-foreground text-sm lg:text-base">文学系教授</p>
+              <p className="text-muted-foreground text-sm lg:text-base">
+                {getUserTitle(authorStats?.uploadedResourcesCount || 0)}
+              </p>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-3 lg:gap-4">
