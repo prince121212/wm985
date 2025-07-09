@@ -30,6 +30,25 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
+// 类型定义
+interface BatchLog {
+  uuid: string;
+  title: string;
+  status: 'pending' | 'processing' | 'completed' | 'failed';
+  total_count: number;
+  success_count: number;
+  failed_count: number;
+  created_at: string;
+}
+
+interface FilterChangeParams {
+  search: string;
+  category: string;
+  tags: string[];
+  is_free: boolean;
+  sort: string;
+}
+
 export default function AdminResourcesPage() {
   const router = useRouter();
   const [resources, setResources] = useState<ResourceWithDetails[]>([]);
@@ -44,8 +63,12 @@ export default function AdminResourcesPage() {
   const [batchUploadOpen, setBatchUploadOpen] = useState(false);
   const [batchUploadData, setBatchUploadData] = useState("");
   const [batchUploading, setBatchUploading] = useState(false);
-  const [batchLogs, setBatchLogs] = useState<any[]>([]);
+  const [batchLogs, setBatchLogs] = useState<BatchLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+
+  // AI转JSON相关状态
+  const [rawText, setRawText] = useState("");
+  const [converting, setConverting] = useState(false);
 
   // 获取资源列表
   const fetchResources = async () => {
@@ -75,7 +98,12 @@ export default function AdminResourcesPage() {
         throw new Error(data.message || '获取资源列表失败');
       }
     } catch (error) {
-      console.error('获取资源列表失败:', error);
+      log.error('获取资源列表失败', error as Error, {
+        component: 'AdminResourcesPage',
+        action: 'fetchResources',
+        statusFilter,
+        searchQuery
+      });
       toast.error(`获取资源列表失败: ${error instanceof Error ? error.message : '未知错误'}`);
       setResources([]);
     } finally {
@@ -177,10 +205,77 @@ export default function AdminResourcesPage() {
     setSearchQuery("");
   };
 
+  // AI转JSON处理
+  const handleAIConvert = async () => {
+    if (!rawText.trim()) {
+      toast.error("请输入原始资源文本");
+      return;
+    }
+
+    try {
+      setConverting(true);
+
+      const response = await fetch('/api/admin/batch-upload/parse-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: rawText })
+      });
+
+      const result = await response.json();
+
+      if (result.code === 0) {
+        const { resources, errors, stats } = result.data;
+
+        // 生成JSON输出
+        const jsonOutput = {
+          total_resources: resources.length,
+          resources: resources
+        };
+
+        setBatchUploadData(JSON.stringify(jsonOutput, null, 2));
+
+        // 显示转换结果统计
+        let message = `转换完成！成功解析 ${stats.success} 个资源`;
+        if (stats.failed > 0) {
+          message += `，失败 ${stats.failed} 个`;
+        }
+        message += `（使用${stats.method === 'regex' ? '正则表达式' : 'AI智能'}解析）`;
+
+        toast.success(message);
+
+        // 如果有错误，显示详细信息
+        if (errors.length > 0) {
+          log.warn("AI解析部分失败", {
+            component: 'AdminResourcesPage',
+            action: 'handleAIConvert',
+            errors,
+            errorCount: errors.length
+          });
+          toast.warning(`部分内容解析失败，共${errors.length}个错误`);
+        }
+
+      } else {
+        log.error('AI转换失败', new Error(result.message || 'AI转换失败'), {
+          component: 'AdminResourcesPage',
+          action: 'handleAIConvert'
+        });
+        toast.error(result.message || 'AI转换失败');
+      }
+    } catch (error) {
+      log.error("AI转换失败", error as Error, {
+        component: 'AdminResourcesPage',
+        action: 'handleAIConvert'
+      });
+      toast.error("AI转换失败，请稍后再试");
+    } finally {
+      setConverting(false);
+    }
+  };
+
   // 批量上传处理
   const handleBatchUpload = async () => {
     if (!batchUploadData.trim()) {
-      alert("请输入JSON数据");
+      toast.error("请输入JSON数据");
       return;
     }
 
@@ -191,12 +286,12 @@ export default function AdminResourcesPage() {
       const jsonData = JSON.parse(batchUploadData);
 
       if (!jsonData.resources || !Array.isArray(jsonData.resources)) {
-        alert("JSON格式错误：缺少resources数组");
+        toast.error("JSON格式错误：缺少resources数组");
         return;
       }
 
       if (jsonData.resources.length === 0) {
-        alert("资源数组不能为空");
+        toast.error("资源数组不能为空");
         return;
       }
 
@@ -212,20 +307,29 @@ export default function AdminResourcesPage() {
       const result = await response.json();
 
       if (result.code === 0) {
-        alert(result.data.message);
+        toast.success(result.data.message);
         setBatchUploadData("");
+        setRawText(""); // 清空原始文本
         // 刷新批量处理日志
         await fetchBatchLogs();
       } else {
-        alert(result.message || '批量上传提交失败');
+        log.error('批量上传提交失败', new Error(result.message || '批量上传提交失败'), {
+          component: 'AdminResourcesPage',
+          action: 'handleBatchUpload'
+        });
+        toast.error(result.message || '批量上传提交失败');
       }
 
     } catch (error) {
-      console.error("批量上传失败:", error);
+      log.error("批量上传失败", error as Error, {
+        component: 'AdminResourcesPage',
+        action: 'handleBatchUpload',
+        errorType: error instanceof SyntaxError ? 'JSON_PARSE_ERROR' : 'UNKNOWN_ERROR'
+      });
       if (error instanceof SyntaxError) {
-        alert("JSON格式错误，请检查数据格式");
+        toast.error("JSON格式错误，请检查数据格式");
       } else {
-        alert("批量上传失败，请稍后再试");
+        toast.error("批量上传失败，请稍后再试");
       }
     } finally {
       setBatchUploading(false);
@@ -242,10 +346,16 @@ export default function AdminResourcesPage() {
       if (result.code === 0) {
         setBatchLogs(result.data.logs || []);
       } else {
-        console.error("获取批量日志失败:", result.message);
+        log.error("获取批量日志失败", new Error(result.message || '获取批量日志失败'), {
+          component: 'AdminResourcesPage',
+          action: 'fetchBatchLogs'
+        });
       }
     } catch (error) {
-      console.error("获取批量日志失败:", error);
+      log.error("获取批量日志失败", error as Error, {
+        component: 'AdminResourcesPage',
+        action: 'fetchBatchLogs'
+      });
     } finally {
       setLoadingLogs(false);
     }
@@ -567,16 +677,66 @@ export default function AdminResourcesPage() {
                     批量上传
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                <DialogContent className="max-w-5xl max-h-[85vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>批量上传资源</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-6">
+                    {/* 新增：文本输入区域 */}
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium">原始资源文本</label>
+                        <Button
+                          onClick={handleAIConvert}
+                          disabled={converting || !rawText.trim()}
+                          size="sm"
+                          variant="outline"
+                        >
+                          {converting ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              AI转换中...
+                            </>
+                          ) : (
+                            <>
+                              🤖 AI转JSON
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        粘贴资源列表文本，支持多种格式：标题+链接、标题 链接：URL等，点击AI转JSON自动转换为标准格式
+                      </p>
+                      <Textarea
+                        value={rawText}
+                        onChange={(e) => setRawText(e.target.value)}
+                        placeholder={`空腹力 健康 养生 科学空腹，远离疾病，高效抗老
+链接：https://pan.quark.cn/s/81b357be6db5
+
+炳祥《问真八字》中级班
+https://pan.quark.cn/s/d0f0992c010d
+
+宇宙之思-了解更多宇宙知识  https://pan.quark.cn/s/324db89cc9df`}
+                        rows={8}
+                        className="text-sm"
+                      />
+                    </div>
+
+                    {/* 分隔线 */}
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">或直接输入JSON</span>
+                      </div>
+                    </div>
+
                     {/* JSON数据输入 */}
                     <div className="space-y-2">
                       <label className="text-sm font-medium">JSON数据</label>
                       <p className="text-xs text-muted-foreground">
-                        请输入符合格式的JSON数据，格式：{`{"total_resources": 2, "resources": [{"name": "资源名称", "link": "资源链接"}]}`}
+                        标准JSON格式：{`{"total_resources": 2, "resources": [{"name": "资源名称", "link": "资源链接"}]}`}
                       </p>
                       <Textarea
                         value={batchUploadData}

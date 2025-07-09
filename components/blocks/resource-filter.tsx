@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,9 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Search, 
-  Filter, 
+import {
+  Search,
+  Filter,
   X,
   FileText,
   Image,
@@ -30,12 +30,44 @@ import {
   BookOpen
 } from "lucide-react";
 
+// 类型定义
+interface Category {
+  id: number;
+  name: string;
+  description?: string;
+  resource_count?: number;
+  children?: Category[];
+}
 
+interface FilterParams {
+  search: string;
+  category: string;
+  tags: string[];
+  is_free: boolean;
+  sort: string;
+}
 
 interface ResourceFilterProps {
-  onFilterChange?: (filters: any) => void;
+  onFilterChange?: (filters: FilterParams) => void;
   showAdvanced?: boolean;
   compact?: boolean;
+}
+
+// 防抖 Hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
 }
 
 export default function ResourceFilter({
@@ -55,8 +87,11 @@ export default function ResourceFilter({
   const [isFreeOnly, setIsFreeOnly] = useState(searchParams.get("is_free") === "true");
   const [sortBy, setSortBy] = useState(searchParams.get("sort") || "latest");
 
+  // 防抖搜索值
+  const debouncedSearch = useDebounce(search, 300);
+
   // 动态数据
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [popularTags, setPopularTags] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -76,7 +111,8 @@ export default function ResourceFilter({
         }
       }
     } catch (error) {
-      console.error('获取分类失败:', error);
+      // 分类获取失败不影响主要功能，只记录日志
+      console.warn('获取分类失败:', error);
     }
   };
 
@@ -90,7 +126,8 @@ export default function ResourceFilter({
         }
       }
     } catch (error) {
-      console.error('获取热门标签失败:', error);
+      // 标签获取失败不影响主要功能，只记录日志
+      console.warn('获取热门标签失败:', error);
     }
   };
 
@@ -98,12 +135,15 @@ export default function ResourceFilter({
   const updateFilters = () => {
     const params = new URLSearchParams();
 
-    if (search) params.set("search", search);
+    if (debouncedSearch) params.set("search", debouncedSearch);
     if (selectedCategory) params.set("category", selectedCategory);
     if (selectedTags.length > 0) params.set("tags", selectedTags.join(","));
 
     if (isFreeOnly) params.set("is_free", "true");
     if (sortBy !== "latest") params.set("sort", sortBy);
+
+    // 重要：搜索和筛选时重置页码到第1页
+    // 不设置page参数，默认就是第1页
 
     const newUrl = `/resources?${params.toString()}`;
     router.push(newUrl);
@@ -111,7 +151,7 @@ export default function ResourceFilter({
     // 调用回调函数
     if (onFilterChange) {
       onFilterChange({
-        search,
+        search: debouncedSearch,
         category: selectedCategory,
         tags: selectedTags,
 
@@ -180,13 +220,22 @@ export default function ResourceFilter({
   // 监听筛选条件变化，自动更新URL（除了初始加载）
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // 使用 useMemo 优化依赖，避免无限重渲染
+  const filterDeps = useMemo(() => [
+    debouncedSearch,
+    selectedCategory,
+    selectedTags.join(','),
+    isFreeOnly,
+    sortBy
+  ], [debouncedSearch, selectedCategory, selectedTags, isFreeOnly, sortBy]);
+
   useEffect(() => {
     if (isInitialized) {
       updateFilters();
     } else {
       setIsInitialized(true);
     }
-  }, [search, selectedCategory, selectedTags, isFreeOnly, sortBy]);
+  }, filterDeps);
 
   // 分类项组件
   const CategoryItem = ({
@@ -195,7 +244,7 @@ export default function ResourceFilter({
     onCategorySelect,
     level = 0
   }: {
-    category: any;
+    category: Category;
     selectedCategory: string;
     onCategorySelect: (id: string) => void;
     level: number;
@@ -222,9 +271,9 @@ export default function ResourceFilter({
           )}
         </Button>
 
-        {hasChildren && (
+        {hasChildren && category.children && (
           <div className="mt-1">
-            {category.children.map((child: any) => (
+            {category.children.map((child: Category) => (
               <CategoryItem
                 key={child.id}
                 category={child}
@@ -556,7 +605,7 @@ export default function ResourceFilter({
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground">分类:</span>
                   <Badge variant="secondary">
-                    {categories.find(c => c.id === selectedCategory)?.name}
+                    {categories.find(c => c.id.toString() === selectedCategory)?.name}
                   </Badge>
                 </div>
               )}

@@ -49,7 +49,7 @@ export async function GET(
     });
 
   } catch (error) {
-    log.error("查询批量处理日志详情失败", error);
+    log.error("查询批量处理日志详情失败", error as Error);
     return respErr("查询批量处理日志详情失败，请稍后再试");
   }
 }

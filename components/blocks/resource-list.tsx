@@ -34,9 +34,11 @@ export default function ResourceList({
 
   const [resources, setResources] = useState<ResourceWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+
+  // 从URL参数中获取当前页码，默认为1
+  const currentPage = parseInt(searchParams.get('page') || '1', 10);
 
   // 获取当前筛选参数
   const getFilters = (): ResourceSearchParams => {
@@ -78,29 +80,25 @@ export default function ResourceList({
       });
 
       const url = `/api/resources?${queryParams.toString()}`;
-      console.log('正在请求资源列表:', url);
-      console.log('筛选参数:', filters);
 
       const response = await fetch(url);
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('API响应错误:', response.status, errorText);
         throw new Error(`HTTP ${response.status}: ${errorText || '获取资源列表失败'}`);
       }
 
       const data = await response.json();
-      console.log('API响应数据:', data);
 
       if (data.code === 0) {
         setResources(data.data.resources || []);
         setTotalCount(data.data.total || 0);
         setTotalPages(Math.ceil((data.data.total || 0) / pageSize));
-        console.log('资源列表加载成功:', data.data.resources?.length || 0, '条');
       } else {
         throw new Error(data.message || '获取资源列表失败');
       }
     } catch (error) {
+      // 这里保留 console.error 因为这是前端组件，需要在浏览器控制台显示错误信息
       console.error('获取资源列表失败:', error);
       toast.error(`获取资源列表失败: ${error instanceof Error ? error.message : '未知错误'}`);
       setResources([]);
@@ -113,7 +111,7 @@ export default function ResourceList({
 
   useEffect(() => {
     fetchResources();
-  }, [searchParams, currentPage, pageSize]);
+  }, [searchParams, pageSize]);
 
   // 更新URL参数
   const updateSearchParams = (newParams: Record<string, string | null>) => {
@@ -131,7 +129,6 @@ export default function ResourceList({
   };
 
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
     updateSearchParams({ page: page.toString() });
   };
 
@@ -140,7 +137,6 @@ export default function ResourceList({
   const handleFavorite = (resource: ResourceWithDetails) => {
     // 收藏状态已在ResourceCard组件内部管理，无需重新获取列表
     // 如果需要，可以在这里添加其他逻辑，比如更新全局状态
-    console.log('资源收藏状态已更新:', resource.title);
   };
 
   const handleShare = (resource: ResourceWithDetails) => {

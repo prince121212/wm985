@@ -55,16 +55,30 @@ export async function POST(req: Request) {
       });
     }
 
-    // 验证每个资源的基本信息
+    // 验证每个资源的基本信息并清理数据
     for (let i = 0; i < resources.length; i++) {
       const resource = resources[i];
+
+      // 清理资源名称
       if (!resource.name?.trim()) {
         return respInvalidParams(`第${i + 1}个资源的名称不能为空`);
       }
+
+      // 清理名称中的特殊字符，防止JSON序列化问题
+      resource.name = resource.name
+        .replace(/[\r\n\t]/g, ' ')  // 移除换行符和制表符
+        .replace(/["\\\b\f]/g, '')  // 移除可能导致JSON问题的字符
+        .replace(/\s+/g, ' ')       // 标准化空格
+        .trim()
+        .substring(0, 100);         // 限制长度
+
       if (!resource.link?.trim()) {
         return respInvalidParams(`第${i + 1}个资源的链接不能为空`);
       }
-      
+
+      // 清理链接
+      resource.link = resource.link.trim();
+
       // 验证链接格式
       try {
         new URL(resource.link);
@@ -118,7 +132,7 @@ export async function POST(req: Request) {
     });
 
   } catch (error) {
-    log.error("批量上传提交失败", error);
+    log.error("批量上传提交失败", error as Error);
     return respErr("批量上传提交失败，请稍后再试");
   }
 }

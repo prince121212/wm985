@@ -66,7 +66,7 @@ export async function GET(req: Request) {
     });
 
   } catch (error) {
-    log.error("查询批量处理日志失败", error);
+    log.error("查询批量处理日志失败", error as Error);
     return respErr("查询批量处理日志失败，请稍后再试");
   }
 }

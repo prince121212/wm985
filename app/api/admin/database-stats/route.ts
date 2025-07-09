@@ -30,16 +30,16 @@ export async function GET() {
 
     // 检查是否有错误
     if (resourcesResult.error) {
-      log.error("获取资源统计失败", resourcesResult.error);
+      log.error("获取资源统计失败", new Error(resourcesResult.error.message));
     }
     if (categoriesResult.error) {
-      log.error("获取分类统计失败", categoriesResult.error);
+      log.error("获取分类统计失败", new Error(categoriesResult.error.message));
     }
     if (tagsResult.error) {
-      log.error("获取标签统计失败", tagsResult.error);
+      log.error("获取标签统计失败", new Error(tagsResult.error.message));
     }
     if (usersResult.error) {
-      log.error("获取用户统计失败", usersResult.error);
+      log.error("获取用户统计失败", new Error(usersResult.error.message));
     }
 
     const stats = {

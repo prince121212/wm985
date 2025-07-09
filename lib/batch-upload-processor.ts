@@ -38,7 +38,11 @@ export async function processBatchUpload(
 
     // 获取所有分类信息
     const categories = await getAllCategories();
-    const categoryMap = new Map(categories.map(cat => [cat.name, cat.id]));
+    const categoryMap = new Map<string, number>(
+      categories
+        .filter(cat => cat.id !== undefined)
+        .map(cat => [cat.name, cat.id!])
+    );
 
     const results: BatchLogDetail[] = [];
     let successCount = 0;
@@ -73,9 +77,9 @@ export async function processBatchUpload(
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : "未知错误";
         
-        log.error(`第${i + 1}个资源处理失败`, error, { 
+        log.error(`第${i + 1}个资源处理失败`, error as Error, {
           name: resourceItem.name,
-          taskUuid 
+          taskUuid
         });
         
         results.push({
@@ -137,7 +141,7 @@ export async function processBatchUpload(
     });
 
   } catch (error) {
-    log.error("批量处理任务失败", error, { taskUuid });
+    log.error("批量处理任务失败", error as Error, { taskUuid });
     
     // 更新任务状态为失败
     await updateBatchLog(taskUuid, {
@@ -169,10 +173,14 @@ async function processResource(
     category_id: enrichedResource.category_id,
     author_id: user_uuid,
     status: 'pending' as const,
+    rating_avg: 0,
+    rating_count: 0,
+    view_count: 0,
+    access_count: 0,
+    is_featured: false,
     is_free: true, // 批量上传默认免费
     credits: 0,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
+    top: false
   };
 
   // 插入资源
@@ -295,8 +303,8 @@ ${analysisText}
     };
 
   } catch (error) {
-    log.error("AI智能填充失败，使用默认值", error, { 
-      resourceName: resourceItem.name 
+    log.error("AI智能填充失败，使用默认值", error as Error, {
+      resourceName: resourceItem.name
     });
     
     // AI失败时使用默认值
@@ -347,9 +355,9 @@ async function performAIReview(resource: any, user_uuid: string) {
     });
 
   } catch (error) {
-    log.error("AI评分处理失败", error, { 
+    log.error("AI评分处理失败", error as Error, {
       resourceUuid: resource.uuid,
-      user_uuid 
+      user_uuid
     });
   }
 }
