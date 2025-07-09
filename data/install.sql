@@ -1128,6 +1128,38 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- ============================================
+-- 批量处理日志表
+-- 版本：v1.0
+-- 创建时间：2025-07-08
+-- 说明：用于记录批量上传资源等批量处理任务的日志
+-- ============================================
+
+-- 批量处理日志表
+CREATE TABLE IF NOT EXISTS batch_logs (
+    id SERIAL PRIMARY KEY,
+    uuid VARCHAR(36) UNIQUE NOT NULL,
+    user_id VARCHAR(36) NOT NULL,
+    type VARCHAR(50) NOT NULL, -- 'batch_upload', 'other'
+    title VARCHAR(200) NOT NULL,
+    status VARCHAR(20) NOT NULL, -- 'pending', 'processing', 'completed', 'failed'
+    total_count INTEGER DEFAULT 0,
+    success_count INTEGER DEFAULT 0,
+    failed_count INTEGER DEFAULT 0,
+    details JSONB, -- 存储详细的处理结果
+    error_message TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    completed_at TIMESTAMP
+);
+
+-- 批量日志表索引
+CREATE INDEX IF NOT EXISTS idx_batch_logs_uuid ON batch_logs(uuid);
+CREATE INDEX IF NOT EXISTS idx_batch_logs_user_id ON batch_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_batch_logs_type ON batch_logs(type);
+CREATE INDEX IF NOT EXISTS idx_batch_logs_status ON batch_logs(status);
+CREATE INDEX IF NOT EXISTS idx_batch_logs_created_at ON batch_logs(created_at);
+
 -- 提交事务
 COMMIT;
 

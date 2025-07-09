@@ -7,7 +7,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { RefreshCw, Loader2, Trash2, Search, Pin, PinOff, Info } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { RefreshCw, Loader2, Trash2, Search, Pin, PinOff, Info, Upload } from "lucide-react";
 import Header from "@/components/dashboard/header";
 import TableBlock from "@/components/blocks/table";
 import { TableColumn } from "@/types/blocks/table";
@@ -37,6 +39,13 @@ export default function AdminResourcesPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [deletingResource, setDeletingResource] = useState<string | null>(null);
   const [togglingTop, setTogglingTop] = useState<string | null>(null); // 正在切换置顶状态的资源
+
+  // 批量上传相关状态
+  const [batchUploadOpen, setBatchUploadOpen] = useState(false);
+  const [batchUploadData, setBatchUploadData] = useState("");
+  const [batchUploading, setBatchUploading] = useState(false);
+  const [batchLogs, setBatchLogs] = useState<any[]>([]);
+  const [loadingLogs, setLoadingLogs] = useState(false);
 
   // 获取资源列表
   const fetchResources = async () => {
@@ -166,6 +175,86 @@ export default function AdminResourcesPage() {
   // 清空搜索
   const handleClearSearch = () => {
     setSearchQuery("");
+  };
+
+  // 批量上传处理
+  const handleBatchUpload = async () => {
+    if (!batchUploadData.trim()) {
+      alert("请输入JSON数据");
+      return;
+    }
+
+    try {
+      setBatchUploading(true);
+
+      // 验证JSON格式
+      const jsonData = JSON.parse(batchUploadData);
+
+      if (!jsonData.resources || !Array.isArray(jsonData.resources)) {
+        alert("JSON格式错误：缺少resources数组");
+        return;
+      }
+
+      if (jsonData.resources.length === 0) {
+        alert("资源数组不能为空");
+        return;
+      }
+
+      // 提交批量上传任务
+      const response = await fetch('/api/admin/batch-upload/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(jsonData),
+      });
+
+      const result = await response.json();
+
+      if (result.code === 0) {
+        alert(result.data.message);
+        setBatchUploadData("");
+        // 刷新批量处理日志
+        await fetchBatchLogs();
+      } else {
+        alert(result.message || '批量上传提交失败');
+      }
+
+    } catch (error) {
+      console.error("批量上传失败:", error);
+      if (error instanceof SyntaxError) {
+        alert("JSON格式错误，请检查数据格式");
+      } else {
+        alert("批量上传失败，请稍后再试");
+      }
+    } finally {
+      setBatchUploading(false);
+    }
+  };
+
+  // 获取批量处理日志
+  const fetchBatchLogs = async () => {
+    try {
+      setLoadingLogs(true);
+      const response = await fetch('/api/admin/batch-upload/logs?limit=10');
+      const result = await response.json();
+
+      if (result.code === 0) {
+        setBatchLogs(result.data.logs || []);
+      } else {
+        console.error("获取批量日志失败:", result.message);
+      }
+    } catch (error) {
+      console.error("获取批量日志失败:", error);
+    } finally {
+      setLoadingLogs(false);
+    }
+  };
+
+  // 打开批量上传弹窗时获取日志
+  const handleOpenBatchUpload = () => {
+    setBatchUploadOpen(true);
+    fetchBatchLogs();
   };
 
   const crumb = {
@@ -464,20 +553,145 @@ export default function AdminResourcesPage() {
               </div>
             </div>
 
-            {/* 刷新按钮 */}
-            <Button
-              onClick={handleRefresh}
-              disabled={refreshing}
-              variant="outline"
-              size="sm"
-            >
-              {refreshing ? (
-                <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              ) : (
-                <RefreshCw className="h-4 w-4 mr-2" />
-              )}
-              刷新
-            </Button>
+            {/* 操作按钮 */}
+            <div className="flex items-center gap-2">
+              {/* 批量上传按钮 */}
+              <Dialog open={batchUploadOpen} onOpenChange={setBatchUploadOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    onClick={handleOpenBatchUpload}
+                    variant="default"
+                    size="sm"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    批量上传
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+                  <DialogHeader>
+                    <DialogTitle>批量上传资源</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-6">
+                    {/* JSON数据输入 */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">JSON数据</label>
+                      <p className="text-xs text-muted-foreground">
+                        请输入符合格式的JSON数据，格式：{`{"total_resources": 2, "resources": [{"name": "资源名称", "link": "资源链接"}]}`}
+                      </p>
+                      <Textarea
+                        value={batchUploadData}
+                        onChange={(e) => setBatchUploadData(e.target.value)}
+                        placeholder={`{
+  "total_resources": 2,
+  "resources": [
+    {
+      "name": "资源名称1",
+      "link": "https://example.com/resource1"
+    },
+    {
+      "name": "资源名称2",
+      "link": "https://example.com/resource2"
+    }
+  ]
+}`}
+                        rows={12}
+                        className="font-mono text-sm"
+                      />
+                    </div>
+
+                    {/* 提交按钮 */}
+                    <div className="flex justify-between">
+                      <Button
+                        onClick={handleBatchUpload}
+                        disabled={batchUploading || !batchUploadData.trim()}
+                      >
+                        {batchUploading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            提交中...
+                          </>
+                        ) : (
+                          "提交批量上传"
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* 批量处理日志 */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium">批量处理记录</h3>
+                        <Button
+                          onClick={fetchBatchLogs}
+                          disabled={loadingLogs}
+                          variant="outline"
+                          size="sm"
+                        >
+                          {loadingLogs ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
+
+                      <div className="max-h-60 overflow-y-auto border rounded-md p-3">
+                        {loadingLogs ? (
+                          <div className="text-center py-4">
+                            <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                            <p className="text-sm text-muted-foreground mt-2">加载中...</p>
+                          </div>
+                        ) : batchLogs.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-4">
+                            暂无批量处理记录
+                          </p>
+                        ) : (
+                          <div className="space-y-2">
+                            {batchLogs.map((log) => (
+                              <div key={log.uuid} className="border rounded p-2 text-sm">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span className="font-medium">{log.title}</span>
+                                  <span className={`px-2 py-1 rounded text-xs ${
+                                    log.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                    log.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                                    log.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {log.status === 'completed' ? '已完成' :
+                                     log.status === 'processing' ? '处理中' :
+                                     log.status === 'failed' ? '失败' : '待处理'}
+                                  </span>
+                                </div>
+                                <div className="text-muted-foreground">
+                                  总数: {log.total_count} | 成功: {log.success_count} | 失败: {log.failed_count}
+                                </div>
+                                <div className="text-muted-foreground text-xs">
+                                  {new Date(log.created_at).toLocaleString()}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              {/* 刷新按钮 */}
+              <Button
+                onClick={handleRefresh}
+                disabled={refreshing}
+                variant="outline"
+                size="sm"
+              >
+                {refreshing ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                刷新
+              </Button>
+            </div>
           </div>
 
           {/* 资源表格 */}
