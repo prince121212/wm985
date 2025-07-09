@@ -1142,15 +1142,15 @@ CREATE TABLE IF NOT EXISTS batch_logs (
     user_id VARCHAR(36) NOT NULL,
     type VARCHAR(50) NOT NULL, -- 'batch_upload', 'other'
     title VARCHAR(200) NOT NULL,
-    status VARCHAR(20) NOT NULL, -- 'pending', 'processing', 'completed', 'failed'
+    status VARCHAR(20) NOT NULL, -- 'pending', 'processing', 'completed', 'failed', 'partial_completed'
     total_count INTEGER DEFAULT 0,
     success_count INTEGER DEFAULT 0,
     failed_count INTEGER DEFAULT 0,
     details JSONB, -- 存储详细的处理结果
     error_message TEXT,
-    created_at TIMESTAMP DEFAULT NOW(),
-    updated_at TIMESTAMP DEFAULT NOW(),
-    completed_at TIMESTAMP
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
 );
 
 -- 批量日志表索引

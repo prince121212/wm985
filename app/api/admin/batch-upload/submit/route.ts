@@ -4,17 +4,9 @@ import { isUserAdmin } from "@/services/user";
 import { log } from "@/lib/logger";
 import { getUuid } from "@/lib/hash";
 import { createBatchLog } from "@/models/batch-log";
-import { processBatchUpload } from "@/lib/batch-upload-processor";
-
-interface BatchResourceItem {
-  name: string;
-  link: string;
-}
-
-interface BatchUploadRequest {
-  total_resources: number;
-  resources: BatchResourceItem[];
-}
+import { redisBatchManager } from "@/lib/redis-batch-manager";
+import { getSupabaseClient } from "@/models/db";
+import { BatchUploadRequest, BATCH_UPLOAD_CONFIG } from "@/types/batch-upload";
 
 // POST /api/admin/batch-upload/submit - 提交批量上传任务
 export async function POST(req: Request) {
@@ -42,8 +34,8 @@ export async function POST(req: Request) {
       return respInvalidParams("资源数组不能为空");
     }
 
-    if (resources.length > 500) {
-      return respInvalidParams("一次最多只能上传500个资源");
+    if (resources.length > BATCH_UPLOAD_CONFIG.MAX_RESOURCES_PER_BATCH) {
+      return respInvalidParams(`一次最多只能上传${BATCH_UPLOAD_CONFIG.MAX_RESOURCES_PER_BATCH}个资源`);
     }
 
     // 验证total_resources字段
@@ -70,7 +62,7 @@ export async function POST(req: Request) {
         .replace(/["\\\b\f]/g, '')  // 移除可能导致JSON问题的字符
         .replace(/\s+/g, ' ')       // 标准化空格
         .trim()
-        .substring(0, 100);         // 限制长度
+        .substring(0, BATCH_UPLOAD_CONFIG.MAX_RESOURCE_NAME_LENGTH); // 限制长度
 
       if (!resource.link?.trim()) {
         return respInvalidParams(`第${i + 1}个资源的链接不能为空`);
@@ -87,15 +79,76 @@ export async function POST(req: Request) {
       }
     }
 
-    log.info("收到批量上传任务", { 
-      count: resources.length, 
-      user_uuid 
+    log.info("收到批量上传任务", {
+      count: resources.length,
+      user_uuid
     });
 
-    // 创建批量处理任务记录
-    const taskUuid = getUuid();
-    const batchLog = await createBatchLog({
-      uuid: taskUuid,
+    // 验证用户是否存在于数据库中
+    const supabase = getSupabaseClient();
+    const { data: userExists, error: userError } = await supabase
+      .from('users')
+      .select('uuid, email')
+      .eq('uuid', user_uuid)
+      .single();
+
+    log.info("用户验证结果", {
+      user_uuid,
+      userExists: !!userExists,
+      userEmail: userExists?.email,
+      userError: userError?.message
+    });
+
+    if (!userExists) {
+      log.error("用户不存在于数据库中", new Error("User not found in database"), { user_uuid });
+      return respErr("用户验证失败，请重新登录");
+    }
+
+    // 创建主任务UUID和分批信息
+    const mainTaskUuid = getUuid();
+    const batchSize = BATCH_UPLOAD_CONFIG.DEFAULT_BATCH_SIZE;
+    const batches = splitIntoBatches(resources, batchSize);
+
+    log.info("开始创建Redis管理的批量任务", {
+      mainTaskUuid,
+      totalResources: resources.length,
+      totalBatches: batches.length,
+      batchSize
+    });
+
+    // 1. 在Redis中创建主任务
+    await redisBatchManager.createMainTask({
+      uuid: mainTaskUuid,
+      user_id: user_uuid,
+      title: `批量上传资源 - ${resources.length}个资源`,
+      status: 'pending',
+      total_resources: resources.length,
+      total_batches: batches.length,
+      completed_batches: 0,
+      success_count: 0,
+      failed_count: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
+
+    // 2. 创建子任务
+    const subtasks = batches.map((batch, index) => ({
+      uuid: getUuid(),
+      parent_task_uuid: mainTaskUuid,
+      batch_index: index + 1,
+      status: 'pending' as const,
+      resources: batch,
+      success_count: 0,
+      failed_count: 0,
+      results: [],
+      created_at: new Date().toISOString()
+    }));
+
+    await redisBatchManager.createSubtasksAndQueue(mainTaskUuid, subtasks);
+
+    // 3. 在数据库中创建初始记录（用于最终存储）
+    await createBatchLog({
+      uuid: mainTaskUuid,
       user_id: user_uuid,
       type: 'batch_upload',
       title: `批量上传资源 - ${resources.length}个资源`,
@@ -104,29 +157,27 @@ export async function POST(req: Request) {
       success_count: 0,
       failed_count: 0,
       details: {
-        resources: resources.map((r, index) => ({
-          index: index + 1,
-          name: r.name,
-          link: r.link,
-          status: 'pending'
-        }))
+        total_batches: batches.length,
+        batch_size: batchSize,
+        redis_managed: true, // 标记这是Redis管理的任务
+        created_with_redis: true
       }
     });
 
-    // 异步处理批量上传任务（不阻塞响应）
-    processBatchUpload(taskUuid, resources, user_uuid).catch(error => {
-      log.error("批量上传处理失败", error, { taskUuid, user_uuid });
-    });
+    // 4. 开始处理第一批
+    await redisBatchManager.triggerNextSubtask(mainTaskUuid);
 
-    log.info("批量上传任务已创建", {
-      taskUuid,
-      resourceCount: resources.length,
+    log.info("Redis批量上传任务创建完成", {
+      mainTaskUuid,
+      totalBatches: batches.length,
       user_uuid
     });
 
     return respData({
-      task_uuid: taskUuid,
-      message: "已收到批量上传资源任务，将在后台处理，处理结果稍后打开本弹窗即可看到处理记录",
+      task_uuid: mainTaskUuid,
+      total_batches: batches.length,
+      batch_size: batchSize,
+      message: "任务已创建，开始处理第一批",
       total_count: resources.length,
       status: "pending"
     });
@@ -136,3 +187,14 @@ export async function POST(req: Request) {
     return respErr("批量上传提交失败，请稍后再试");
   }
 }
+
+// 将资源数组分批
+function splitIntoBatches<T>(array: T[], batchSize: number): T[][] {
+  const batches = [];
+  for (let i = 0; i < array.length; i += batchSize) {
+    batches.push(array.slice(i, i + batchSize));
+  }
+  return batches;
+}
+
+

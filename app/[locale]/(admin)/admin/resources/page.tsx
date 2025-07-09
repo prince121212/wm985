@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -34,23 +33,24 @@ import {
 interface BatchLog {
   uuid: string;
   title: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'partial_completed';
   total_count: number;
   success_count: number;
   failed_count: number;
   created_at: string;
+  details?: {
+    redis_managed?: boolean;
+    total_batches?: number;
+    completed_batches?: number;
+    [key: string]: any;
+  };
+  source?: 'redis' | 'database';
+  is_active?: boolean;
 }
 
-interface FilterChangeParams {
-  search: string;
-  category: string;
-  tags: string[];
-  is_free: boolean;
-  sort: string;
-}
+
 
 export default function AdminResourcesPage() {
-  const router = useRouter();
   const [resources, setResources] = useState<ResourceWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("pending"); // 默认选中待审核
@@ -65,6 +65,7 @@ export default function AdminResourcesPage() {
   const [batchUploading, setBatchUploading] = useState(false);
   const [batchLogs, setBatchLogs] = useState<BatchLog[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
+  const [clearingLogs, setClearingLogs] = useState(false);
 
   // AI转JSON相关状态
   const [rawText, setRawText] = useState("");
@@ -337,14 +338,15 @@ export default function AdminResourcesPage() {
   };
 
   // 获取批量处理日志
-  const fetchBatchLogs = async () => {
+  const fetchBatchLogs = async (silent = false) => {
     try {
-      setLoadingLogs(true);
+      if (!silent) setLoadingLogs(true);
       const response = await fetch('/api/admin/batch-upload/logs?limit=10');
       const result = await response.json();
 
       if (result.code === 0) {
         setBatchLogs(result.data.logs || []);
+        // 移除自动刷新逻辑，只保留手动刷新
       } else {
         log.error("获取批量日志失败", new Error(result.message || '获取批量日志失败'), {
           component: 'AdminResourcesPage',
@@ -357,7 +359,37 @@ export default function AdminResourcesPage() {
         action: 'fetchBatchLogs'
       });
     } finally {
-      setLoadingLogs(false);
+      if (!silent) setLoadingLogs(false);
+    }
+  };
+
+  // 清空批量处理记录
+  const clearBatchLogs = async () => {
+    try {
+      setClearingLogs(true);
+      const response = await fetch('/api/admin/batch-upload/logs/clear', {
+        method: 'DELETE'
+      });
+      const result = await response.json();
+
+      if (result.code === 0) {
+        setBatchLogs([]);
+        toast.success("批量处理记录已清空");
+      } else {
+        toast.error(result.message || "清空记录失败");
+        log.error("清空批量记录失败", new Error(result.message || '清空批量记录失败'), {
+          component: 'AdminResourcesPage',
+          action: 'clearBatchLogs'
+        });
+      }
+    } catch (error) {
+      toast.error("清空记录失败");
+      log.error("清空批量记录失败", error as Error, {
+        component: 'AdminResourcesPage',
+        action: 'clearBatchLogs'
+      });
+    } finally {
+      setClearingLogs(false);
     }
   };
 
@@ -780,18 +812,33 @@ https://pan.quark.cn/s/d0f0992c010d
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <h3 className="text-sm font-medium">批量处理记录</h3>
-                        <Button
-                          onClick={fetchBatchLogs}
-                          disabled={loadingLogs}
-                          variant="outline"
-                          size="sm"
-                        >
-                          {loadingLogs ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-4 w-4" />
-                          )}
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={() => fetchBatchLogs()}
+                            disabled={loadingLogs}
+                            variant="outline"
+                            size="sm"
+                          >
+                            {loadingLogs ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
+                          </Button>
+                          <Button
+                            onClick={clearBatchLogs}
+                            disabled={loadingLogs || clearingLogs}
+                            variant="outline"
+                            size="sm"
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            {clearingLogs ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
                       </div>
 
                       <div className="max-h-60 overflow-y-auto border rounded-md p-3">
@@ -809,23 +856,59 @@ https://pan.quark.cn/s/d0f0992c010d
                             {batchLogs.map((log) => (
                               <div key={log.uuid} className="border rounded p-2 text-sm">
                                 <div className="flex items-center justify-between mb-1">
-                                  <span className="font-medium">{log.title}</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{log.title}</span>
+                                    {log.is_active && (
+                                      <span className="px-1.5 py-0.5 bg-blue-50 text-blue-600 text-xs rounded">
+                                        实时
+                                      </span>
+                                    )}
+                                  </div>
                                   <span className={`px-2 py-1 rounded text-xs ${
                                     log.status === 'completed' ? 'bg-green-100 text-green-800' :
                                     log.status === 'processing' ? 'bg-blue-100 text-blue-800' :
                                     log.status === 'failed' ? 'bg-red-100 text-red-800' :
+                                    log.status === 'partial_completed' ? 'bg-yellow-100 text-yellow-800' :
                                     'bg-gray-100 text-gray-800'
                                   }`}>
                                     {log.status === 'completed' ? '已完成' :
                                      log.status === 'processing' ? '处理中' :
-                                     log.status === 'failed' ? '失败' : '待处理'}
+                                     log.status === 'failed' ? '失败' :
+                                     log.status === 'partial_completed' ? '部分完成' : '待处理'}
                                   </span>
                                 </div>
+
+                                {/* 进度条（仅对Redis管理的任务显示） */}
+                                {log.details?.redis_managed && log.details?.total_batches && (
+                                  <div className="mb-2">
+                                    <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                                      <span>批次进度</span>
+                                      <span>{log.details.completed_batches || 0}/{log.details.total_batches}</span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                                      <div
+                                        className="bg-blue-600 h-1.5 rounded-full transition-all duration-300"
+                                        style={{
+                                          width: `${Math.round(((log.details.completed_batches || 0) / log.details.total_batches) * 100)}%`
+                                        }}
+                                      ></div>
+                                    </div>
+                                  </div>
+                                )}
+
                                 <div className="text-muted-foreground">
                                   总数: {log.total_count} | 成功: {log.success_count} | 失败: {log.failed_count}
+                                  {log.details?.redis_managed && (
+                                    <span className="ml-2 text-xs">
+                                      (批次: {log.details.total_batches})
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="text-muted-foreground text-xs">
                                   {new Date(log.created_at).toLocaleString()}
+                                  {log.source === 'redis' && (
+                                    <span className="ml-2 text-blue-600">• 实时数据</span>
+                                  )}
                                 </div>
                               </div>
                             ))}

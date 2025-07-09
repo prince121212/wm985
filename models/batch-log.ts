@@ -7,7 +7,7 @@ export interface BatchLog {
   user_id: string;
   type: string;
   title: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'partial_completed';
   total_count: number;
   success_count: number;
   failed_count: number;
@@ -16,6 +16,9 @@ export interface BatchLog {
   created_at?: string;
   updated_at?: string;
   completed_at?: string;
+  // 新增字段，用于前端显示
+  source?: 'redis' | 'database';
+  is_active?: boolean;
 }
 
 export interface BatchLogDetail {

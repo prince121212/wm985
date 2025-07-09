@@ -2,18 +2,15 @@ import { respData, respErr, respInvalidParams, respUnauthorized } from "@/lib/re
 import { getUserUuid } from "@/services/user";
 import { isUserAdmin } from "@/services/user";
 import { log } from "@/lib/logger";
-import { 
-  parseTextWithRegex, 
+import {
+  parseTextWithRegex,
   splitTextIntoResourceBlocks,
   ParseResult,
-  ParsedResource 
+  ParsedResource
 } from "@/lib/text-parser";
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText } from "ai";
-
-interface ParseTextRequest {
-  text: string;
-}
+import { ParseTextRequest, BATCH_UPLOAD_CONFIG } from "@/types/batch-upload";
 
 // AI解析单个资源块
 async function parseResourceBlockWithAI(block: string): Promise<ParsedResource | null> {
@@ -99,7 +96,7 @@ async function parseTextWithAI(text: string): Promise<ParseResult> {
     }
 
     // 限制AI解析的块数量（避免过多API调用）
-    const maxBlocks = Math.min(blocks.length, 20);
+    const maxBlocks = Math.min(blocks.length, BATCH_UPLOAD_CONFIG.MAX_AI_PARSE_BLOCKS);
     const blocksToProcess = blocks.slice(0, maxBlocks);
     
     if (blocks.length > maxBlocks) {
@@ -107,7 +104,7 @@ async function parseTextWithAI(text: string): Promise<ParseResult> {
     }
 
     // 并发处理多个资源块（限制并发数）
-    const batchSize = 3;
+    const batchSize = BATCH_UPLOAD_CONFIG.AI_PARSE_BATCH_SIZE;
     for (let i = 0; i < blocksToProcess.length; i += batchSize) {
       const batch = blocksToProcess.slice(i, i + batchSize);
       const promises = batch.map(block => parseResourceBlockWithAI(block));
@@ -183,8 +180,8 @@ export async function POST(req: Request) {
       return respInvalidParams("文本内容不能为空");
     }
 
-    if (text.length > 50000) {
-      return respInvalidParams("文本内容过长，请限制在50000字符以内");
+    if (text.length > BATCH_UPLOAD_CONFIG.MAX_TEXT_LENGTH) {
+      return respInvalidParams(`文本内容过长，请限制在${BATCH_UPLOAD_CONFIG.MAX_TEXT_LENGTH}字符以内`);
     }
 
     log.info("收到文本解析请求", { 

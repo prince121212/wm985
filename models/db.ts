@@ -72,7 +72,7 @@ export async function withRetry<T>(
           attempt,
           maxAttempts,
           function: 'withRetry',
-          error: error.message,
+          error: error instanceof Error ? error.message : String(error),
           delay
         });
         await new Promise(resolve => setTimeout(resolve, delay));

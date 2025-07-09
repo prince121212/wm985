@@ -50,7 +50,10 @@ export const cacheSet = (key: string, value: string, expiresAt: number) => {
     const valueWithExpires = expiresAt + ":" + value;
     localStorage.setItem(key, valueWithExpires);
   } catch (error) {
-    log.warn("缓存设置错误", { error: error as Error, key });
+    log.warn("缓存设置错误", {
+      error: error instanceof Error ? error.message : String(error),
+      key
+    });
   }
 };
 
@@ -64,7 +67,10 @@ export const cacheRemove = (key: string) => {
   try {
     localStorage.removeItem(key);
   } catch (error) {
-    log.warn("缓存删除错误", { error: error as Error, key });
+    log.warn("缓存删除错误", {
+      error: error instanceof Error ? error.message : String(error),
+      key
+    });
   }
 };
 

@@ -1,5 +1,5 @@
 import { respData, respErr, respInvalidParams, respUnauthorized } from "@/lib/resp";
-import { getUserUuid } from "@/services/user";
+import { getUserUuid, isUserAdmin } from "@/services/user";
 import { log } from "@/lib/logger";
 import { getAllCategories, createCategory, getCategoriesTree, buildCategoryTree } from "@/models/category";
 
@@ -45,11 +45,11 @@ export async function POST(req: Request) {
       return respUnauthorized("用户未登录");
     }
 
-    // TODO: 检查管理员权限
-    // const isAdmin = await checkAdminPermission(user_uuid);
-    // if (!isAdmin) {
-    //   return respUnauthorized("无权限执行此操作");
-    // }
+    // 检查管理员权限
+    const isAdmin = await isUserAdmin();
+    if (!isAdmin) {
+      return respUnauthorized("无管理员权限");
+    }
 
     const body = await req.json();
     const {

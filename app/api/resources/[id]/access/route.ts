@@ -107,7 +107,10 @@ export async function POST(req: Request, { params }: RouteParams) {
     // 增加访问次数（异步执行，不影响响应）
     if (resource.id) {
       incrementResourceAccess(id).catch(error => {
-        log.warn("更新访问次数失败", { error: error as Error, resourceUuid: id });
+        log.warn("更新访问次数失败", {
+          error: error instanceof Error ? error.message : String(error),
+          resourceUuid: id
+        });
       });
     }
 

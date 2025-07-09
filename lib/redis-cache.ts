@@ -120,7 +120,7 @@ class RedisConnectionManager {
 const redisManager = new RedisConnectionManager();
 
 // 获取Redis客户端的简化接口
-async function getRedisClient() {
+export async function getRedisClient() {
   return redisManager.getClient();
 }
 
@@ -359,7 +359,7 @@ async function safeRedisOperation<T>(operation: (client: ReturnType<typeof creat
     } catch (error) {
       lastError = error;
       log.warn(`Redis 操作失败 (尝试 ${attempt}/2)`, {
-        error: (error as Error).message,
+        error: error instanceof Error ? error.message : String(error),
         attempt
       });
 
