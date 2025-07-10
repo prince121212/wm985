@@ -1,7 +1,7 @@
 import { respData, respErr, respUnauthorized } from "@/lib/resp";
 import { getUserUuid, isUserAdmin } from "@/services/user";
 import { log } from "@/lib/logger";
-import { getResourcesList } from "@/models/resource";
+import { getResourcesList, getResourcesCount } from "@/models/resource";
 
 // GET /api/admin/resources - 获取管理后台资源列表
 export async function GET(req: Request) {
@@ -18,7 +18,15 @@ export async function GET(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    
+
+    // 解析分页参数
+    const page = parseInt(searchParams.get('page') || '1');
+    const pageSize = parseInt(searchParams.get('pageSize') || '20');
+
+    // 验证分页参数
+    const validPage = Math.max(1, page);
+    const validPageSize = Math.min(Math.max(1, pageSize), 100); // 限制最大页面大小为100
+
     const statusParam = searchParams.get('status');
     const params = {
       category: searchParams.get('category') || undefined,
@@ -27,20 +35,38 @@ export async function GET(req: Request) {
       sort: searchParams.get('sort') || 'latest',
       status: statusParam === 'all' ? undefined : (statusParam || undefined), // 管理员可以查看所有状态，all表示不筛选状态
       author_id: searchParams.get('author_id') || undefined,
-      offset: parseInt(searchParams.get('offset') || '0'),
-      limit: Math.min(parseInt(searchParams.get('limit') || '20'), 100), // 最大100条
+      offset: (validPage - 1) * validPageSize,
+      limit: validPageSize,
       isAdmin: true, // 标识这是管理员请求
     };
 
-    log.info("获取管理后台资源列表", { user_uuid, ...params });
+    log.info("获取管理后台资源列表", {
+      user_uuid,
+      page: validPage,
+      pageSize: validPageSize,
+      ...params
+    });
 
-    const resources = await getResourcesList(params);
+    // 并行获取资源列表和总数
+    const [resources, totalCount] = await Promise.all([
+      getResourcesList(params),
+      getResourcesCount({
+        category: params.category,
+        tags: params.tags,
+        search: params.search,
+        status: params.status,
+        isAdmin: true
+      })
+    ]);
+
+    const totalPages = Math.ceil(totalCount / validPageSize);
 
     return respData({
       resources,
-      total: resources.length,
-      offset: params.offset,
-      limit: params.limit
+      total: totalCount,
+      totalPages,
+      page: validPage,
+      pageSize: validPageSize
     });
 
   } catch (error) {

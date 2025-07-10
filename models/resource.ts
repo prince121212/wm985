@@ -132,6 +132,7 @@ export async function getResourcesCount(params: {
   tags?: string[];
   search?: string;
   status?: string;
+  isAdmin?: boolean; // 新增管理员标识
 }): Promise<number> {
   return wrapQueryWithMonitoring(
     'getResourcesCount',
@@ -144,8 +145,8 @@ export async function getResourcesCount(params: {
       // 状态筛选
       if (params.status) {
         query = query.eq("status", params.status);
-      } else {
-        // 默认只显示已审核通过的资源
+      } else if (!params.isAdmin) {
+        // 非管理员默认只显示已审核通过的资源
         query = query.eq("status", "approved");
       }
 

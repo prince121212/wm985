@@ -59,6 +59,12 @@ export default function AdminResourcesPage() {
   const [deletingResource, setDeletingResource] = useState<string | null>(null);
   const [togglingTop, setTogglingTop] = useState<string | null>(null); // 正在切换置顶状态的资源
 
+  // 分页状态
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [pageSize] = useState(20); // 每页显示数量
+
   // 批量上传相关状态
   const [batchUploadOpen, setBatchUploadOpen] = useState(false);
   const [batchUploadData, setBatchUploadData] = useState("");
@@ -75,19 +81,23 @@ export default function AdminResourcesPage() {
   const fetchResources = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        pageSize: pageSize.toString(),
+      });
+
       if (statusFilter !== "all") {
         params.set("status", statusFilter);
       } else {
         // 对于管理员，全部状态应该包含所有状态的资源
         params.set("status", "all");
       }
+
       // 添加搜索参数
       if (searchQuery.trim()) {
         params.set("search", searchQuery.trim());
       }
-      params.set("limit", "50");
-      params.set("offset", "0");
+
       params.set("sort", "latest");
 
       const response = await fetch(`/api/admin/resources?${params.toString()}`);
@@ -95,6 +105,8 @@ export default function AdminResourcesPage() {
 
       if (data.code === 0) {
         setResources(data.data.resources || []);
+        setTotalCount(data.data.total || 0);
+        setTotalPages(data.data.totalPages || 1);
       } else {
         throw new Error(data.message || '获取资源列表失败');
       }
@@ -103,7 +115,8 @@ export default function AdminResourcesPage() {
         component: 'AdminResourcesPage',
         action: 'fetchResources',
         statusFilter,
-        searchQuery
+        searchQuery,
+        currentPage
       });
       toast.error(`获取资源列表失败: ${error instanceof Error ? error.message : '未知错误'}`);
       setResources([]);
@@ -118,6 +131,30 @@ export default function AdminResourcesPage() {
     await fetchResources();
     setRefreshing(false);
     toast.success("数据已刷新");
+  };
+
+  // 分页处理
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages && page !== currentPage) {
+      setCurrentPage(page);
+    }
+  };
+
+  // 处理状态筛选变化
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1); // 重置到第一页
+  };
+
+  // 处理搜索变化
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchQuery(e.target.value);
+  };
+
+  // 清空搜索
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setCurrentPage(1); // 重置到第一页
   };
 
   // 删除资源
@@ -191,20 +228,12 @@ export default function AdminResourcesPage() {
     }
   };
 
-  // 状态筛选和搜索变化时重新获取数据
+  // 状态筛选、搜索和分页变化时重新获取数据
   useEffect(() => {
     fetchResources();
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, searchQuery, currentPage]);
 
-  // 处理搜索输入
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-  };
 
-  // 清空搜索
-  const handleClearSearch = () => {
-    setSearchQuery("");
-  };
 
   // AI转JSON处理
   const handleAIConvert = async () => {
@@ -670,7 +699,7 @@ export default function AdminResourcesPage() {
     };
     const statusText = statusMap[statusFilter as keyof typeof statusMap] || "所有资源";
     const searchText = searchQuery.trim() ? `（搜索："${searchQuery.trim()}"）` : "";
-    return `共 ${resources.length} 个${statusText}${searchText}`;
+    return `共 ${totalCount} 个${statusText}${searchText}`;
   };
 
   return (
@@ -716,7 +745,7 @@ export default function AdminResourcesPage() {
               {/* 状态筛选 */}
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">状态筛选:</span>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                   <SelectTrigger className="w-40">
                     <SelectValue placeholder="选择状态" />
                   </SelectTrigger>
@@ -996,6 +1025,63 @@ https://pan.quark.cn/s/d0f0992c010d
               />
             )}
           </div>
+
+          {/* 分页组件 */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-8">
+              <div className="flex space-x-2">
+                <Button
+                  variant="outline"
+                  className="px-3 py-2"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1 || loading}
+                >
+                  上一页
+                </Button>
+
+                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                  let page;
+                  if (totalPages <= 5) {
+                    page = i + 1;
+                  } else if (currentPage <= 3) {
+                    page = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    page = totalPages - 4 + i;
+                  } else {
+                    page = currentPage - 2 + i;
+                  }
+
+                  return (
+                    <Button
+                      key={page}
+                      variant={currentPage === page ? "default" : "outline"}
+                      className="px-3 py-2"
+                      onClick={() => handlePageChange(page)}
+                      disabled={loading}
+                    >
+                      {page}
+                    </Button>
+                  );
+                })}
+
+                <Button
+                  variant="outline"
+                  className="px-3 py-2"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages || loading}
+                >
+                  下一页
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* 分页信息 */}
+          {totalCount > 0 && (
+            <div className="text-center text-sm text-muted-foreground">
+              第 {currentPage} 页，共 {totalPages} 页，总计 {totalCount} 个资源
+            </div>
+          )}
         </div>
       </div>
     </>
