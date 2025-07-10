@@ -1,7 +1,5 @@
 import { Suspense } from "react";
-import TagsCloudWrapper from "@/components/blocks/tags-cloud-wrapper";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import TagsCloudDanmakuWrapper from "@/components/blocks/tags-cloud-danmaku-wrapper";
 import { createPageMetadata, PAGE_TITLES, PAGE_DESCRIPTIONS } from "@/lib/metadata";
 
 export default async function TagsPage() {
@@ -17,36 +15,25 @@ export default async function TagsPage() {
           </p>
         </div>
 
-        {/* 标签云 - 只保留标签云部分 */}
+        {/* 弹幕标签云 */}
         <Suspense fallback={<TagsCloudSkeleton />}>
-          <TagsCloudWrapper />
+          <TagsCloudDanmakuWrapper />
         </Suspense>
       </div>
     </div>
   );
 }
 
+
+
 function TagsCloudSkeleton() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>热门标签</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-wrap gap-3">
-          {Array.from({ length: 20 }).map((_, i) => (
-            <Skeleton 
-              key={i} 
-              className={`h-8 rounded-full ${
-                i % 4 === 0 ? 'w-20' : 
-                i % 4 === 1 ? 'w-16' : 
-                i % 4 === 2 ? 'w-24' : 'w-12'
-              }`} 
-            />
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+    <div className="w-full h-96 flex items-center justify-center">
+      <div className="text-center space-y-4">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p className="text-muted-foreground">正在加载弹幕标签云...</p>
+      </div>
+    </div>
   );
 }
 

@@ -9,14 +9,15 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type') || 'all'; // all, popular
     const limit = Math.min(parseInt(searchParams.get('limit') || '50'), 200); // 最大200条
+    const offset = Math.max(parseInt(searchParams.get('offset') || '0'), 0); // 偏移量
     const search = searchParams.get('search');
 
-    log.info("获取标签列表", { type, limit, search });
+    log.info("获取标签列表", { type, limit, offset, search });
 
     let tags;
-    
+
     if (type === 'popular') {
-      tags = await getPopularTags(limit);
+      tags = await getPopularTags(limit, offset);
     } else {
       tags = await getAllTags();
       
@@ -37,7 +38,8 @@ export async function GET(req: Request) {
       tags,
       total: tags.length,
       type,
-      limit
+      limit,
+      offset
     });
 
   } catch (error) {

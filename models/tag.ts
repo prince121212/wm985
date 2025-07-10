@@ -21,20 +21,20 @@ export async function getAllTags(): Promise<Tag[]> {
 }
 
 // 获取热门标签
-export async function getPopularTags(limit: number = 20): Promise<Tag[]> {
+export async function getPopularTags(limit: number = 20, offset: number = 0): Promise<Tag[]> {
   return withRetry(async () => {
     const supabase = getSupabaseClient();
     const { data, error } = await supabase
       .from("tags")
       .select("*")
       .order("usage_count", { ascending: false })
-      .limit(limit);
-    
+      .range(offset, offset + limit - 1);
+
     if (error) {
       log.error("获取热门标签失败", error);
       throw error;
     }
-    
+
     return data || [];
   });
 }
