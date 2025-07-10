@@ -77,6 +77,10 @@ export default function AdminResourcesPage() {
   const [rawText, setRawText] = useState("");
   const [converting, setConverting] = useState(false);
 
+  // 一键过审相关状态
+  const [batchApproving, setBatchApproving] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
   // 获取资源列表
   const fetchResources = async () => {
     try {
@@ -129,8 +133,59 @@ export default function AdminResourcesPage() {
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchResources();
+    await fetchPendingCount(); // 同时刷新待审核数量
     setRefreshing(false);
     toast.success("数据已刷新");
+  };
+
+  // 获取待审核资源数量
+  const fetchPendingCount = async () => {
+    try {
+      const response = await fetch('/api/admin/resources?status=pending&pageSize=1');
+      const data = await response.json();
+      if (data.code === 0) {
+        setPendingCount(data.data.total || 0);
+      }
+    } catch (error) {
+      log.error('获取待审核资源数量失败', error as Error, {
+        component: 'AdminResourcesPage',
+        action: 'fetchPendingCount'
+      });
+    }
+  };
+
+  // 一键过审处理函数
+  const handleBatchApprove = async () => {
+    try {
+      setBatchApproving(true);
+
+      const response = await fetch('/api/admin/resources/batch-approve', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const result = await response.json();
+
+      if (result.code === 0) {
+        toast.success(result.data.message);
+        // 刷新资源列表和待审核数量
+        await fetchResources();
+        await fetchPendingCount();
+      } else {
+        throw new Error(result.message || '批量审核失败');
+      }
+
+    } catch (error) {
+      log.error("批量审核失败", error as Error, {
+        component: 'AdminResourcesPage',
+        action: 'handleBatchApprove'
+      });
+      toast.error(`批量审核失败: ${error instanceof Error ? error.message : '未知错误'}`);
+    } finally {
+      setBatchApproving(false);
+    }
   };
 
   // 分页处理
@@ -232,6 +287,11 @@ export default function AdminResourcesPage() {
   useEffect(() => {
     fetchResources();
   }, [statusFilter, searchQuery, currentPage]);
+
+  // 初始化时获取待审核数量
+  useEffect(() => {
+    fetchPendingCount();
+  }, []);
 
 
 
@@ -830,6 +890,46 @@ export default function AdminResourcesPage() {
 
             {/* 操作按钮 */}
             <div className="flex items-center gap-2">
+              {/* 一键过审按钮 - 只在有待审核资源时显示 */}
+              {pendingCount > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={batchApproving}
+                    >
+                      {batchApproving ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          审核中...
+                        </>
+                      ) : (
+                        <>
+                          ✓ 一键过审 ({pendingCount})
+                        </>
+                      )}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>确认批量审核</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        您确定要一键审核通过当前所有 <strong>{pendingCount}</strong> 个待审核资源吗？
+                        <br />
+                        此操作将批量将所有待审核资源状态改为"已通过"，操作不可撤销。
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>取消</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleBatchApprove}>
+                        确认审核通过
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+
               {/* 批量上传按钮 */}
               <Dialog open={batchUploadOpen} onOpenChange={setBatchUploadOpen}>
                 <DialogTrigger asChild>

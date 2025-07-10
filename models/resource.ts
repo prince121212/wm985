@@ -731,3 +731,95 @@ export async function getUserResourcesCount(authorId: string, status?: string): 
     300 // 300ms慢查询阈值
   );
 }
+
+// 获取所有待审核资源
+export async function getAllPendingResources(): Promise<Array<{
+  uuid: string;
+  title: string;
+  author_id: string;
+  category_id: number;
+}>> {
+  return wrapQueryWithMonitoring(
+    'getAllPendingResources',
+    async () => withRetry(async () => {
+      const supabase = getSupabaseClient();
+
+      const { data, error } = await supabase
+        .from("resources")
+        .select("uuid, title, author_id, category_id")
+        .eq("status", "pending")
+        .order("created_at", { ascending: true }); // 按创建时间排序，先创建的先审核
+
+      if (error) {
+        log.error("获取待审核资源失败", error);
+        throw error;
+      }
+
+      log.info("获取待审核资源成功", {
+        count: data?.length || 0
+      });
+
+      return data || [];
+    }),
+    500 // 500ms慢查询阈值
+  );
+}
+
+// 批量更新资源状态
+export async function batchUpdateResourceStatus(
+  resourceUuids: string[],
+  status: 'pending' | 'approved' | 'rejected'
+): Promise<void> {
+  return withRetry(async () => {
+    const supabase = getSupabaseClient();
+
+    const { error } = await supabase
+      .from("resources")
+      .update({
+        status,
+        updated_at: new Date().toISOString()
+      })
+      .in("uuid", resourceUuids)
+      .eq("status", "pending"); // 只更新状态为pending的资源
+
+    if (error) {
+      log.error("批量更新资源状态失败", error, {
+        resourceCount: resourceUuids.length,
+        targetStatus: status
+      });
+      throw error;
+    }
+
+    log.info("批量更新资源状态成功", {
+      resourceCount: resourceUuids.length,
+      targetStatus: status
+    });
+  });
+}
+
+// 获取待审核资源数量
+export async function getPendingResourcesCount(): Promise<number> {
+  return wrapQueryWithMonitoring(
+    'getPendingResourcesCount',
+    async () => withRetry(async () => {
+      const supabase = getSupabaseClient();
+
+      const { count, error } = await supabase
+        .from("resources")
+        .select('id', { count: 'exact', head: true })
+        .eq("status", "pending");
+
+      if (error) {
+        log.error("获取待审核资源数量失败", error);
+        throw error;
+      }
+
+      log.info("获取待审核资源数量成功", {
+        count: count || 0
+      });
+
+      return count || 0;
+    }),
+    300 // 300ms慢查询阈值
+  );
+}
