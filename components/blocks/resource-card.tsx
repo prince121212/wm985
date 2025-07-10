@@ -156,9 +156,18 @@ export default function ResourceCard({
   const [showRechargeDialog, setShowRechargeDialog] = useState(false);
   const [requiredCredits, setRequiredCredits] = useState<number>(0);
   const [currentCredits, setCurrentCredits] = useState<number>(0);
+  const [lastAccessTime, setLastAccessTime] = useState<number>(0);
 
   const handleAccess = async () => {
     if (!resource.file_url) return;
+
+    // 防抖：防止短时间内重复点击（2秒内）
+    const now = Date.now();
+    if (now - lastAccessTime < 2000) {
+      toast.warning("请勿频繁点击，稍后再试");
+      return;
+    }
+    setLastAccessTime(now);
 
     try {
       setIsAccessing(true);
