@@ -64,4 +64,30 @@ export const BATCH_UPLOAD_CONFIG = {
 
   // 触发延迟
   SUBTASK_TRIGGER_DELAY: 100,     // 100ms延迟
+
+  // 任务恢复配置
+  TASK_RECOVERY_TIMEOUT: 5 * 60 * 1000,  // 5分钟超时认为任务中断
+  RECOVERY_LOCK_TTL: 300,                 // 恢复锁定时间5分钟
 } as const;
+
+// 配置验证函数
+export function validateBatchUploadConfig(): void {
+  const config = BATCH_UPLOAD_CONFIG;
+
+  // 验证基本配置
+  if (config.DEFAULT_BATCH_SIZE < 1 || config.DEFAULT_BATCH_SIZE > 10) {
+    throw new Error('DEFAULT_BATCH_SIZE must be between 1 and 10');
+  }
+
+  if (config.MAX_PROCESSING_TIME < 10000 || config.MAX_PROCESSING_TIME > 300000) {
+    throw new Error('MAX_PROCESSING_TIME must be between 10s and 5min');
+  }
+
+  if (config.TASK_RECOVERY_TIMEOUT < 60000) {
+    throw new Error('TASK_RECOVERY_TIMEOUT must be at least 1 minute');
+  }
+
+  if (config.RECOVERY_LOCK_TTL < 60 || config.RECOVERY_LOCK_TTL > 3600) {
+    throw new Error('RECOVERY_LOCK_TTL must be between 1min and 1hour');
+  }
+}

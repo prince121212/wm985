@@ -6,28 +6,32 @@
 import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { generateText } from "ai";
 import { log } from "@/lib/logger";
+import { categoryCache } from "@/lib/category-cache";
 import { BatchResourceItem, EnrichedResource, BATCH_UPLOAD_CONFIG } from "@/types/batch-upload";
 
 /**
- * AI智能填充资源信息
+ * AI智能填充资源信息 - 优化版本支持缓存
  */
 export async function enrichResourceWithAI(
   resourceItem: BatchResourceItem,
-  categoryMap: Map<string, number>
+  categoryMap?: Map<string, number>
 ): Promise<EnrichedResource> {
+
+  // 如果没有传入categoryMap，从缓存获取
+  const actualCategoryMap = categoryMap || await categoryCache.getCategoryMap();
   
   try {
     // 检查API密钥
     if (!process.env.SILICONFLOW_API_KEY) {
       log.warn("AI API密钥未配置，使用默认值", { resourceName: resourceItem.name });
-      return getDefaultEnrichedResource(resourceItem, categoryMap);
+      return getDefaultEnrichedResource(resourceItem, actualCategoryMap);
     }
 
     // 构建AI分析文本
     const analysisText = `资源名称：${resourceItem.name}\n资源链接：${resourceItem.link}`;
-    
+
     // 获取所有分类名称
-    const categoryNames = Array.from(categoryMap.keys()).join('、');
+    const categoryNames = Array.from(actualCategoryMap.keys()).join('、');
     
     // 使用AI分析资源信息，增加超时控制
     const siliconflow = createOpenAICompatible({
@@ -92,14 +96,14 @@ ${analysisText}
         resourceName: resourceItem.name 
       });
       
-      return getDefaultEnrichedResource(resourceItem, categoryMap);
+      return getDefaultEnrichedResource(resourceItem, actualCategoryMap);
     }
 
     // 验证和处理AI返回的数据
-    const categoryId = categoryMap.get(analysis.category) || 
-                      categoryMap.get("其他资源") || 
-                      categoryMap.get("综合资源") || 
-                      Array.from(categoryMap.values())[0] || 1;
+    const categoryId = actualCategoryMap.get(analysis.category) ||
+                      actualCategoryMap.get("其他资源") ||
+                      actualCategoryMap.get("综合资源") ||
+                      Array.from(actualCategoryMap.values())[0] || 1;
 
     return {
       title: analysis.title || resourceItem.name,
@@ -114,7 +118,7 @@ ${analysisText}
       resourceName: resourceItem.name
     });
     
-    return getDefaultEnrichedResource(resourceItem, categoryMap);
+    return getDefaultEnrichedResource(resourceItem, actualCategoryMap);
   }
 }
 

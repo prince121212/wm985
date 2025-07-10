@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { RefreshCw, Loader2, Trash2, Search, Pin, PinOff, Info, Upload } from "lucide-react";
+import { RefreshCw, Loader2, Trash2, Search, Pin, PinOff, Info, Upload, RotateCcw } from "lucide-react";
 import Header from "@/components/dashboard/header";
 import TableBlock from "@/components/blocks/table";
 import { TableColumn } from "@/types/blocks/table";
@@ -390,6 +390,41 @@ export default function AdminResourcesPage() {
       });
     } finally {
       setClearingLogs(false);
+    }
+  };
+
+  // 恢复中断的批量上传任务
+  const handleRecoverTasks = async () => {
+    try {
+      setLoadingLogs(true);
+      const response = await fetch('/api/admin/batch-upload/recover', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({})
+      });
+      const result = await response.json();
+
+      if (result.code === 0) {
+        toast.success(result.data.message);
+        // 刷新日志列表
+        await fetchBatchLogs();
+      } else {
+        toast.error(result.message || "恢复任务失败");
+        log.error("恢复批量任务失败", new Error(result.message || '恢复批量任务失败'), {
+          component: 'AdminResourcesPage',
+          action: 'handleRecoverTasks'
+        });
+      }
+    } catch (error) {
+      toast.error("恢复任务失败");
+      log.error("恢复批量任务失败", error as Error, {
+        component: 'AdminResourcesPage',
+        action: 'handleRecoverTasks'
+      });
+    } finally {
+      setLoadingLogs(false);
     }
   };
 
@@ -824,6 +859,15 @@ https://pan.quark.cn/s/d0f0992c010d
                             ) : (
                               <RefreshCw className="h-4 w-4" />
                             )}
+                          </Button>
+                          <Button
+                            onClick={handleRecoverTasks}
+                            disabled={loadingLogs}
+                            variant="outline"
+                            size="sm"
+                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                          >
+                            <RotateCcw className="h-4 w-4" />
                           </Button>
                           <Button
                             onClick={clearBatchLogs}
