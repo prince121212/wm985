@@ -3,33 +3,15 @@
 import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import Link from "next/link";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  Download,
-  Eye,
-  Star,
-  Heart,
-  Share2,
-  FileText,
-  ImageIcon,
-  Music,
-  Video,
-  Code,
-  MoreHorizontal,
-  Tag
+  Heart
 } from "lucide-react";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { toast } from "sonner";
+import { useAppContext } from "@/contexts/app";
 import { ResourceWithDetails } from "@/types/resource";
-import { formatDistanceToNow } from "date-fns";
-import { zhCN } from "date-fns/locale";
+import RechargeDialog from "@/components/recharge-dialog";
 
 // 格式化数字显示
 function formatNumber(num: number): string {
@@ -38,8 +20,6 @@ function formatNumber(num: number): string {
   }
   return num.toString();
 }
-import { toast } from "sonner";
-import { useAppContext } from "@/contexts/app";
 
 // 移除文件类型图标映射和文件大小格式化函数
 
@@ -173,6 +153,9 @@ export default function ResourceCard({
   };
 
   const [isAccessing, setIsAccessing] = useState(false);
+  const [showRechargeDialog, setShowRechargeDialog] = useState(false);
+  const [requiredCredits, setRequiredCredits] = useState<number>(0);
+  const [currentCredits, setCurrentCredits] = useState<number>(0);
 
   const handleAccess = async () => {
     if (!resource.file_url) return;
@@ -194,14 +177,25 @@ export default function ResourceCard({
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`访问请求失败: ${response.status}`);
-      }
-
       const data = await response.json();
 
       if (data.code !== 0) {
+        // 检查是否是积分不足错误
+        if (data.message?.includes('积分不足')) {
+          // 解析积分信息
+          const match = data.message.match(/需要(\d+)积分，当前余额(\d+)积分/);
+          if (match) {
+            setRequiredCredits(parseInt(match[1]));
+            setCurrentCredits(parseInt(match[2]));
+            setShowRechargeDialog(true);
+            return;
+          }
+        }
         throw new Error(data.message || '访问失败');
+      }
+
+      if (!response.ok) {
+        throw new Error(`访问请求失败: ${response.status}`);
       }
 
       // 只有API调用成功后才打开资源链接
@@ -226,8 +220,18 @@ export default function ResourceCard({
     }
   };
 
+  // 充值成功后重试访问
+  const handleRechargeSuccess = () => {
+    setShowRechargeDialog(false);
+    // 延迟一下再重试，确保积分已更新
+    setTimeout(() => {
+      handleAccess();
+    }, 500);
+  };
+
   if (variant === "compact") {
     return (
+      <>
       <Card className="hover:shadow-md transition-shadow">
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
@@ -252,10 +256,21 @@ export default function ResourceCard({
           </div>
         </CardContent>
       </Card>
+
+      {/* 充值弹窗 */}
+      <RechargeDialog
+        open={showRechargeDialog}
+        onOpenChange={setShowRechargeDialog}
+        onSuccess={handleRechargeSuccess}
+        requiredCredits={requiredCredits}
+        currentCredits={currentCredits}
+      />
+      </>
     );
   }
 
   return (
+    <>
     <div className="card p-4 lg:p-6 cursor-pointer" onClick={() => window.location.href = `/resources/${resource.uuid}`}>
       {/* 标题区域 - 完全按照原型图 */}
       <div className="flex items-start justify-between mb-3">
@@ -345,5 +360,15 @@ export default function ResourceCard({
         </div>
       </div>
     </div>
+
+    {/* 充值弹窗 */}
+    <RechargeDialog
+      open={showRechargeDialog}
+      onOpenChange={setShowRechargeDialog}
+      onSuccess={handleRechargeSuccess}
+      requiredCredits={requiredCredits}
+      currentCredits={currentCredits}
+    />
+    </>
   );
 }

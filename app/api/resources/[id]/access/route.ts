@@ -50,7 +50,7 @@ export async function POST(req: Request, { params }: RouteParams) {
         const userCredits = await getUserCredits(user_uuid);
 
         if (userCredits.left_credits < requiredCredits) {
-          return respErr(`积分不足，需要${requiredCredits}积分，当前余额${userCredits.left_credits}积分`);
+          return respErr(`积分不足，需要${requiredCredits}积分，当前余额${userCredits.left_credits}积分`, 1003); // 使用403 Forbidden状态码
         }
 
         // 扣除积分

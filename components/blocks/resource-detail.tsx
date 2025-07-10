@@ -4,21 +4,13 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Download,
   Eye,
   Star,
-  Heart,
   Share2,
-  FileText,
-  ImageIcon,
-  Music,
-  Video,
-  Code,
   Calendar,
   User,
   Tag,
@@ -28,6 +20,7 @@ import { ResourceWithDetails } from "@/types/resource";
 import { formatDistanceToNow } from "date-fns";
 import { zhCN } from "date-fns/locale";
 import { FavoriteButton } from "@/components/ui/favorite-button";
+import RechargeDialog from "@/components/recharge-dialog";
 import { RatingDisplay, RatingInput } from "@/components/ui/rating";
 import RatingStats from "@/components/ui/rating-stats";
 import CommentSection, { CommentSectionRef } from "@/components/blocks/comment-section";
@@ -77,6 +70,9 @@ export default function ResourceDetail({ resourceUuid }: ResourceDetailProps) {
     uploadedResourcesCount: number;
     totalVisitors: number;
   } | null>(null);
+  const [showRechargeDialog, setShowRechargeDialog] = useState(false);
+  const [requiredCredits, setRequiredCredits] = useState<number>(0);
+  const [currentCredits, setCurrentCredits] = useState<number>(0);
 
   // 根据上传资源数量获取用户称号
   const getUserTitle = (uploadedCount: number): string => {
@@ -305,14 +301,25 @@ export default function ResourceDetail({ resourceUuid }: ResourceDetailProps) {
         },
       });
 
-      if (!response.ok) {
-        throw new Error(`访问请求失败: ${response.status}`);
-      }
-
       const data = await response.json();
 
       if (data.code !== 0) {
+        // 检查是否是积分不足错误
+        if (data.message?.includes('积分不足')) {
+          // 解析积分信息
+          const match = data.message.match(/需要(\d+)积分，当前余额(\d+)积分/);
+          if (match) {
+            setRequiredCredits(parseInt(match[1]));
+            setCurrentCredits(parseInt(match[2]));
+            setShowRechargeDialog(true);
+            return;
+          }
+        }
         throw new Error(data.message || '访问失败');
+      }
+
+      if (!response.ok) {
+        throw new Error(`访问请求失败: ${response.status}`);
       }
 
       // 只有API调用成功后才打开资源链接
@@ -335,6 +342,15 @@ export default function ResourceDetail({ resourceUuid }: ResourceDetailProps) {
     } finally {
       setIsAccessing(false);
     }
+  };
+
+  // 充值成功后重试访问
+  const handleRechargeSuccess = () => {
+    setShowRechargeDialog(false);
+    // 延迟一下再重试，确保积分已更新
+    setTimeout(() => {
+      handleAccess();
+    }, 500);
   };
 
   const handleFavoriteToggle = (favorited: boolean) => {
@@ -370,7 +386,8 @@ export default function ResourceDetail({ resourceUuid }: ResourceDetailProps) {
   // 移除文件类型图标
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
       {/* 左侧主要内容 */}
       <div className="lg:col-span-2 space-y-6 lg:space-y-8">
         {/* 资源头部信息 */}
@@ -595,7 +612,17 @@ export default function ResourceDetail({ resourceUuid }: ResourceDetailProps) {
           </div>
         </Card>
       </div>
-    </div>
+      </div>
+
+      {/* 充值弹窗 */}
+      <RechargeDialog
+        open={showRechargeDialog}
+        onOpenChange={setShowRechargeDialog}
+        onSuccess={handleRechargeSuccess}
+        requiredCredits={requiredCredits}
+        currentCredits={currentCredits}
+      />
+    </>
   );
 }
 
