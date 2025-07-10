@@ -7,6 +7,9 @@ import { getAllTags } from "@/models/tag";
 import { getUsers } from "@/models/user";
 import { getAuditLogStats } from "@/models/audit-log";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // GET /api/admin/statistics - 获取管理后台统计数据
 export async function GET(req: Request) {
   try {

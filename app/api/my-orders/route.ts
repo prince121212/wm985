@@ -3,6 +3,9 @@ import { getUserUuid } from '@/services/user';
 import { getUserPaymentOrders } from '@/lib/sqb-db';
 import { log } from '@/lib/logger';
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   try {
     // 用户身份验证

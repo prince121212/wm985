@@ -4,6 +4,9 @@ import { log } from "@/lib/logger";
 import { ApikeyStatus } from "@/models/apikey";
 import { getSupabaseClient } from "@/models/db";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // DELETE /api/delete-api-key - 删除API密钥
 export async function DELETE(req: Request) {
   try {

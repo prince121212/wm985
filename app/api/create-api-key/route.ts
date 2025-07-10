@@ -6,6 +6,9 @@ import { getNonceStr } from "@/lib/hash";
 import { getIsoTimestr } from "@/lib/time";
 import { Apikey } from "@/types/apikey";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // POST /api/create-api-key - 创建新的API密钥
 export async function POST(req: Request) {
   try {

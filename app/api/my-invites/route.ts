@@ -4,6 +4,9 @@ import { log } from "@/lib/logger";
 import { findUserByUuid } from "@/models/user";
 import { getAffiliateSummary } from "@/models/affiliate";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // GET /api/my-invites - 获取当前用户的邀请信息
 export async function GET(req: Request) {
   try {

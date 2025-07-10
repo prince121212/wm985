@@ -4,6 +4,9 @@ import { log } from "@/lib/logger";
 import { redisBatchManager } from "@/lib/redis-batch-manager";
 import { findBatchLogByUuid } from "@/models/batch-log";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // GET /api/admin/batch-upload/progress/[uuid] - 查询任务进度
 export async function GET(
   _req: Request,

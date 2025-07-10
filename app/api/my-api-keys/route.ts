@@ -3,6 +3,9 @@ import { getUserUuid } from "@/services/user";
 import { log } from "@/lib/logger";
 import { getUserApikeys } from "@/models/apikey";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // GET /api/my-api-keys - 获取当前用户的API密钥列表
 export async function GET(req: Request) {
   try {

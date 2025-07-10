@@ -1,18 +1,21 @@
 import { NextRequest } from 'next/server';
 import { getUserUuid, isUserAdmin } from '@/services/user';
-import { 
-  getOrdersNeedingVerification, 
+import {
+  getOrdersNeedingVerification,
   updateOrderVerificationStatus,
-  updatePaymentOrderStatus 
+  updatePaymentOrderStatus
 } from '@/lib/sqb-db';
 import { queryPayment } from '@/lib/sqb-utils';
 import { getMainTerminalInfo } from '@/lib/redis-cache';
-import { 
-  VERIFICATION_STATUS, 
+import {
+  VERIFICATION_STATUS,
   determineVerificationResult,
-  SQB_ORDER_STATUS 
+  SQB_ORDER_STATUS
 } from '@/lib/sqb-constants';
 import { log } from '@/lib/logger';
+
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
 import { respData, respErr } from '@/lib/resp';
 
 /**

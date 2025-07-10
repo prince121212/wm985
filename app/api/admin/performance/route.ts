@@ -3,6 +3,9 @@ import { getUserUuid, isUserAdmin } from "@/services/user";
 import { log } from "@/lib/logger";
 import { dbPerformanceMonitor } from "@/lib/db-performance";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // GET /api/admin/performance - 获取数据库性能统计
 export async function GET(req: Request) {
   try {

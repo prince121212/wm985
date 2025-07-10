@@ -2,6 +2,9 @@ import { respData, respErr, respUnauthorized } from "@/lib/resp";
 import { isUserAdmin, getUserUuid, getUserEmail } from "@/services/user";
 import { log } from "@/lib/logger";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 /**
  * 检查当前用户是否为管理员
  */

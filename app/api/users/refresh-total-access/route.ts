@@ -3,6 +3,9 @@ import { getUserUuid } from "@/services/user";
 import { log } from "@/lib/logger";
 import { getSupabaseClient, withRetry } from "@/models/db";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // POST /api/users/refresh-total-access - 刷新当前用户的总访问数
 export async function POST(req: Request) {
   try {

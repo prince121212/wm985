@@ -2,6 +2,9 @@ import { respData, respErr, respUnauthorized } from "@/lib/resp";
 import { getUserUuid } from "@/services/user";
 import { log } from "@/lib/logger";
 import { getUserResources, getUserResourcesCount } from "@/models/resource";
+
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
 import { getSupabaseClient, withRetry } from "@/models/db";
 
 // GET /api/my-uploads - 获取当前用户上传的资源列表

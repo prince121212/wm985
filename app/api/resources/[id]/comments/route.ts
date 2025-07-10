@@ -4,6 +4,9 @@ import { log } from "@/lib/logger";
 import { findResourceByUuid } from "@/models/resource";
 import { getResourceComments, addResourceComment } from "@/models/comment";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 interface RouteParams {
   params: Promise<{
     id: string;

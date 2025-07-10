@@ -2,6 +2,9 @@ import { respData, respErr, respUnauthorized } from "@/lib/resp";
 import { getUserUuid } from "@/services/user";
 import { log } from "@/lib/logger";
 import { getCreditsByUserUuid } from "@/models/credit";
+
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
 import { enrichCreditsWithResources } from "@/utils/creditUtils";
 
 // GET /api/my-credits - 获取当前用户的积分记录

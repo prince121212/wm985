@@ -3,6 +3,9 @@ import { getUserUuid } from "@/services/user";
 import { log } from "@/lib/logger";
 import { getUserFavorites, addFavorite, removeFavorite, isFavorited } from "@/models/favorite";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // GET /api/favorites - 获取用户收藏列表
 export async function GET(req: Request) {
   try {

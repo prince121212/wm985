@@ -2,6 +2,9 @@ import { respData, respErr } from "@/lib/resp";
 import { log } from "@/lib/logger";
 import { getPopularResources } from "@/models/resource";
 
+// 强制动态渲染，因为使用了request.url
+export const dynamic = 'force-dynamic';
+
 // GET /api/resources/popular - 获取热门资源列表 (按访问次数排序)
 export async function GET(req: Request) {
   try {

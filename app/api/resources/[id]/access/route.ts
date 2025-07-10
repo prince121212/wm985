@@ -5,6 +5,9 @@ import { findResourceByUuid, incrementResourceAccess } from "@/models/resource";
 
 import { getUserCredits, decreaseCredits, increaseCredits, CreditsTransType } from "@/services/credit";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 interface RouteParams {
   params: Promise<{
     id: string;

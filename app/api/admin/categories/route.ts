@@ -3,6 +3,9 @@ import { getUserUuid, isUserAdmin } from "@/services/user";
 import { log } from "@/lib/logger";
 import { createCategory, getAllCategories, getCategoriesWithPagination } from "@/models/category";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // GET /api/admin/categories - 获取分类列表
 export async function GET(req: Request) {
   try {

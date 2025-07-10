@@ -302,7 +302,76 @@ export default function AdminResourcesPage() {
     }
   };
 
-  // 批量上传处理
+  // 本地批量上传处理（极简版）
+  const handleLocalBatchUpload = async () => {
+    if (!batchUploadData.trim()) {
+      toast.error("请输入JSON数据");
+      return;
+    }
+
+    try {
+      setBatchUploading(true);
+
+      // 验证JSON格式
+      const jsonData = JSON.parse(batchUploadData);
+
+      if (!jsonData.resources || !Array.isArray(jsonData.resources)) {
+        toast.error("JSON格式错误：缺少resources数组");
+        return;
+      }
+
+      if (jsonData.resources.length === 0) {
+        toast.error("资源数组不能为空");
+        return;
+      }
+
+      toast.info(`开始处理 ${jsonData.resources.length} 个资源，请耐心等待...`);
+
+      // 提交本地批量上传任务
+      const response = await fetch('/api/admin/batch-upload/local', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(jsonData),
+      });
+
+      const result = await response.json();
+
+      if (result.code === 0) {
+        const { success_count, failed_count, total_count } = result.data;
+        toast.success(`批量上传完成！总计：${total_count}个，成功：${success_count}个，失败：${failed_count}个`);
+        setBatchUploadData("");
+        setRawText(""); // 清空原始文本
+        // 刷新批量处理日志
+        await fetchBatchLogs();
+        // 刷新资源列表
+        await fetchResources();
+      } else {
+        log.error('本地批量上传失败', new Error(result.message || '本地批量上传失败'), {
+          component: 'AdminResourcesPage',
+          action: 'handleLocalBatchUpload'
+        });
+        toast.error(result.message || '本地批量上传失败');
+      }
+
+    } catch (error) {
+      log.error("本地批量上传失败", error as Error, {
+        component: 'AdminResourcesPage',
+        action: 'handleLocalBatchUpload',
+        errorType: error instanceof SyntaxError ? 'JSON_PARSE_ERROR' : 'UNKNOWN_ERROR'
+      });
+      if (error instanceof SyntaxError) {
+        toast.error("JSON格式错误，请检查数据格式");
+      } else {
+        toast.error("本地批量上传失败，请稍后再试");
+      }
+    } finally {
+      setBatchUploading(false);
+    }
+  };
+
+  // 原有的批量上传处理（保留作为备用）
   const handleBatchUpload = async () => {
     if (!batchUploadData.trim()) {
       toast.error("请输入JSON数据");
@@ -856,10 +925,26 @@ https://pan.quark.cn/s/d0f0992c010d
                     </div>
 
                     {/* 提交按钮 */}
-                    <div className="flex justify-between">
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={handleLocalBatchUpload}
+                        disabled={batchUploading || !batchUploadData.trim()}
+                        className="flex-1"
+                      >
+                        {batchUploading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            处理中...
+                          </>
+                        ) : (
+                          "本地批量上传"
+                        )}
+                      </Button>
                       <Button
                         onClick={handleBatchUpload}
                         disabled={batchUploading || !batchUploadData.trim()}
+                        variant="outline"
+                        className="flex-1"
                       >
                         {batchUploading ? (
                           <>
@@ -867,7 +952,7 @@ https://pan.quark.cn/s/d0f0992c010d
                             提交中...
                           </>
                         ) : (
-                          "提交批量上传"
+                          "Redis批量上传"
                         )}
                       </Button>
                     </div>

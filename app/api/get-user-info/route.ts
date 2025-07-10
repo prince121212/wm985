@@ -6,6 +6,9 @@ import { getUserCredits } from "@/services/credit";
 import { checkDatabaseHealth } from "@/models/db";
 import { log } from "@/lib/logger";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: Request) {
   const startTime = Date.now();
   let user_uuid = "";

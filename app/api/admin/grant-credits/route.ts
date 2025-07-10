@@ -5,6 +5,9 @@ import { log } from "@/lib/logger";
 import { findUserByEmail } from "@/models/user";
 import { increaseCredits, CreditsTransType } from "@/services/credit";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     // 验证管理员权限

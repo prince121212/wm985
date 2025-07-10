@@ -4,6 +4,9 @@ import { getUserUuid, isUserAdmin } from "@/services/user";
 import { respData, respUnauthorized, respErr } from "@/lib/resp";
 import { log } from "@/lib/logger";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // GET /api/admin/paid-orders - 获取支付订单列表
 export async function GET(req: NextRequest) {
   try {

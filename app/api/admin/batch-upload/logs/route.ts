@@ -5,6 +5,9 @@ import { log } from "@/lib/logger";
 import { getBatchLogsByUser, getBatchLogsCount } from "@/models/batch-log";
 import { redisBatchManager } from "@/lib/redis-batch-manager";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // GET /api/admin/batch-upload/logs - 查询批量处理日志列表
 export async function GET(req: Request) {
   try {

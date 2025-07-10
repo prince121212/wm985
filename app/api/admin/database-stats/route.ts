@@ -3,6 +3,9 @@ import { getUserEmail } from "@/services/user";
 import { log } from "@/lib/logger";
 import { getSupabaseClient } from "@/models/db";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // GET /api/admin/database-stats - 获取数据库统计信息
 export async function GET() {
   try {

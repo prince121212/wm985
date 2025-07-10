@@ -3,6 +3,9 @@ import { getUserUuid } from "@/services/user";
 import { log } from "@/lib/logger";
 import { getUserFavorites } from "@/models/favorite";
 
+// 强制动态渲染，因为使用了headers()
+export const dynamic = 'force-dynamic';
+
 // GET /api/my-favorites - 获取当前用户收藏的资源列表
 export async function GET(req: Request) {
   try {
