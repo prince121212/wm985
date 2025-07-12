@@ -65,7 +65,7 @@ export default function ResourceCard({
   onShare
 }: ResourceCardProps) {
   const t = useTranslations();
-  const { user } = useAppContext();
+  const { user, setShowSignModal } = useAppContext();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [favoriteStatusLoaded, setFavoriteStatusLoaded] = useState(false);
@@ -172,9 +172,10 @@ export default function ResourceCard({
     try {
       setIsAccessing(true);
 
-      // 如果是付费资源且用户未登录，提示登录
-      if (!resource.is_free && !user) {
-        toast.error("付费资源需要登录后访问");
+      // 如果用户未登录，提示登录
+      if (!user) {
+        toast.error("请先登录后访问资源");
+        setShowSignModal(true);
         return;
       }
 

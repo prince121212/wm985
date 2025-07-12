@@ -36,16 +36,16 @@ export async function POST(req: Request, { params }: RouteParams) {
       return respForbidden("资源未通过审核，无法访问");
     }
 
-    // 获取用户信息（可选，匿名用户也可以访问免费资源）
+    // 获取用户信息（所有资源都需要登录）
     const user_uuid = await getUserUuid().catch(() => null);
 
-    // 如果是付费资源，需要用户登录
-    if (!resource.is_free && !user_uuid) {
-      return respUnauthorized("付费资源需要登录后访问");
+    // 所有资源都需要用户登录
+    if (!user_uuid) {
+      return respUnauthorized("请先登录后访问资源");
     }
 
     // 如果是付费资源，检查用户积分并扣除
-    if (!resource.is_free && user_uuid) {
+    if (!resource.is_free) {
       const requiredCredits = resource.credits || 0;
 
       if (requiredCredits > 0) {

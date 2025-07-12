@@ -58,7 +58,7 @@ function StarRating({ rating, count }: { rating: number; count: number }) {
 
 export default function ResourceDetail({ resourceUuid }: ResourceDetailProps) {
   const t = useTranslations();
-  const { user } = useAppContext();
+  const { user, setShowSignModal } = useAppContext();
   const [resource, setResource] = useState<ResourceWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAccessing, setIsAccessing] = useState(false);
@@ -296,9 +296,10 @@ export default function ResourceDetail({ resourceUuid }: ResourceDetailProps) {
     try {
       setIsAccessing(true);
 
-      // 如果是付费资源且用户未登录，提示登录
-      if (!resource.is_free && !user) {
-        toast.error("付费资源需要登录后访问");
+      // 如果用户未登录，提示登录
+      if (!user) {
+        toast.error("请先登录后访问资源");
+        setShowSignModal(true);
         return;
       }
 
