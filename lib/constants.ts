@@ -4,7 +4,7 @@
  * 默认头像URL
  * 用于邮箱注册用户的默认头像 环境变量里配置DEFAULT_AVATAR_URL  （否则使用dicebear生成的随机头像）"https://api.dicebear.com/7.x/avataaars/svg?seed=美女"
  */
-export const DEFAULT_AVATAR_URL = process.env.DEFAULT_AVATAR_URL || "https://cdn4.winhlb.com/2025/06/17/68513a2e4c217.jpg";
+export const DEFAULT_AVATAR_URL = process.env.DEFAULT_AVATAR_URL || "https://api.dicebear.com/7.x/avataaars/svg?seed=熊猫";
 
 /**
  * 邮箱验证码配置
