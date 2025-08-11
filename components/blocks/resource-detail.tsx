@@ -26,6 +26,7 @@ import RatingStats from "@/components/ui/rating-stats";
 import CommentSection, { CommentSectionRef } from "@/components/blocks/comment-section";
 import { useAppContext } from "@/contexts/app";
 import { toast } from "sonner";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 interface ResourceDetailProps {
   resourceUuid: string;
@@ -562,7 +563,7 @@ export default function ResourceDetail({ resourceUuid }: ResourceDetailProps) {
           </h3>
           <div className="flex items-center space-x-3 lg:space-x-4 mb-4">
             <Avatar className="w-10 h-10 lg:w-12 lg:h-12">
-              <AvatarImage src={resource.author?.avatar_url || "https://pub-7d345f4cf2334fce864509d66ec976f3.r2.dev/avatars/momo.jpg"} />
+              <AvatarImage src={resource.author?.avatar_url || DEFAULT_AVATAR_URL} />
               <AvatarFallback>
                 {resource.author?.nickname?.charAt(0) || "张"}
               </AvatarFallback>

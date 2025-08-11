@@ -33,6 +33,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import RechargeDialog from "@/components/recharge-dialog";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 // 类型定义
 interface StatsType {
@@ -258,7 +259,7 @@ function ProfileInfo({ user }: { user?: any }) {
             <Label>头像</Label>
             <div className="flex items-center space-x-4">
               <Avatar className="h-16 w-16 lg:h-20 lg:w-20">
-                <AvatarImage src={avatarUrl || "https://pub-7d345f4cf2334fce864509d66ec976f3.r2.dev/avatars/momo.jpg"} />
+                <AvatarImage src={avatarUrl || DEFAULT_AVATAR_URL} />
                 <AvatarFallback>{nickname?.[0] || 'U'}</AvatarFallback>
               </Avatar>
               <div>

@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { useAppContext } from "@/contexts/app";
 import { ResourceWithDetails } from "@/types/resource";
 import RechargeDialog from "@/components/recharge-dialog";
+import { DEFAULT_AVATAR_URL } from "@/lib/constants";
 
 // 格式化数字显示
 function formatNumber(num: number): string {
@@ -340,7 +341,7 @@ export default function ResourceCard({
         {/* 左侧：作者信息 */}
         <div className="flex items-center space-x-2">
           <img
-            src={resource.author?.avatar_url || "https://pub-7d345f4cf2334fce864509d66ec976f3.r2.dev/avatars/momo.jpg"}
+            src={resource.author?.avatar_url || DEFAULT_AVATAR_URL}
             alt="上传者"
             className="w-6 h-6 rounded-full"
           />
