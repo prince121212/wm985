@@ -8,8 +8,9 @@
 import { log } from '@/lib/logger';
 
 const config = {
-  fromEmail: process.env.RESEND_FROM_EMAIL || '',
-  fromName: process.env.RESEND_FROM_NAME || 'pc-t',
+  // 兜底为已在 Resend 验证的发件域名，避免漏配 RESEND_FROM_EMAIL 时无法发信
+  fromEmail: process.env.RESEND_FROM_EMAIL || 'noreply@292828.xyz',
+  fromName: process.env.RESEND_FROM_NAME || '文明知识库',
 };
 
 /**
@@ -60,7 +61,12 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
     });
 
     if (error) {
-      log.error('Resend 邮件发送失败', error as unknown as Error, { to: options.to, subject: options.subject });
+      log.error('Resend 邮件发送失败', error as unknown as Error, {
+        to: options.to,
+        subject: options.subject,
+        resendError: error.message,
+        resendErrorName: error.name,
+      });
       return false;
     }
 
