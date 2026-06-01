@@ -56,9 +56,9 @@ export default async function AdminEmailPage() {
             <h3 className="text-lg font-semibold mb-4">邮件服务状态</h3>
             <div className="space-y-2 text-sm">
               <div>
-                <span className="font-medium">SMTP配置:</span>
+                <span className="font-medium">Resend 配置:</span>
                 <span className="ml-2">
-                  {process.env.SMTP_PASS ? '✅ 已配置' : '❌ 未配置'}
+                  {process.env.RESEND_API_KEY ? '✅ 已配置' : '❌ 未配置'}
                 </span>
               </div>
             </div>
@@ -68,17 +68,11 @@ export default async function AdminEmailPage() {
             <h3 className="text-lg font-semibold mb-4">配置说明</h3>
             <div className="space-y-3 text-sm">
               <div>
-                <h4 className="font-medium">SMTP配置</h4>
+                <h4 className="font-medium">Resend 配置</h4>
                 <p className="text-muted-foreground">
-                  需要配置 SMTP_HOST、SMTP_PORT、SMTP_USER、SMTP_PASS 环境变量。
-                  推荐使用腾讯企业邮箱作为SMTP服务。
+                  需要配置 RESEND_API_KEY、RESEND_FROM_EMAIL、RESEND_FROM_NAME 环境变量。
+                  发件域名需在 Resend 后台完成 DNS 验证（SPF/DKIM）后才能发信。
                 </p>
-              </div>
-              <div>
-                <h4 className="font-medium">测试命令</h4>
-                <code className="bg-gray-100 px-2 py-1 rounded text-xs">
-                  node scripts/test-email.js
-                </code>
               </div>
             </div>
           </div>

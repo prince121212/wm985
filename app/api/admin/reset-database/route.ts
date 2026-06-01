@@ -2,7 +2,7 @@ import { respData, respErr, respUnauthorized } from "@/lib/resp";
 import { getUserUuid, isUserAdmin, getUserEmail } from "@/services/user";
 import { log } from "@/lib/logger";
 import { getSupabaseClient } from "@/models/db";
-import { sendEmail } from "@/lib/wework-email";
+import { sendEmail } from "@/lib/email-sender";
 import { randomBytes } from "crypto";
 
 // 存储验证码的临时缓存（生产环境应使用Redis）

@@ -115,7 +115,7 @@ export async function sendEmailServer(options: {
 export async function testEmailServiceServer() {
   try {
     // 动态导入测试函数
-    const { testEmailService } = await import('@/lib/wework-email');
+    const { testEmailService } = await import('@/lib/email-sender');
     return await testEmailService();
   } catch (error) {
     log.error('SMTP邮件服务测试失败', error as Error);

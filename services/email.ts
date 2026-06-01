@@ -3,7 +3,7 @@
  * Email Service Wrapper
  */
 
-import { sendEmail, EmailOptions } from '@/lib/wework-email';
+import { sendEmail, EmailOptions } from '@/lib/email-sender';
 import { EmailType, EmailTemplate } from '@/types/email';
 import { log } from '@/lib/logger';
 
