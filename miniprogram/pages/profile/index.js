@@ -4,7 +4,12 @@ const { defaultShare } = require('../../utils/share');
 
 Page({
   data: { user: null, credits: { left_credits: 0 }, stats: { favorites: 0, uploads: 0, pending: 0 }, nicknameInput: '', savingProfile: false, uploadingAvatar: false, loading: true },
-  onShow() { this.loadMe(); },
+  onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 3 });
+    }
+    this.loadMe();
+  },
   async loadMe() {
     try {
       await auth.ensureLogin();

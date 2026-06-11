@@ -40,7 +40,8 @@
         "pagePath": "pages/profile/index",
         "text": "我的"
       }
-    ]
+    ],
+    "custom": true
   },
   "style": "v2",
   "lazyCodeLoading": "requiredComponents",

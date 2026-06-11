@@ -42,6 +42,9 @@ Page({
   },
 
   onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 1 });
+    }
     const filter = wx.getStorageSync('resource_filter');
     if (filter) {
       wx.removeStorageSync('resource_filter');

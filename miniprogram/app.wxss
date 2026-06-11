@@ -5,7 +5,7 @@ page {
   font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft Yahei", sans-serif;
   font-size: 28rpx;
 }
-.container { padding: 30rpx; padding-bottom: 56rpx; }
+.container { padding: 30rpx; padding-bottom: 168rpx; }
 .card {
   background: rgba(255,255,255,.94);
   border-radius: 32rpx;

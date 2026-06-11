@@ -22,6 +22,11 @@ Page({
   },
 
   onLoad() { this.loadCategories(); },
+  onShow() {
+    if (typeof this.getTabBar === 'function' && this.getTabBar()) {
+      this.getTabBar().setData({ selected: 2 });
+    }
+  },
 
   async loadCategories() {
     try {
