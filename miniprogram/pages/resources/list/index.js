@@ -1,6 +1,6 @@
 const api = require('../../../services/api');
 const { defaultShare } = require('../../../utils/share');
-const { formatDate, formatNumber, ratingText, stars } = require('../../../utils/format');
+const { formatDate, formatNumber, ratingText, stars, priceText, isPaid } = require('../../../utils/format');
 
 function decorateResource(item) {
   return Object.assign({}, item, {
@@ -12,7 +12,9 @@ function decorateResource(item) {
     rating_stars: stars(item.rating_avg),
     access_text: formatNumber(item.access_count || 0),
     view_text: formatNumber(item.view_count || 0),
-    created_text: formatDate(item.created_at)
+    created_text: formatDate(item.created_at),
+    price_text: priceText(item),
+    is_paid: isPaid(item)
   });
 }
 
@@ -96,6 +98,6 @@ Page({
   goDetail(e) { wx.navigateTo({ url: `/pages/resources/detail/index?id=${e.currentTarget.dataset.id}` }); },
 
   onShareAppMessage() {
-    return defaultShare('/pages/resources/list/index', { scene: 'resources' }, '文明知识库资源库：免费资源合集');
+    return defaultShare('/pages/resources/list/index', { scene: 'resources' }, '文明知识库资源库：优质资源合集');
   }
 });

@@ -42,7 +42,7 @@
             <text class="muted small">访问 {{item.access_text}}</text>
             <text class="muted small">浏览 {{item.view_text}}</text>
           </view>
-          <view class="tag-line"><text class="badge">{{item.category_name}}</text><text class="badge">{{item.created_text}}</text><text class="badge">免费</text></view>
+          <view class="tag-line"><text class="badge">{{item.category_name}}</text><text class="badge">{{item.created_text}}</text><text class="badge price {{item.is_paid ? 'paid' : ''}}">{{item.price_text}}</text></view>
           <view wx:if="{{item.status === 'rejected' && item.rejection_reason}}" class="reject-box">拒绝原因：{{item.rejection_reason}}</view>
           <view class="op-row">
             <view class="small muted">审核通过后会在资源库展示</view>

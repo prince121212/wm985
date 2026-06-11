@@ -17,6 +17,12 @@ async function resolveCategory(rawCategory: string | null): Promise<string | und
   return category?.id?.toString();
 }
 
+function parseBoolean(value: unknown): boolean | undefined {
+  if (value === true || value === "true") return true;
+  if (value === false || value === "false") return false;
+  return undefined;
+}
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -26,6 +32,7 @@ export async function GET(req: Request) {
     const tags = searchParams.get("tags")?.split(",").map(t => t.trim()).filter(Boolean);
     const search = searchParams.get("search")?.trim() || undefined;
     const sort = searchParams.get("sort") || "latest";
+    const is_free = parseBoolean(searchParams.get("is_free") || searchParams.get("free"));
 
     const params = {
       category,
@@ -33,7 +40,7 @@ export async function GET(req: Request) {
       search,
       sort,
       status: "approved",
-      is_free: true,
+      is_free,
       offset,
       limit,
     };
@@ -45,7 +52,7 @@ export async function GET(req: Request) {
         tags,
         search,
         status: "approved",
-        is_free: true,
+        is_free,
       }),
     ]);
 
@@ -69,12 +76,15 @@ export async function POST(req: Request) {
     const content = body?.content?.toString().trim() || "";
     const fileUrl = body?.file_url?.toString().trim();
     const categoryId = parseInt(body?.category_id);
+    const isFree = parseBoolean(body?.is_free) ?? true;
+    const credits = isFree ? 0 : Math.max(parseInt(body?.credits || "0"), 0);
     const tags = Array.isArray(body?.tags) ? body.tags.map((tag: any) => tag?.toString().trim()).filter(Boolean).slice(0, 10) : [];
 
     if (!title) return respInvalidParams("资源标题不能为空");
     if (!description) return respInvalidParams("资源描述不能为空");
     if (!fileUrl) return respInvalidParams("资源链接不能为空");
     if (!categoryId) return respInvalidParams("请选择资源分类");
+    if (!isFree && credits <= 0) return respInvalidParams("请设置正确的积分数量");
 
     try {
       new URL(fileUrl.startsWith("http") ? fileUrl : `https://${fileUrl}`);
@@ -97,8 +107,8 @@ export async function POST(req: Request) {
       view_count: 0,
       access_count: 0,
       is_featured: false,
-      is_free: true,
-      credits: 0,
+      is_free: isFree,
+      credits,
       top: false,
     });
 
@@ -111,6 +121,8 @@ export async function POST(req: Request) {
         uuid: resourceUuid,
         title,
         status: "pending",
+        is_free: isFree,
+        credits,
       },
       message: "资源提交成功，审核通过后将公开显示",
     });

@@ -31,7 +31,7 @@
             <text class="muted small">{{item.resource.display_rating}} · {{item.resource.rating_count || 0}}评价</text>
             <text class="muted small">访问 {{item.resource.access_text}}</text>
           </view>
-          <view class="tag-line"><text class="badge">{{item.resource.category_name}}</text><text class="badge">收藏于 {{item.created_text}}</text></view>
+          <view class="tag-line"><text class="badge">{{item.resource.category_name}}</text><text class="badge price {{item.resource.is_paid ? 'paid' : ''}}">{{item.resource.price_text}}</text><text class="badge">收藏于 {{item.created_text}}</text></view>
           <view class="author-line">
             <image class="mini-avatar" src="{{item.resource.author_avatar}}" mode="aspectFill"></image>
             <text class="muted small line-1">{{item.resource.author_name}} · 发布于 {{item.resource.publish_text}}</text>

@@ -35,3 +35,5 @@
 .comment-content { line-height: 1.65; margin-top: 10rpx; white-space: pre-wrap; }
 .reply-box { margin-top: 14rpx; padding: 14rpx; background:#fff8f1; border-radius: 18rpx; }
 .reply-item { margin-bottom: 8rpx; }
+
+.price-num { font-size: 28rpx; }

@@ -1,7 +1,7 @@
 const api = require('../../services/api');
 const auth = require('../../utils/auth');
 const { defaultShare } = require('../../utils/share');
-const { formatDate, formatNumber, ratingText, stars } = require('../../utils/format');
+const { formatDate, formatNumber, ratingText, stars, priceText, isPaid } = require('../../utils/format');
 
 function decorateFavorite(item) {
   const resource = item.resource || {};
@@ -16,7 +16,9 @@ function decorateFavorite(item) {
       rating_stars: stars(resource.rating_avg),
       access_text: formatNumber(resource.access_count || 0),
       view_text: formatNumber(resource.view_count || 0),
-      publish_text: formatDate(resource.created_at)
+      publish_text: formatDate(resource.created_at),
+      price_text: priceText(resource),
+      is_paid: isPaid(resource)
     })
   });
 }
@@ -86,5 +88,5 @@ Page({
       wx.showToast({ title: error.message || '取消失败', icon: 'none' });
     }
   },
-  onShareAppMessage() { return defaultShare('/pages/index/index', { scene: 'favorites' }, '来文明知识库发现免费资源'); }
+  onShareAppMessage() { return defaultShare('/pages/index/index', { scene: 'favorites' }, '来文明知识库发现优质资源'); }
 });

@@ -9,7 +9,7 @@ function buildSharePath(pagePath, params = {}) {
   return `${pagePath}${query ? `?${query}` : ''}`;
 }
 
-function defaultShare(pagePath, params = {}, title = '文明知识库：发现优质免费资源') {
+function defaultShare(pagePath, params = {}, title = '文明知识库：发现优质资源') {
   return {
     title,
     path: buildSharePath(pagePath, params)

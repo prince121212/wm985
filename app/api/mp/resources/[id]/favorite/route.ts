@@ -38,8 +38,8 @@ export async function POST(req: Request, { params }: RouteParams) {
     if (!id) return respInvalidParams("资源ID不能为空");
 
     const resource = await findResourceByUuid(id);
-    if (!resource?.id || resource.status !== "approved" || !resource.is_free) {
-      return respNotFound("资源不存在或暂不支持在小程序中访问");
+    if (!resource?.id || resource.status !== "approved") {
+      return respNotFound("资源不存在或暂不可收藏");
     }
 
     const result = await toggleFavorite(user.uuid, resource.id);

@@ -2,7 +2,7 @@
   <view class="between"><view class="title">邀请好友</view><button class="share-btn" open-type="share">分享</button></view>
   <view class="card section invite">
     <view class="h2">双方各得{{reward_credits}}积分</view>
-    <view class="muted desc">朋友通过你分享的任意页面进入小程序，即算分享成功。系统会自动记录归因并发放积分。</view>
+    <view class="muted desc">朋友通过你分享的任意页面进入小程序，即算分享成功，双方都能获得积分奖励。</view>
     <button class="primary-btn" open-type="share">分享给朋友</button>
   </view>
 
@@ -30,6 +30,5 @@
     <view class="h3">奖励规则</view>
     <view class="muted rule">1. 同一好友只奖励一次。</view>
     <view class="muted rule">2. 自己点击自己的分享不奖励。</view>
-    <view class="muted rule">3. 积分可用于后续平台活动，当前小程序端不做付费资源访问。</view>
   </view>
 </view>

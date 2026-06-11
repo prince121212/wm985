@@ -21,3 +21,6 @@
 .tag-line { margin-top: 10rpx; }
 .author-line { display:flex; align-items:center; gap: 10rpx; margin-top: 8rpx; }
 .mini-avatar { width: 36rpx; height: 36rpx; border-radius: 50%; background:#f7eadc; }
+
+.badge.accent { background:#28231f; color:#fff; }
+.free.paid { background:#28231f; color:#fff; }

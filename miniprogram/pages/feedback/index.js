@@ -20,5 +20,5 @@ Page({
       wx.showToast({ title: error.message || '提交失败', icon: 'none' });
     }
   },
-  onShareAppMessage() { return defaultShare('/pages/index/index', { scene: 'feedback' }, '来文明知识库发现免费资源'); }
+  onShareAppMessage() { return defaultShare('/pages/index/index', { scene: 'feedback' }, '来文明知识库发现优质资源'); }
 });

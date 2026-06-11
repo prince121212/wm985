@@ -24,3 +24,5 @@
 .reject-box { margin-top:12rpx; padding:14rpx; border-radius:16rpx; background:#fff1f2; color:#be123c; font-size:24rpx; }
 .op-row { margin-top:14rpx; display:flex; align-items:center; justify-content:space-between; gap:12rpx; }
 .delete-btn { padding:10rpx 18rpx; border-radius:999rpx; background:#fff1e7; color:#d44b1c; font-size:24rpx; font-weight:800; }
+
+.price.paid { background:#28231f; color:#fff; }

@@ -20,7 +20,7 @@
       <view><text class="num">{{resource.display_rating}}</text><text class="muted small">评分</text></view>
       <view><text class="num">{{resource.view_text}}</text><text class="muted small">浏览</text></view>
       <view><text class="num">{{resource.access_text}}</text><text class="muted small">访问</text></view>
-      <view><text class="num">免费</text><text class="muted small">资源</text></view>
+      <view><text class="num price-num">{{resource.price_text}}</text><text class="muted small">访问</text></view>
     </view>
 
     <view class="card section">
@@ -50,7 +50,7 @@
     <view class="card section info-card">
       <view class="h2">资源信息</view>
       <view class="info-row"><text class="muted">分类</text><text>{{resource.category_name}}</text></view>
-      <view class="info-row"><text class="muted">积分</text><text>免费</text></view>
+      <view class="info-row"><text class="muted">访问消耗</text><text>{{resource.price_text}}</text></view>
       <view class="info-row"><text class="muted">发布时间</text><text>{{resource.created_text}}</text></view>
       <view class="info-row"><text class="muted">浏览次数</text><text>{{resource.view_count || 0}}</text></view>
       <view class="info-row"><text class="muted">访问次数</text><text>{{resource.access_count || 0}}</text></view>
@@ -93,7 +93,7 @@
 
     <view class="card section reward-card">
       <view class="h2">分享给朋友</view>
-      <view class="muted small">朋友通过你的分享进入小程序，即算分享成功。你和朋友各得20积分。</view>
+      <view class="muted small">把好资源分享给朋友，朋友通过分享进入后，双方都可获得积分奖励。</view>
       <button class="primary-btn share-action" open-type="share">生成分享卡片</button>
     </view>
 

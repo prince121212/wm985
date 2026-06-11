@@ -16,6 +16,8 @@ Page({
     tags: [],
     urlChecked: false,
     urlAvailable: false,
+    is_free: true,
+    credits: 0,
     submitting: false
   },
 
@@ -29,6 +31,11 @@ Page({
   },
 
   setField(e) { this.setData({ [e.currentTarget.dataset.field]: e.detail.value }); },
+
+  setAccessType(e) {
+    const type = e.currentTarget.dataset.type;
+    this.setData({ is_free: type !== 'credits', credits: type === 'credits' ? (this.data.credits || 1) : 0 });
+  },
 
   smartFill() {
     const text = this.data.aiText.trim();
@@ -86,6 +93,7 @@ Page({
     if (!this.data.file_url.trim()) return wx.showToast({ title: '请输入链接', icon: 'none' });
     if (!this.data.category_id) return wx.showToast({ title: '请选择分类', icon: 'none' });
     if (!this.data.urlChecked || !this.data.urlAvailable) return wx.showToast({ title: '请先检查链接', icon: 'none' });
+    if (!this.data.is_free && Number(this.data.credits || 0) <= 0) return wx.showToast({ title: '请设置积分数量', icon: 'none' });
 
     try {
       this.setData({ submitting: true });
@@ -96,10 +104,12 @@ Page({
         content: this.data.content,
         file_url: this.data.file_url,
         category_id: this.data.category_id,
-        tags: this.data.tags
+        tags: this.data.tags,
+        is_free: this.data.is_free,
+        credits: Number(this.data.credits || 0)
       });
       wx.showToast({ title: '已提交审核', icon: 'success' });
-      this.setData({ title: '', description: '', content: '', file_url: '', category_id: '', category_name: '', tags: [], tagInput: '', aiText: '', urlChecked: false, urlAvailable: false });
+      this.setData({ title: '', description: '', content: '', file_url: '', category_id: '', category_name: '', tags: [], tagInput: '', aiText: '', urlChecked: false, urlAvailable: false, is_free: true, credits: 0 });
     } catch (error) {
       wx.showToast({ title: error.message || '提交失败', icon: 'none' });
     } finally {

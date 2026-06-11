@@ -13,8 +13,7 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const offset = Math.max(parseInt(searchParams.get("offset") || "0"), 0);
     const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "20"), 1), 100);
-    const allFavorites = await getUserFavorites(user.uuid, offset, limit);
-    const favorites = allFavorites.filter(item => item.resource && item.resource.is_free !== false);
+    const favorites = await getUserFavorites(user.uuid, offset, limit);
 
     return respData({ favorites, total: favorites.length, offset, limit });
   } catch (error) {

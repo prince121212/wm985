@@ -1,7 +1,7 @@
 const api = require('../../services/api');
 const auth = require('../../utils/auth');
 const { defaultShare } = require('../../utils/share');
-const { formatDate, formatNumber, ratingText, stars, statusText } = require('../../utils/format');
+const { formatDate, formatNumber, ratingText, stars, statusText, priceText, isPaid } = require('../../utils/format');
 
 function decorateResource(item) {
   return Object.assign({}, item, {
@@ -12,7 +12,9 @@ function decorateResource(item) {
     access_text: formatNumber(item.access_count || 0),
     view_text: formatNumber(item.view_count || 0),
     display_rating: ratingText(item.rating_avg),
-    rating_stars: stars(item.rating_avg)
+    rating_stars: stars(item.rating_avg),
+    price_text: priceText(item),
+    is_paid: isPaid(item)
   });
 }
 

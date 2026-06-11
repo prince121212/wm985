@@ -16,7 +16,7 @@
 
   <view class="card section profile-edit">
     <view class="h2">个人资料</view>
-    <view class="muted small">同步网页端用户昵称和头像。</view>
+    <view class="muted small">完善头像和昵称，让朋友更容易认出你。</view>
     <view class="edit-row">
       <input class="input" value="{{nicknameInput}}" bindinput="onNicknameInput" maxlength="50" placeholder="请输入昵称" />
       <view class="save-btn" bindtap="saveProfile">{{savingProfile ? '保存中' : '保存'}}</view>
@@ -37,8 +37,4 @@
     <view class="menu-item" bindtap="goFeedback">意见反馈 <text>›</text></view>
   </view>
 
-  <view class="card section">
-    <view class="h3">网页端保留能力</view>
-    <view class="muted small note">后台审核、批量上传、API Key、复杂支付和文章系统继续保留在网页端；小程序端聚焦免费资源发现、上传、收藏、评价和分享积分。</view>
-  </view>
 </view>

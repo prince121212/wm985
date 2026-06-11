@@ -45,4 +45,13 @@ function userTitle(uploadedCount) {
   return '传道者';
 }
 
-module.exports = { formatDate, formatNumber, ratingText, stars, statusText, userTitle };
+function priceText(resource) {
+  if (!resource || resource.is_free !== false) return '免费';
+  return `${Number(resource.credits || 0)}积分`;
+}
+
+function isPaid(resource) {
+  return !!(resource && resource.is_free === false && Number(resource.credits || 0) > 0);
+}
+
+module.exports = { formatDate, formatNumber, ratingText, stars, statusText, userTitle, priceText, isPaid };

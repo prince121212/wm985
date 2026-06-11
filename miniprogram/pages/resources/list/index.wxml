@@ -2,7 +2,7 @@
   <view class="between page-head">
     <view>
       <view class="title">资源库</view>
-      <view class="muted small">搜索、筛选、收藏和分享免费资源</view>
+      <view class="muted small">搜索、筛选、收藏和分享优质资源</view>
     </view>
     <button class="share-btn" open-type="share">分享</button>
   </view>
@@ -31,14 +31,14 @@
   </view>
 
   <view class="card section">
-    <view class="between result-head"><view class="h2">找到 {{total}} 个资源</view><view class="badge">仅免费</view></view>
+    <view class="between result-head"><view class="h2">找到 {{total}} 个资源</view><view class="badge accent">资源库</view></view>
     <block wx:if="{{resources.length}}">
       <view wx:for="{{resources}}" wx:key="uuid" class="resource-item resource-card" bindtap="goDetail" data-id="{{item.uuid}}">
         <view class="resource-cover">{{item.initial}}</view>
         <view class="resource-main">
           <view class="between top-line">
             <view class="h3 line-1 title-line">{{item.title}}</view>
-            <text class="badge free">免费</text>
+            <text class="badge free {{item.is_paid ? 'paid' : ''}}">{{item.price_text}}</text>
           </view>
           <view class="muted small line-2 desc">{{item.description || '暂无描述'}}</view>
           <view class="meta-row">

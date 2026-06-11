@@ -1,7 +1,7 @@
 const api = require('../../../services/api');
 const auth = require('../../../utils/auth');
 const { defaultShare } = require('../../../utils/share');
-const { formatDate, formatNumber, ratingText, stars, userTitle } = require('../../../utils/format');
+const { formatDate, formatNumber, ratingText, stars, userTitle, priceText, isPaid } = require('../../../utils/format');
 
 const RATING_STARS = [1, 2, 3, 4, 5];
 
@@ -17,7 +17,9 @@ function decorateResource(resource, authorStats) {
     created_text: formatDate(resource && resource.created_at, true),
     access_text: formatNumber(resource && resource.access_count),
     view_text: formatNumber(resource && resource.view_count),
-    author_title: userTitle(stats.uploadedResourcesCount || 0)
+    author_title: userTitle(stats.uploadedResourcesCount || 0),
+    price_text: priceText(resource),
+    is_paid: isPaid(resource)
   });
 }
 
@@ -154,8 +156,9 @@ Page({
     }
   },
 
-  async copyResourceLink() {
-    let url = this.data.resource && this.data.resource.file_url;
+  async doCopyResourceLink() {
+    const resource = this.data.resource || {};
+    let url = resource.file_url;
     if (!url) {
       wx.showToast({ title: '资源链接为空', icon: 'none' });
       return;
@@ -164,14 +167,38 @@ Page({
     try {
       const result = await api.accessResource(this.data.id);
       if (result && result.resource_url) url = result.resource_url;
+      wx.setClipboardData({
+        data: url,
+        success() {
+          wx.showToast({ title: resource.is_paid ? '已扣积分并复制链接' : '链接已复制', icon: 'success' });
+        }
+      });
     } catch (error) {
-      // 访问记录失败不影响复制链接
+      if (resource.is_paid) {
+        wx.showToast({ title: error.message || '访问失败', icon: 'none' });
+        return;
+      }
+      wx.setClipboardData({
+        data: url,
+        success() { wx.showToast({ title: '链接已复制', icon: 'success' }); }
+      });
+    }
+  },
+
+  copyResourceLink() {
+    const resource = this.data.resource || {};
+    if (!resource.is_paid) {
+      this.doCopyResourceLink();
+      return;
     }
 
-    wx.setClipboardData({
-      data: url,
-      success() {
-        wx.showToast({ title: '链接已复制', icon: 'success' });
+    wx.showModal({
+      title: '确认访问',
+      content: `本资源需要${resource.credits || 0}积分，确认后将复制资源链接。`,
+      confirmText: '确认访问',
+      confirmColor: '#e9672e',
+      success: (res) => {
+        if (res.confirm) this.doCopyResourceLink();
       }
     });
   },

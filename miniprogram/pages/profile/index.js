@@ -68,5 +68,5 @@ Page({
   goCredits() { wx.navigateTo({ url: '/pages/credits/index' }); },
   goInvites() { wx.navigateTo({ url: '/pages/invites/index' }); },
   goFeedback() { wx.navigateTo({ url: '/pages/feedback/index' }); },
-  onShareAppMessage() { return defaultShare('/pages/index/index', { scene: 'profile' }, '我在文明知识库发现了很多免费资源'); }
+  onShareAppMessage() { return defaultShare('/pages/index/index', { scene: 'profile' }, '我在文明知识库发现了很多优质资源'); }
 });

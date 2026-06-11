@@ -43,7 +43,16 @@
     </view>
     <view class="tag-wrap"><text wx:for="{{tags}}" wx:key="*this" class="badge" data-tag="{{item}}" bindtap="removeTag">{{item}} ×</text></view>
 
-    <view class="free-note">小程序端暂只展示免费资源，付费/积分访问留在网页端。</view>
+    <view class="label">访问方式</view>
+    <view class="access-row">
+      <view class="access-chip {{is_free ? 'active' : ''}}" data-type="free" bindtap="setAccessType">免费访问</view>
+      <view class="access-chip {{!is_free ? 'active' : ''}}" data-type="credits" bindtap="setAccessType">积分访问</view>
+    </view>
+    <view wx:if="{{!is_free}}" class="credits-row">
+      <input class="input" type="number" value="{{credits}}" data-field="credits" bindinput="setField" placeholder="设置所需积分" />
+      <view class="muted small">用户访问时将消耗对应积分</view>
+    </view>
+
     <view class="primary-btn submit" bindtap="submit">{{submitting ? '提交中...' : '提交审核'}}</view>
   </view>
 </view>

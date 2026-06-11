@@ -11,7 +11,7 @@ function resources(params = {}) {
   return request({ url: `/api/mp/resources${query ? `?${query}` : ''}`, auth: false });
 }
 function resourceDetail(id) { return request({ url: `/api/mp/resources/${id}`, auth: false }); }
-function accessResource(id) { return request({ url: `/api/mp/resources/${id}/access`, method: 'POST', auth: false }); }
+function accessResource(id) { return request({ url: `/api/mp/resources/${id}/access`, method: 'POST' }); }
 function resourceComments(id, params = {}) {
   const query = Object.keys(params).filter(k => params[k] !== undefined && params[k] !== '').map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join('&');
   return request({ url: `/api/mp/resources/${id}/comments${query ? `?${query}` : ''}`, auth: false });

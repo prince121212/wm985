@@ -1,6 +1,6 @@
 const api = require('../../services/api');
 const { defaultShare } = require('../../utils/share');
-const { formatNumber, ratingText, stars } = require('../../utils/format');
+const { formatNumber, ratingText, stars, priceText, isPaid } = require('../../utils/format');
 
 function decorateResource(item) {
   return Object.assign({}, item, {
@@ -9,7 +9,9 @@ function decorateResource(item) {
     author_name: item.author ? (item.author.nickname || '匿名用户') : '匿名用户',
     display_rating: ratingText(item.rating_avg),
     rating_stars: stars(item.rating_avg),
-    access_text: formatNumber(item.access_count || 0)
+    access_text: formatNumber(item.access_count || 0),
+    price_text: priceText(item),
+    is_paid: isPaid(item)
   });
 }
 function decorateCategory(item) { return Object.assign({}, item, { initial: (item.name || '分').slice(0, 1) }); }
@@ -52,6 +54,6 @@ Page({
   goDetail(e) { wx.navigateTo({ url: `/pages/resources/detail/index?id=${e.currentTarget.dataset.id}` }); },
 
   onShareAppMessage() {
-    return defaultShare('/pages/index/index', { scene: 'home' }, '文明知识库：发现优质免费资源');
+    return defaultShare('/pages/index/index', { scene: 'home' }, '文明知识库：发现优质资源');
   }
 });
