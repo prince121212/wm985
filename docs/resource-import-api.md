@@ -14,6 +14,17 @@ Authorization: Bearer wm985
 x-import-key: wm985
 ```
 
+
+## 给 AI 的极简说明链接
+
+以后直接把这个链接发给 AI 即可：
+
+```txt
+https://wm.292828.xyz/api/resource-import/ai
+```
+
+这个接口会返回纯文本说明，包含清洗规则、JSON格式、preview和commit调用方式。
+
 ## 1. 查看格式
 
 ```http
