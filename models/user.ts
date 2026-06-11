@@ -65,6 +65,34 @@ export async function findUserByUuid(uuid: string): Promise<User | undefined> {
   });
 }
 
+export async function findUserBySigninOpenid(
+  signin_provider: string,
+  signin_openid: string
+): Promise<User | undefined> {
+  if (!signin_provider || !signin_openid) {
+    return undefined;
+  }
+
+  return withRetry(async () => {
+    const supabase = getSupabaseClient();
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("signin_provider", signin_provider)
+      .eq("signin_openid", signin_openid)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return undefined;
+      }
+      throw error;
+    }
+
+    return data;
+  });
+}
+
 export async function getUsers(
   page: number = 1,
   limit: number = 50

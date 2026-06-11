@@ -20,6 +20,7 @@ export enum CreditsTransType {
   Ping = "ping", // cost for ping api
   ResourceAccess = "resource_access", // cost for accessing paid resources
   ResourceReward = "resource_reward", // reward credits for resource author
+  ShareReward = "share_reward", // reward credits for mini program share conversion
 }
 
 export enum CreditsAmount {

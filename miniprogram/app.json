@@ -1,0 +1,48 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/resources/list/index",
+    "pages/resources/detail/index",
+    "pages/upload/index",
+    "pages/profile/index",
+    "pages/favorites/index",
+    "pages/uploads/index",
+    "pages/invites/index",
+    "pages/credits/index",
+    "pages/feedback/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "文明知识库",
+    "navigationBarBackgroundColor": "#fffaf4",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#fffaf4",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#8a8076",
+    "selectedColor": "#e9672e",
+    "backgroundColor": "#ffffff",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/resources/list/index",
+        "text": "资源"
+      },
+      {
+        "pagePath": "pages/upload/index",
+        "text": "上传"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的"
+      }
+    ]
+  },
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents",
+  "permission": {}
+}

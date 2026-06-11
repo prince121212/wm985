@@ -132,6 +132,7 @@ export async function getResourcesCount(params: {
   tags?: string[];
   search?: string;
   status?: string;
+  is_free?: boolean;
   isAdmin?: boolean; // 新增管理员标识
 }): Promise<number> {
   return wrapQueryWithMonitoring(
@@ -153,6 +154,10 @@ export async function getResourcesCount(params: {
       // 分类筛选
       if (params.category) {
         query = query.eq("category_id", params.category);
+      }
+
+      if (params.is_free !== undefined) {
+        query = query.eq("is_free", params.is_free);
       }
 
       // 标签筛选 - 使用JOIN查询优化性能，避免N+1查询问题
@@ -221,6 +226,7 @@ export async function getResourcesList(params: {
   search?: string;
   sort?: string;
   status?: string;
+  is_free?: boolean;
   offset?: number;
   limit?: number;
   isAdmin?: boolean; // 新增管理员标识
@@ -249,6 +255,10 @@ export async function getResourcesList(params: {
     // 分类筛选
     if (params.category) {
       query = query.eq("category_id", params.category);
+    }
+
+    if (params.is_free !== undefined) {
+      query = query.eq("is_free", params.is_free);
     }
 
     // 标签筛选 - 使用JOIN查询优化性能，避免N+1查询问题

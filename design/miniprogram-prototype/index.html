@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>文明知识库小程序 MVP 原型</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="workspace">
+    <section class="brief">
+      <p class="eyebrow">Mini Program Prototype</p>
+      <h1>文明知识库小程序 MVP</h1>
+      <p class="summary">用于判断是否值得启动小程序端：验证资源浏览、上传贡献、分享邀请返积分这三个核心闭环。</p>
+      <div class="goals">
+        <div><strong>目标用户</strong><span>想快速找资料、收藏资源、提交网盘/网站链接的人</span></div>
+        <div><strong>核心路径</strong><span>发现资源 → 分享给朋友 → 朋友进入小程序 → 双方各得20积分 → 继续上传/收藏</span></div>
+        <div><strong>MVP 原则</strong><span>小程序端暂不做付费资源访问；重点放在免费资源、分享增长和审核投稿</span></div>
+      </div>
+      <div class="nav-pills" aria-label="页面切换">
+        <button class="pill active" data-screen="home">首页</button>
+        <button class="pill" data-screen="resources">资源库</button>
+        <button class="pill" data-screen="detail">详情</button>
+        <button class="pill" data-screen="upload">上传</button>
+        <button class="pill" data-screen="profile">我的</button>
+      </div>
+    </section>
+
+    <section class="phone-shell" aria-label="手机预览">
+      <div class="phone">
+        <div class="status-bar">
+          <span>9:41</span>
+          <span class="status-icons">●●● 5G 🔋</span>
+        </div>
+
+        <section class="screen active" id="home">
+          <header class="hero-card">
+            <div class="top-row">
+              <div>
+                <p class="hello">你好，欢迎回来</p>
+                <h2>文明知识库</h2>
+              </div>
+              <div class="avatar">文</div>
+            </div>
+            <div class="search-box">搜索课程、资料、软件、影视资源</div>
+          </header>
+
+          <div class="share-strip">
+            <div>
+              <strong>分享有奖</strong>
+              <span>朋友通过你分享进入小程序，双方各得20积分</span>
+            </div>
+            <button class="share-btn" data-share-success="home">分享</button>
+          </div>
+
+          <div class="quick-grid">
+            <button><span>📚</span>教育学术</button>
+            <button><span>💻</span>科学技术</button>
+            <button><span>🎬</span>媒体娱乐</button>
+            <button><span>🏛️</span>历史文化</button>
+          </div>
+
+          <section class="block">
+            <div class="block-title"><h3>热门资源</h3><a>全部</a></div>
+            <article class="resource-card featured">
+              <div class="resource-icon">AI</div>
+              <div>
+                <h4>AI 工具实战资料合集</h4>
+                <p>教程、提示词、自动化工作流整理</p>
+                <div class="meta"><span>免费</span><span>4.8 分</span><span>2.3k 访问</span></div>
+              </div>
+            </article>
+            <article class="resource-card">
+              <div class="resource-icon blue">考</div>
+              <div>
+                <h4>考研英语高频词汇包</h4>
+                <p>适合碎片时间背诵复习</p>
+                <div class="meta"><span>免费</span><span>1.1k 访问</span></div>
+              </div>
+            </article>
+          </section>
+        </section>
+
+        <section class="screen" id="resources">
+          <header class="page-head with-action">
+            <div>
+              <h2>资源库</h2>
+              <p>搜索、筛选、收藏和分享免费资源</p>
+            </div>
+            <button class="circle-share" data-share-success="page">分享</button>
+          </header>
+          <div class="search-box compact">搜索资源</div>
+          <div class="category-tabs">
+            <button class="active">全部</button><button>教育</button><button>科技</button><button>娱乐</button>
+          </div>
+          <div class="filter-row"><span>最新上传</span><span>热门标签</span><span>评分最高</span><span>访问最多</span></div>
+          <article class="list-card" data-jump="detail">
+            <div class="cover gradient-orange">课</div>
+            <div>
+              <h4>小学到高中全科资料包</h4>
+              <p>覆盖语数英、物化生、历地政等分类资料</p>
+              <div class="meta"><span>教育资料</span><span>免费</span></div>
+            </div>
+          </article>
+          <article class="list-card">
+            <div class="cover gradient-blue">软</div>
+            <div>
+              <h4>效率软件工具合集</h4>
+              <p>办公、设计、开发常用工具导航</p>
+              <div class="meta"><span>软件工具</span><span>免费</span></div>
+            </div>
+          </article>
+          <article class="list-card">
+            <div class="cover gradient-green">史</div>
+            <div>
+              <h4>中国历史纪录片清单</h4>
+              <p>按朝代整理的纪录片与参考资料</p>
+              <div class="meta"><span>历史文化</span><span>免费</span></div>
+            </div>
+          </article>
+        </section>
+
+        <section class="screen" id="detail">
+          <header class="detail-hero">
+            <div class="detail-top-actions">
+              <button class="back-btn" data-screen="resources">‹</button>
+              <button class="share-chip" data-share-success="resource">分享资源</button>
+            </div>
+            <div class="detail-badge">教育资料</div>
+            <h2>小学到高中全科资料包</h2>
+            <p>覆盖语数英、物化生、历地政等分类资料，适合家长和学生按阶段查找。</p>
+          </header>
+          <div class="detail-stats">
+            <div><strong>4.9</strong><span>评分</span></div>
+            <div><strong>8.6k</strong><span>浏览</span></div>
+            <div><strong>免费</strong><span>访问</span></div>
+          </div>
+          <section class="block detail-block">
+            <h3>资源说明</h3>
+            <p>本资源为外部网盘/网页链接聚合，提交后经 AI 初审与人工审核。小程序端优先呈现资源价值、适用人群和访问方式。</p>
+            <div class="tag-row"><span>小学</span><span>高中</span><span>复习资料</span><span>电子资料</span></div>
+          </section>
+          <section class="block reward-card">
+            <h3>分享给朋友</h3>
+            <p>朋友通过你的分享卡片进入小程序，即算分享成功。你和朋友各得20积分。</p>
+            <button class="primary full" data-share-success="resource">生成分享卡片</button>
+          </section>
+          <div class="bottom-actions three">
+            <button class="ghost">♡ 收藏</button>
+            <button class="ghost" data-share-success="resource">分享</button>
+            <button class="primary" data-copy-resource="https://pan.example.com/s/edu-pack">访问资源</button>
+          </div>
+        </section>
+
+        <section class="screen" id="upload">
+          <header class="page-head with-action">
+            <div>
+              <h2>上传资源</h2>
+              <p>分享有价值的链接，通过审核后公开展示</p>
+            </div>
+            <button class="circle-share" data-share-success="page">分享</button>
+          </header>
+          <div class="ai-box">
+            <strong>AI 智能填充</strong>
+            <p>粘贴资源介绍或网盘文案，自动提取标题、描述、分类和标签。</p>
+            <button>粘贴并分析</button>
+          </div>
+          <form class="upload-form">
+            <label>资源标题<input value="AI 绘画提示词资料包" /></label>
+            <label>资源链接<div class="input-action"><input value="https://pan.example.com/s/xxxx" /><button type="button">检查</button></div></label>
+            <label>资源描述<textarea>适合新手学习 AI 绘画提示词、构图和风格控制。</textarea></label>
+            <label>详细内容<textarea>包含提示词结构、案例拆解、常见风格关键词和工具使用建议。</textarea></label>
+            <label>分类<select><option>科学技术</option><option>教育学术</option></select></label>
+            <div class="chips"><span>AI</span><span>提示词</span><span>教程</span><button type="button">+ 标签</button></div>
+            <div class="free-note">小程序端暂只展示免费资源，付费/积分访问留在网页端。</div>
+            <button type="button" class="primary full">提交审核</button>
+            <p class="hint">提交后进入待审核；通过后可被搜索、收藏和分享。</p>
+          </form>
+        </section>
+
+        <section class="screen" id="profile">
+          <header class="profile-head">
+            <div class="avatar large">文</div>
+            <div><h2>微信用户</h2><p>已登录 · 120 积分</p></div>
+            <button class="circle-share profile-share" data-share-success="profile">分享</button>
+          </header>
+          <div class="profile-stats">
+            <div><strong>12</strong><span>收藏</span></div>
+            <div><strong>4</strong><span>上传</span></div>
+            <div><strong>2</strong><span>待审核</span></div>
+          </div>
+          <section class="block invite-card">
+            <h3>邀请好友得积分</h3>
+            <p>好友通过你的分享进入小程序，双方各得20积分。</p>
+            <button class="primary full" data-share-success="profile">分享小程序</button>
+          </section>
+          <div class="menu-list">
+            <button>个人资料 <span>›</span></button>
+            <button>我的收藏 <span>›</span></button>
+            <button>我的上传 <span>›</span></button>
+            <button>积分记录 <span>›</span></button>
+            <button>邀请记录 <span>›</span></button>
+            <button>意见反馈 <span>›</span></button>
+          </div>
+          <section class="block mini-note">
+            <h3>小程序 MVP 不包含</h3>
+            <p>后台审核、批量上传、API Key、复杂支付和文章系统。这些继续保留在网站端。</p>
+          </section>
+        </section>
+
+        <nav class="tabbar">
+          <button class="tab active" data-screen="home">首页</button>
+          <button class="tab" data-screen="resources">资源</button>
+          <button class="tab upload-tab" data-screen="upload">上传</button>
+          <button class="tab" data-screen="profile">我的</button>
+        </nav>
+      </div>
+    </section>
+  </main>
+  <script src="./script.js"></script>
+</body>
+</html>

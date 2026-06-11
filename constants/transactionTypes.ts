@@ -11,6 +11,7 @@ export const TRANSACTION_TYPE_MAP: Record<string, string> = {
   'ping': 'API测试',
   'resource_access': '访问资源',
   'resource_reward': '资源奖励',
+  'share_reward': '分享奖励',
   'upload_reward': '上传奖励',
   'daily_signin': '每日签到',
   'invite_reward': '邀请奖励',

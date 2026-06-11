@@ -1,0 +1,10 @@
+.balance-card { margin-top:24rpx; border-radius:34rpx; padding:34rpx; color:#fff; background: linear-gradient(135deg,#2f2a24,#e9672e); }
+.balance-card .muted { color: rgba(255,255,255,.72); }
+.balance { font-size:72rpx; font-weight:900; margin: 10rpx 0; }
+.credit-row { display:flex; justify-content:space-between; align-items:center; padding:24rpx 0; border-bottom:1rpx solid #f0e3d4; }
+.credit-row:last-child { border-bottom:0; }
+.credit { font-size:34rpx; font-weight:900; }
+.income { color:#20a05a; }
+.cost { color:#d53a2f; }
+.credit-main { flex:1; min-width:0; }
+.tiny { font-size: 20rpx; }

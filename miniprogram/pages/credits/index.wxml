@@ -1,0 +1,23 @@
+<view class="container">
+  <view class="between"><view class="title">积分记录</view><button class="share-btn" open-type="share">分享</button></view>
+  <view class="balance-card">
+    <view class="muted small">当前积分</view>
+    <view class="balance">{{balance.left_credits || 0}}</view>
+    <view class="muted small">分享好友进入小程序，双方各得20积分</view>
+  </view>
+  <view class="card section">
+    <block wx:if="{{credits.length}}">
+      <view wx:for="{{credits}}" wx:key="trans_no" class="credit-row">
+        <view class="credit-main">
+          <view class="h3">{{item.type_text}}</view>
+          <view wx:if="{{item.resource_title}}" class="muted small line-1">资源：{{item.resource_title}}</view>
+          <view class="muted small">{{item.date_text}}</view>
+          <view class="muted tiny">流水号：{{item.trans_no_short}}</view>
+        </view>
+        <view class="credit {{item.is_income ? 'income' : 'cost'}}">{{item.credits_text}}</view>
+      </view>
+    </block>
+    <view wx:elif="{{loading}}" class="empty">加载中...</view>
+    <view wx:else class="empty">暂无积分记录</view>
+  </view>
+</view>

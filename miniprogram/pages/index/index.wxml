@@ -1,0 +1,62 @@
+<view class="container">
+  <view class="hero">
+    <view class="between">
+      <view>
+        <view class="hello">发现、分享、学习</view>
+        <view class="hero-title">文明知识库</view>
+      </view>
+      <button class="share-btn" open-type="share">分享</button>
+    </view>
+    <view class="search" bindtap="goSearch">搜索课程、资料、工具、影视资源</view>
+    <view class="reward">好友通过你的分享进入小程序，双方各得20积分</view>
+  </view>
+
+  <view class="section between">
+    <view class="h2">浏览分类</view>
+    <text class="muted small">全部资源 ›</text>
+  </view>
+  <view class="category-grid">
+    <view wx:for="{{categories}}" wx:key="id" class="category-card" bindtap="goCategory" data-id="{{item.id}}">
+      <view class="category-icon">{{item.initial}}</view>
+      <view class="line-1">{{item.name}}</view>
+      <view class="muted small">{{item.resource_count || 0}} 个资源</view>
+    </view>
+  </view>
+
+  <view class="section">
+    <view class="between"><view class="h2">热门标签</view></view>
+    <view class="tag-row">
+      <text wx:for="{{tags}}" wx:key="id" class="badge" bindtap="goTag" data-name="{{item.name}}"># {{item.name}}</text>
+    </view>
+  </view>
+
+  <view class="section card">
+    <view class="between"><view class="h2">热门资源</view><text class="muted small" bindtap="goSearch">更多 ›</text></view>
+    <block wx:for="{{popular}}" wx:key="uuid">
+      <view class="resource-item" bindtap="goDetail" data-id="{{item.uuid}}">
+        <view class="resource-cover">{{item.initial}}</view>
+        <view style="flex:1;min-width:0">
+          <view class="h3 line-1">{{item.title}}</view>
+          <view class="muted small line-2">{{item.description}}</view>
+          <view class="meta-row"><text class="stars">{{item.rating_stars}}</text><text class="muted small">{{item.display_rating}}</text><text class="muted small">访问 {{item.access_text}}</text></view>
+          <view><text class="badge">{{item.category_name}}</text><text class="badge">免费</text></view>
+        </view>
+      </view>
+    </block>
+  </view>
+
+  <view class="section card">
+    <view class="between"><view class="h2">最新上传</view><text class="muted small" bindtap="goSearch">更多 ›</text></view>
+    <block wx:for="{{latest}}" wx:key="uuid">
+      <view class="resource-item" bindtap="goDetail" data-id="{{item.uuid}}">
+        <view class="resource-cover alt">{{item.initial}}</view>
+        <view style="flex:1;min-width:0">
+          <view class="h3 line-1">{{item.title}}</view>
+          <view class="muted small line-2">{{item.description}}</view>
+          <view class="meta-row"><text class="stars">{{item.rating_stars}}</text><text class="muted small">{{item.display_rating}}</text><text class="muted small">访问 {{item.access_text}}</text></view>
+          <view><text class="badge">{{item.category_name}}</text><text class="badge">免费</text></view>
+        </view>
+      </view>
+    </block>
+  </view>
+</view>

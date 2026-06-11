@@ -8,9 +8,17 @@ export interface FavoriteWithResource extends UserFavorite {
     title: string;
     description: string;
     rating_avg: number;
+    rating_count?: number;
     access_count: number;
     view_count: number;
+    is_free?: boolean;
+    credits?: number;
     created_at: string;
+    author?: {
+      uuid: string;
+      nickname?: string;
+      avatar_url?: string;
+    };
     category?: {
       id: number;
       name: string;
@@ -125,9 +133,13 @@ export async function getUserFavorites(
           title,
           description,
           rating_avg,
+          rating_count,
           access_count,
           view_count,
+          is_free,
+          credits,
           created_at,
+          author:users!resources_author_id_fkey(uuid, nickname, avatar_url),
           category:categories!resources_category_id_fkey(id, name, description)
         )
       `)

@@ -1,0 +1,49 @@
+<view class="container">
+  <view class="between page-head">
+    <view>
+      <view class="title">上传资源</view>
+      <view class="muted small">分享有价值的链接，通过审核后公开展示</view>
+    </view>
+    <button class="share-btn" open-type="share">分享</button>
+  </view>
+
+  <view class="ai-card">
+    <view class="h2">智能填充</view>
+    <view class="muted small">粘贴资源介绍或网盘文案，自动提取标题、描述、链接和标签。</view>
+    <textarea class="ai-text" value="{{aiText}}" data-field="aiText" bindinput="setField" placeholder="粘贴资源文案..." />
+    <view class="primary-btn" bindtap="smartFill">粘贴并分析</view>
+  </view>
+
+  <view class="card section form">
+    <view class="label">资源标题 *</view>
+    <input class="input" value="{{title}}" data-field="title" bindinput="setField" placeholder="请输入资源标题" />
+
+    <view class="label">资源链接 *</view>
+    <view class="url-row">
+      <input class="input" value="{{file_url}}" data-field="file_url" bindinput="setField" placeholder="https://..." />
+      <view class="check-btn" bindtap="checkUrl">检查</view>
+    </view>
+    <view wx:if="{{urlChecked}}" class="small {{urlAvailable ? 'ok' : 'bad'}}">{{urlAvailable ? '链接检查通过' : '链接检查未通过'}}</view>
+
+    <view class="label">资源描述 *</view>
+    <textarea class="textarea" value="{{description}}" data-field="description" bindinput="setField" placeholder="说明资源内容和价值" />
+
+    <view class="label">详细内容</view>
+    <textarea class="textarea" value="{{content}}" data-field="content" bindinput="setField" placeholder="补充适用人群、使用方式、注意事项" />
+
+    <view class="label">分类 *</view>
+    <picker mode="selector" range="{{categories}}" range-key="name" bindchange="onCategoryChange">
+      <view class="picker">{{category_name || '请选择分类'}}</view>
+    </picker>
+
+    <view class="label">标签</view>
+    <view class="url-row">
+      <input class="input" value="{{tagInput}}" data-field="tagInput" bindinput="setField" placeholder="输入标签" />
+      <view class="check-btn" bindtap="addTag">添加</view>
+    </view>
+    <view class="tag-wrap"><text wx:for="{{tags}}" wx:key="*this" class="badge" data-tag="{{item}}" bindtap="removeTag">{{item}} ×</text></view>
+
+    <view class="free-note">小程序端暂只展示免费资源，付费/积分访问留在网页端。</view>
+    <view class="primary-btn submit" bindtap="submit">{{submitting ? '提交中...' : '提交审核'}}</view>
+  </view>
+</view>

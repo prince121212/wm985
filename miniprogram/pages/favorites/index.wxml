@@ -1,0 +1,45 @@
+<view class="container">
+  <view class="between"><view class="title">我的收藏</view><button class="share-btn" open-type="share">分享</button></view>
+
+  <view class="search-row section">
+    <input class="input" value="{{search}}" bindinput="onSearchInput" placeholder="搜索我的收藏" />
+  </view>
+  <view class="sort-row">
+    <text class="sort {{sort === 'latest' ? 'active' : ''}}" data-sort="latest" bindtap="selectSort">最新收藏</text>
+    <text class="sort {{sort === 'oldest' ? 'active' : ''}}" data-sort="oldest" bindtap="selectSort">最早收藏</text>
+    <text class="sort {{sort === 'popular' ? 'active' : ''}}" data-sort="popular" bindtap="selectSort">最多访问</text>
+    <text class="sort {{sort === 'rating' ? 'active' : ''}}" data-sort="rating" bindtap="selectSort">最高评分</text>
+  </view>
+
+  <view class="stats card section">
+    <view><text class="num">{{favorites.length}}</text><text class="muted small">收藏资源</text></view>
+    <view><text class="num">{{filteredFavorites.length}}</text><text class="muted small">当前显示</text></view>
+  </view>
+
+  <view class="card section">
+    <block wx:if="{{filteredFavorites.length}}">
+      <view wx:for="{{filteredFavorites}}" wx:key="id" class="resource-item" bindtap="goDetail" data-id="{{item.resource.uuid}}">
+        <view class="resource-cover">{{item.resource.initial}}</view>
+        <view class="resource-main">
+          <view class="between top-line">
+            <view class="h3 line-1 title-line">{{item.resource.title}}</view>
+            <view class="remove" catchtap="removeFavorite" data-id="{{item.resource.uuid}}">取消</view>
+          </view>
+          <view class="muted small line-2">{{item.resource.description}}</view>
+          <view class="meta-row">
+            <text class="stars">{{item.resource.rating_stars}}</text>
+            <text class="muted small">{{item.resource.display_rating}} · {{item.resource.rating_count || 0}}评价</text>
+            <text class="muted small">访问 {{item.resource.access_text}}</text>
+          </view>
+          <view class="tag-line"><text class="badge">{{item.resource.category_name}}</text><text class="badge">收藏于 {{item.created_text}}</text></view>
+          <view class="author-line">
+            <image class="mini-avatar" src="{{item.resource.author_avatar}}" mode="aspectFill"></image>
+            <text class="muted small line-1">{{item.resource.author_name}} · 发布于 {{item.resource.publish_text}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+    <view wx:elif="{{loading}}" class="empty">加载中...</view>
+    <view wx:else class="empty">{{search ? '没有找到匹配的收藏资源' : '暂无收藏'}}</view>
+  </view>
+</view>

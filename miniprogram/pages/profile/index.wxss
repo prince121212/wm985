@@ -1,0 +1,16 @@
+.profile-head { display:flex; gap:18rpx; align-items:center; }
+.avatar { width:112rpx; height:112rpx; border-radius:50%; background:#f7eadc; }
+.stats { display:flex; justify-content:space-around; margin-top:28rpx; }
+.stats view { display:flex; flex-direction:column; align-items:center; gap:8rpx; }
+.num { font-size:38rpx; font-weight:900; }
+.invite-card { background: linear-gradient(135deg,#fff7ed,#fff); }
+.invite-btn { margin-top:22rpx; }
+.menu { display:grid; gap:16rpx; }
+.menu-item { background:#fff; border:1rpx solid #f0e3d4; border-radius:24rpx; padding:28rpx; display:flex; justify-content:space-between; font-weight:750; }
+.note { margin-top:12rpx; line-height:1.6; }
+.profile-edit { margin-top: 24rpx; }
+.edit-row { display:grid; grid-template-columns: 1fr 120rpx; gap: 14rpx; margin-top: 18rpx; align-items:center; }
+.save-btn { height:84rpx; border-radius:22rpx; background:#28231f; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; }
+.avatar-wrap { position:relative; width:112rpx; height:112rpx; flex:none; }
+.avatar-wrap .avatar { width:112rpx; height:112rpx; }
+.avatar-mask { position:absolute; left:0; right:0; bottom:0; height:34rpx; line-height:34rpx; text-align:center; border-radius:0 0 50% 50%; background:rgba(0,0,0,.45); color:#fff; font-size:18rpx; }

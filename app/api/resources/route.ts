@@ -22,6 +22,7 @@ export async function GET(req: Request) {
     const rawSearch = searchParams.get('search');
     const rawSort = searchParams.get('sort');
     const rawStatus = searchParams.get('status');
+    const rawIsFree = searchParams.get('is_free') || searchParams.get('free');
 
     // 验证和处理offset
     let offset = 0;
@@ -103,12 +104,20 @@ export async function GET(req: Request) {
     const validStatuses = ['pending', 'approved', 'rejected'];
     const status = rawStatus && validStatuses.includes(rawStatus) ? rawStatus : undefined;
 
+    let is_free: boolean | undefined;
+    if (rawIsFree === 'true') {
+      is_free = true;
+    } else if (rawIsFree === 'false') {
+      is_free = false;
+    }
+
     const params = {
       category,
       tags,
       search,
       sort,
       status,
+      is_free,
       offset,
       limit,
     };
@@ -122,7 +131,8 @@ export async function GET(req: Request) {
         category: params.category,
         tags: params.tags,
         search: params.search,
-        status: params.status
+        status: params.status,
+        is_free: params.is_free
       })
     ]);
 

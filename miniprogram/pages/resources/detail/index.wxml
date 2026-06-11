@@ -1,0 +1,107 @@
+<view class="container">
+  <view wx:if="{{loading}}" class="empty">加载中...</view>
+  <block wx:elif="{{resource}}">
+    <view class="detail-hero">
+      <view class="between">
+        <button class="back" bindtap="goBack">‹</button>
+        <button class="share-btn" open-type="share">分享资源</button>
+      </view>
+      <view class="badge light">{{resource.category_name}}</view>
+      <view class="hero-title">{{resource.title}}</view>
+      <view class="hero-desc">{{resource.description}}</view>
+      <view class="hero-meta">
+        <text>{{resource.rating_stars}} {{resource.display_rating}}</text>
+        <text>{{resource.rating_count || 0}} 评价</text>
+        <text>{{resource.access_text}} 次访问</text>
+      </view>
+    </view>
+
+    <view class="stats card">
+      <view><text class="num">{{resource.display_rating}}</text><text class="muted small">评分</text></view>
+      <view><text class="num">{{resource.view_text}}</text><text class="muted small">浏览</text></view>
+      <view><text class="num">{{resource.access_text}}</text><text class="muted small">访问</text></view>
+      <view><text class="num">免费</text><text class="muted small">资源</text></view>
+    </view>
+
+    <view class="card section">
+      <view class="h2">资源介绍</view>
+      <view class="muted detail-text">{{resource.description}}</view>
+      <view wx:if="{{resource.content}}" class="muted detail-text content-text">{{resource.content}}</view>
+      <view class="tag-wrap">
+        <text wx:for="{{resource.tags}}" wx:key="id" class="badge"># {{item.name}}</text>
+      </view>
+    </view>
+
+    <view class="card section">
+      <view class="h2">上传者</view>
+      <view class="row author">
+        <image class="avatar" src="{{resource.author_avatar}}" mode="aspectFill"></image>
+        <view style="flex:1">
+          <view class="h3">{{resource.author_name}}</view>
+          <view class="muted small">{{resource.author_title}}</view>
+        </view>
+      </view>
+      <view class="author-stats">
+        <view><text class="num small-num">{{authorStats.uploadedResourcesCount || 0}}</text><text class="muted small">上传资源</text></view>
+        <view><text class="num small-num">{{authorStats.totalVisitors || 0}}</text><text class="muted small">总访客数</text></view>
+      </view>
+    </view>
+
+    <view class="card section info-card">
+      <view class="h2">资源信息</view>
+      <view class="info-row"><text class="muted">分类</text><text>{{resource.category_name}}</text></view>
+      <view class="info-row"><text class="muted">积分</text><text>免费</text></view>
+      <view class="info-row"><text class="muted">发布时间</text><text>{{resource.created_text}}</text></view>
+      <view class="info-row"><text class="muted">浏览次数</text><text>{{resource.view_count || 0}}</text></view>
+      <view class="info-row"><text class="muted">访问次数</text><text>{{resource.access_count || 0}}</text></view>
+    </view>
+
+    <view class="card section review-card">
+      <view class="between">
+        <view class="h2">用户评价</view>
+        <text class="muted small">{{commentsTotal}} 条</text>
+      </view>
+      <view class="review-form">
+        <view class="small muted">您的评分</view>
+        <view class="rating-select">
+          <text wx:for="{{ratingStars}}" wx:key="*this" data-rating="{{item}}" bindtap="setRating" class="rating-star {{userRating >= item ? 'active' : ''}}">★</text>
+        </view>
+        <textarea class="textarea comment-input" value="{{commentContent}}" bindinput="onCommentInput" placeholder="分享您使用这个资源的体验和感受..." />
+        <view class="primary-btn submit-review" bindtap="submitReview">{{submittingReview ? '发布中...' : (hasRated ? '更新评价' : '发布评价')}}</view>
+      </view>
+
+      <block wx:if="{{comments.length}}">
+        <view wx:for="{{comments}}" wx:key="uuid" class="comment-item">
+          <image class="comment-avatar" src="{{item.author_avatar}}" mode="aspectFill"></image>
+          <view class="comment-main">
+            <view class="between">
+              <view class="h3">{{item.author_name}}</view>
+              <text class="muted small">{{item.date_text}}</text>
+            </view>
+            <view class="muted comment-content">{{item.content}}</view>
+            <view wx:if="{{item.replies.length}}" class="reply-box">
+              <view wx:for="{{item.replies}}" wx:key="uuid" wx:for-item="reply" class="reply-item">
+                <text class="h3 small">{{reply.author_name}}：</text><text class="muted small">{{reply.content}}</text>
+              </view>
+            </view>
+          </view>
+        </view>
+      </block>
+      <view wx:elif="{{commentsLoading}}" class="empty">评价加载中...</view>
+      <view wx:else class="empty">暂无评价，来写第一条吧</view>
+    </view>
+
+    <view class="card section reward-card">
+      <view class="h2">分享给朋友</view>
+      <view class="muted small">朋友通过你的分享进入小程序，即算分享成功。你和朋友各得20积分。</view>
+      <button class="primary-btn share-action" open-type="share">生成分享卡片</button>
+    </view>
+
+    <view class="bottom-bar">
+      <view class="ghost-btn" bindtap="toggleFavorite">{{favorited ? '已收藏' : '收藏'}}</view>
+      <button class="ghost-btn share-inline" open-type="share">分享</button>
+      <view class="primary-btn" bindtap="copyResourceLink">访问资源</view>
+    </view>
+  </block>
+  <view wx:else class="empty">资源不存在</view>
+</view>

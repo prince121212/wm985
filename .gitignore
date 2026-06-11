@@ -42,3 +42,5 @@ Makefile
 .wrangler
 wrangler.toml
 supabase
+# WeChat DevTools local settings
+miniprogram/project.private.config.json

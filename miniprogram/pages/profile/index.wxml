@@ -1,0 +1,44 @@
+<view class="container">
+  <view class="profile-head">
+    <view class="avatar-wrap" bindtap="chooseAvatar"><image class="avatar" src="{{user.avatar_url || ''}}" mode="aspectFill"></image><view class="avatar-mask">{{uploadingAvatar ? '上传中' : '换头像'}}</view></view>
+    <view style="flex:1">
+      <view class="title">{{user.nickname || '微信用户'}}</view>
+      <view class="muted small">已登录 · {{credits.left_credits || 0}} 积分</view>
+    </view>
+    <button class="share-btn" open-type="share">分享</button>
+  </view>
+
+  <view class="stats card">
+    <view><text class="num">{{stats.favorites || 0}}</text><text class="muted small">收藏</text></view>
+    <view><text class="num">{{stats.uploads || 0}}</text><text class="muted small">上传</text></view>
+    <view><text class="num">{{stats.pending || 0}}</text><text class="muted small">待审核</text></view>
+  </view>
+
+  <view class="card section profile-edit">
+    <view class="h2">个人资料</view>
+    <view class="muted small">同步网页端用户昵称和头像。</view>
+    <view class="edit-row">
+      <input class="input" value="{{nicknameInput}}" bindinput="onNicknameInput" maxlength="50" placeholder="请输入昵称" />
+      <view class="save-btn" bindtap="saveProfile">{{savingProfile ? '保存中' : '保存'}}</view>
+    </view>
+  </view>
+
+  <view class="card section invite-card">
+    <view class="h2">邀请好友得积分</view>
+    <view class="muted small">好友通过你的分享进入小程序，双方各得20积分。</view>
+    <button class="primary-btn invite-btn" open-type="share">分享小程序</button>
+  </view>
+
+  <view class="menu section">
+    <view class="menu-item" bindtap="goFavorites">我的收藏 <text>›</text></view>
+    <view class="menu-item" bindtap="goUploads">我的上传 <text>›</text></view>
+    <view class="menu-item" bindtap="goCredits">积分记录 <text>›</text></view>
+    <view class="menu-item" bindtap="goInvites">邀请记录 <text>›</text></view>
+    <view class="menu-item" bindtap="goFeedback">意见反馈 <text>›</text></view>
+  </view>
+
+  <view class="card section">
+    <view class="h3">网页端保留能力</view>
+    <view class="muted small note">后台审核、批量上传、API Key、复杂支付和文章系统继续保留在网页端；小程序端聚焦免费资源发现、上传、收藏、评价和分享积分。</view>
+  </view>
+</view>

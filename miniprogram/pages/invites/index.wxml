@@ -1,0 +1,35 @@
+<view class="container">
+  <view class="between"><view class="title">邀请好友</view><button class="share-btn" open-type="share">分享</button></view>
+  <view class="card section invite">
+    <view class="h2">双方各得{{reward_credits}}积分</view>
+    <view class="muted desc">朋友通过你分享的任意页面进入小程序，即算分享成功。系统会自动记录归因并发放积分。</view>
+    <button class="primary-btn" open-type="share">分享给朋友</button>
+  </view>
+
+  <view class="summary card section">
+    <view><text class="num">{{total}}</text><text class="muted small">成功邀请</text></view>
+    <view><text class="num">{{total_reward_credits}}</text><text class="muted small">累计获得积分</text></view>
+  </view>
+
+  <view class="card section">
+    <view class="h3">邀请记录</view>
+    <block wx:if="{{rewards.length}}">
+      <view wx:for="{{rewards}}" wx:key="uuid" class="invite-row">
+        <image class="avatar" src="{{item.invitee_avatar}}" mode="aspectFill"></image>
+        <view style="flex:1">
+          <view class="h3">{{item.invitee_name}}</view>
+          <view class="muted small">{{item.date_text}} 进入小程序</view>
+        </view>
+        <view class="badge">+{{item.reward_credits}}积分</view>
+      </view>
+    </block>
+    <view wx:else class="empty">暂无成功邀请，先分享给朋友吧</view>
+  </view>
+
+  <view class="card section">
+    <view class="h3">奖励规则</view>
+    <view class="muted rule">1. 同一好友只奖励一次。</view>
+    <view class="muted rule">2. 自己点击自己的分享不奖励。</view>
+    <view class="muted rule">3. 积分可用于后续平台活动，当前小程序端不做付费资源访问。</view>
+  </view>
+</view>

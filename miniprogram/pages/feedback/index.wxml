@@ -1,0 +1,18 @@
+<view class="container">
+  <view class="between page-head">
+    <view>
+      <view class="title">意见反馈</view>
+      <view class="muted small">告诉我们哪里可以做得更好</view>
+    </view>
+    <button class="share-btn" open-type="share">分享</button>
+  </view>
+
+  <view class="card section form">
+    <view class="label">满意度：{{rating}} 分</view>
+    <slider min="1" max="10" step="1" value="{{rating}}" bindchange="onRatingChange" activeColor="#e9672e" />
+    <view class="label">反馈内容 *</view>
+    <textarea class="textarea feedback-text" value="{{content}}" maxlength="1000" bindinput="onInput" placeholder="请输入遇到的问题或建议" />
+    <view class="muted small count">{{content.length}}/1000</view>
+    <view class="primary-btn submit" bindtap="submit">{{submitting ? '提交中...' : '提交反馈'}}</view>
+  </view>
+</view>

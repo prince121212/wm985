@@ -1,0 +1,37 @@
+.detail-hero { border-radius: 34rpx; padding: 30rpx; color:#fff; background: linear-gradient(135deg,#2f2a24,#e9672e); }
+.back { width: 64rpx; height: 64rpx; line-height: 58rpx; border-radius: 50%; background: rgba(255,255,255,.18); color:#fff; font-size: 48rpx; padding: 0; }
+.light { background: rgba(255,255,255,.16); color:#fff; margin-top: 32rpx; }
+.hero-title { font-size: 44rpx; font-weight: 900; line-height: 1.25; margin-top: 16rpx; }
+.hero-desc { opacity: .78; line-height: 1.6; margin-top: 14rpx; }
+.stats { display:flex; justify-content:space-around; margin: -24rpx 24rpx 0; position: relative; z-index: 2; }
+.stats view { text-align:center; display:flex; flex-direction:column; gap: 6rpx; }
+.num { font-size: 34rpx; font-weight: 900; }
+.detail-text { line-height: 1.75; margin-top: 16rpx; }
+.tag-wrap { margin-top: 20rpx; }
+.author { gap: 18rpx; margin-top: 18rpx; }
+.avatar { width: 84rpx; height: 84rpx; border-radius: 50%; background:#f7eadc; }
+.reward-card { background: linear-gradient(135deg,#fff7ed,#fff); }
+.share-action { margin-top: 20rpx; }
+.bottom-bar { position: sticky; bottom: 20rpx; display:grid; grid-template-columns: 1fr 1fr 1.35fr; gap: 14rpx; margin-top: 28rpx; }
+.share-inline { padding: 0; }
+.hero-meta { display:flex; flex-wrap:wrap; gap: 16rpx; margin-top: 18rpx; font-size: 24rpx; opacity:.9; }
+.content-text { white-space: pre-wrap; }
+.author-stats { display:grid; grid-template-columns: 1fr 1fr; gap: 16rpx; margin-top: 22rpx; }
+.author-stats view { background:#fff8f1; border-radius: 20rpx; padding: 18rpx; text-align:center; display:flex; flex-direction:column; gap: 4rpx; }
+.small-num { font-size: 30rpx; }
+.info-card { gap: 16rpx; }
+.info-row { display:flex; justify-content:space-between; align-items:center; padding: 18rpx 0; border-bottom: 1rpx solid #f0e3d4; font-size: 26rpx; }
+.info-row:last-child { border-bottom:0; }
+.review-card { padding-bottom: 10rpx; }
+.review-form { margin-top: 20rpx; padding: 22rpx; border-radius: 24rpx; background:#fff8f1; }
+.rating-select { margin: 8rpx 0 18rpx; }
+.rating-star { font-size: 46rpx; color:#d7c6b6; margin-right: 10rpx; }
+.rating-star.active { color:#f5a524; }
+.comment-input { background:#fff; height: 170rpx; }
+.submit-review { margin-top: 16rpx; }
+.comment-item { display:flex; gap: 18rpx; padding: 26rpx 0; border-top: 1rpx solid #f0e3d4; }
+.comment-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; background:#f7eadc; flex:none; }
+.comment-main { flex:1; min-width:0; }
+.comment-content { line-height: 1.65; margin-top: 10rpx; white-space: pre-wrap; }
+.reply-box { margin-top: 14rpx; padding: 14rpx; background:#fff8f1; border-radius: 18rpx; }
+.reply-item { margin-bottom: 8rpx; }

@@ -1,0 +1,64 @@
+<view class="container">
+  <view class="between page-head">
+    <view>
+      <view class="title">资源库</view>
+      <view class="muted small">搜索、筛选、收藏和分享免费资源</view>
+    </view>
+    <button class="share-btn" open-type="share">分享</button>
+  </view>
+
+  <view class="search-row">
+    <input class="input" value="{{search}}" placeholder="搜索资源标题/描述" confirm-type="search" bindinput="onSearchInput" bindconfirm="submitSearch" />
+    <view class="search-btn" bindtap="submitSearch">搜索</view>
+  </view>
+
+  <scroll-view scroll-x class="tabs">
+    <text class="tab {{category === '' ? 'active' : ''}}" bindtap="selectCategory" data-id="">全部</text>
+    <text wx:for="{{categories}}" wx:key="id" class="tab {{category == item.id ? 'active' : ''}}" bindtap="selectCategory" data-id="{{item.id}}">{{item.name}}</text>
+  </scroll-view>
+
+  <scroll-view scroll-x class="tabs">
+    <text class="tab {{tags === '' ? 'active' : ''}}" bindtap="selectTag" data-name="">热门标签</text>
+    <text wx:for="{{tagList}}" wx:key="id" class="tab {{tags === item.name ? 'active' : ''}}" bindtap="selectTag" data-name="{{item.name}}">#{{item.name}}</text>
+  </scroll-view>
+
+  <view class="sort-row">
+    <text class="sort {{sort === 'latest' ? 'active' : ''}}" data-sort="latest" bindtap="selectSort">最新</text>
+    <text class="sort {{sort === 'popular' ? 'active' : ''}}" data-sort="popular" bindtap="selectSort">热门</text>
+    <text class="sort {{sort === 'rating' ? 'active' : ''}}" data-sort="rating" bindtap="selectSort">评分</text>
+    <text class="sort {{sort === 'views' ? 'active' : ''}}" data-sort="views" bindtap="selectSort">浏览</text>
+    <text class="muted small clear" bindtap="clearFilters">清空筛选</text>
+  </view>
+
+  <view class="card section">
+    <view class="between result-head"><view class="h2">找到 {{total}} 个资源</view><view class="badge">仅免费</view></view>
+    <block wx:if="{{resources.length}}">
+      <view wx:for="{{resources}}" wx:key="uuid" class="resource-item resource-card" bindtap="goDetail" data-id="{{item.uuid}}">
+        <view class="resource-cover">{{item.initial}}</view>
+        <view class="resource-main">
+          <view class="between top-line">
+            <view class="h3 line-1 title-line">{{item.title}}</view>
+            <text class="badge free">免费</text>
+          </view>
+          <view class="muted small line-2 desc">{{item.description || '暂无描述'}}</view>
+          <view class="meta-row">
+            <text class="stars">{{item.rating_stars}}</text>
+            <text class="muted small">{{item.display_rating}} · {{item.rating_count || 0}}评价</text>
+            <text class="muted small">访问 {{item.access_text}}</text>
+          </view>
+          <view class="tag-line">
+            <text class="badge">{{item.category_name}}</text>
+            <text class="badge">浏览 {{item.view_text}}</text>
+          </view>
+          <view class="author-line">
+            <image class="mini-avatar" src="{{item.author_avatar}}" mode="aspectFill"></image>
+            <text class="muted small line-1">{{item.author_name}} · {{item.created_text}}</text>
+          </view>
+        </view>
+      </view>
+    </block>
+    <view wx:else class="empty">暂无资源</view>
+    <view wx:if="{{loading}}" class="empty">加载中...</view>
+    <view wx:if="{{!hasMore && resources.length}}" class="muted small end">已经到底了</view>
+  </view>
+</view>
