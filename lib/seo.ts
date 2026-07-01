@@ -8,7 +8,19 @@ export function getSiteUrl(): string {
     process.env.NEXT_PUBLIC_APP_URL ||
     DEFAULT_SITE_URL;
 
-  return raw.replace(/\/+$/, "");
+  const normalized = raw.replace(/\/+$/, "");
+
+  // 线上 Vercel 环境变量可能仍残留旧域名。SEO/GEO 的 canonical、
+  // sitemap、OpenGraph 必须统一到当前真实访问域名，避免权重被归到旧站。
+  if (
+    normalized.includes("wm985.top") ||
+    normalized.includes("wm985.com") ||
+    normalized.includes("shipany.ai")
+  ) {
+    return DEFAULT_SITE_URL;
+  }
+
+  return normalized;
 }
 
 export function stripHtml(input?: string | null): string {
