@@ -3,6 +3,7 @@ import CategoriesListWrapper from "@/components/blocks/categories-list-wrapper";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createPageMetadata, PAGE_TITLES, PAGE_DESCRIPTIONS } from "@/lib/metadata";
+import { absoluteUrl } from "@/lib/seo";
 
 export default async function CategoriesPage() {
 
@@ -50,12 +51,18 @@ function CategoriesListSkeleton() {
   );
 }
 
-export async function generateMetadata() {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+
   return createPageMetadata({
     title: PAGE_TITLES.CATEGORIES,
     description: PAGE_DESCRIPTIONS.CATEGORIES,
-    keywords: "资源分类,分类浏览,设计素材,开发工具,文档模板",
-    url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/categories`,
-    locale: 'zh_CN',
+    keywords: "资源分类,分类浏览,文明资源,历史资料,文化资料,纪录片,电子书,课件",
+    url: absoluteUrl("/categories", locale),
+    locale: locale === "en" ? "en_US" : "zh_CN",
   });
 }

@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import TagsCloudDanmakuWrapper from "@/components/blocks/tags-cloud-danmaku-wrapper";
 import { createPageMetadata, PAGE_TITLES, PAGE_DESCRIPTIONS } from "@/lib/metadata";
+import { absoluteUrl } from "@/lib/seo";
 
 export default async function TagsPage() {
 
@@ -37,12 +38,18 @@ function TagsCloudSkeleton() {
   );
 }
 
-export async function generateMetadata() {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+
   return createPageMetadata({
     title: PAGE_TITLES.TAGS,
     description: PAGE_DESCRIPTIONS.TAGS,
-    keywords: "资源标签,标签云,热门标签,资源主题",
-    url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/tags`,
-    locale: 'zh_CN',
+    keywords: "资源标签,标签云,热门标签,文明资源,历史文化,学习资料,资源主题",
+    url: absoluteUrl("/tags", locale),
+    locale: locale === "en" ? "en_US" : "zh_CN",
   });
 }

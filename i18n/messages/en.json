@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "title": "Civilization",
-    "description": "Civilization Knowledge Base is an open resource sharing platform providing various civilization-related resources for download and sharing.",
-    "keywords": "Civilization Knowledge Base, Resource Sharing, Cultural Resources, Resource Download"
+    "title": "Civilization Knowledge Base - Cultural Resources and Knowledge Sharing Platform",
+    "description": "Civilization Knowledge Base is an open platform for history, culture, civilization studies, documentaries, ebooks, courseware, and curated learning resources.",
+    "keywords": "Civilization Knowledge Base,civilization resources,cultural resources,history resources,documentaries,ebooks,learning resources"
   },
   "user": {
     "sign_in": "Sign In",
@@ -181,7 +181,6 @@
     "favorited": "Favorited",
     "share": "Share",
     "view_details": "View Details",
-
     "category": "Category",
     "tags": "Tags",
     "author": "Author",
@@ -203,7 +202,6 @@
     "click_to_upload": "Click to select file",
     "drag_to_upload": "or drag file here",
     "supported_formats": "Supported Formats",
-
     "free_resource": "Free Resource",
     "set_price": "Set Price",
     "price": "Price",

@@ -542,13 +542,13 @@
     "buttons": [
       {
         "title": "获取 ShipAny",
-        "url": "https://shipany.ai",
+        "url": "https://wm.292828.xyz",
         "target": "_blank",
         "icon": "GoArrowUpRight"
       },
       {
         "title": "阅读文档",
-        "url": "https://docs.shipany.ai",
+        "url": "https://wm.292828.xyz/posts",
         "target": "_blank",
         "variant": "outline"
       }
@@ -588,7 +588,7 @@
           "children": [
             {
               "title": "文明知识库",
-              "url": "https://wm985.top",
+              "url": "https://wm.292828.xyz",
               "target": "_blank"
             }
           ]
@@ -598,7 +598,7 @@
           "children": [
             {
               "title": "文明知识库",
-              "url": "https://wm985.top",
+              "url": "https://wm.292828.xyz",
               "target": "_blank"
             }
           ]

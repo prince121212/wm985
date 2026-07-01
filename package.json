@@ -3,7 +3,7 @@
   "version": "1.6.0",
   "private": true,
   "author": "idoubi",
-  "homepage": "https://wm985.com",
+  "homepage": "https://wm.292828.xyz",
   "scripts": {
     "diff": "node scripts/generate-diff.js",
     "dev": "cross-env NODE_NO_WARNINGS=1 next dev -p 3001",

@@ -4,6 +4,7 @@ import ResourceList from "@/components/blocks/resource-list";
 import ResourceFilter from "@/components/blocks/resource-filter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { createPageMetadata, createSearchTitle, createCategoryTitle, createTagsTitle, PAGE_TITLES, PAGE_DESCRIPTIONS } from "@/lib/metadata";
+import { absoluteUrl } from "@/lib/seo";
 
 // 复用现有的页面布局模式
 export default async function ResourcesPage({
@@ -68,36 +69,44 @@ function ResourceListSkeleton() {
 }
 
 export async function generateMetadata({
+  params,
   searchParams,
 }: {
+  params: Promise<{ locale: string }>;
   searchParams: Promise<{
     category?: string;
     tags?: string;
     search?: string;
   }>;
 }) {
-  const params = await searchParams;
+  const { locale } = await params;
+  const queryParams = await searchParams;
 
   let title: string = PAGE_TITLES.RESOURCES;
   let description: string = PAGE_DESCRIPTIONS.RESOURCES;
+  const query = new URLSearchParams();
 
-  if (params.search) {
-    title = createSearchTitle(params.search);
-    description = `搜索"${params.search}"相关的优质资源，包括设计素材、开发工具、文档模板等。`;
-  } else if (params.category) {
-    title = createCategoryTitle(params.category);
-    description = `浏览${params.category}分类下的所有优质资源，精选高质量内容，免费访问。`;
-  } else if (params.tags) {
-    const tagList = params.tags.split(',').filter(Boolean);
+  if (queryParams.search) {
+    title = createSearchTitle(queryParams.search);
+    description = `搜索"${queryParams.search}"相关的优质资源，包括设计素材、开发工具、文档模板等。`;
+    query.set("search", queryParams.search);
+  } else if (queryParams.category) {
+    title = createCategoryTitle(queryParams.category);
+    description = `浏览${queryParams.category}分类下的所有优质资源，精选高质量内容，免费访问。`;
+    query.set("category", queryParams.category);
+  } else if (queryParams.tags) {
+    const tagList = queryParams.tags.split(',').filter(Boolean);
     title = createTagsTitle(tagList);
     description = `查看${tagList.slice(0, 3).join('、')}相关的优质资源，精心筛选的高质量内容。`;
+    query.set("tags", queryParams.tags);
   }
+  const canonicalPath = `/resources${query.toString() ? `?${query.toString()}` : ""}`;
 
   return createPageMetadata({
     title,
     description,
     keywords: "资源库,资源访问,设计素材,开发工具,文档模板,音频素材,视频素材,免费资源,付费资源,文明",
-    url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/resources`,
-    locale: 'zh_CN',
+    url: absoluteUrl(canonicalPath, locale),
+    locale: locale === "en" ? "en_US" : "zh_CN",
   });
 }

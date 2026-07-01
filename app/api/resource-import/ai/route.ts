@@ -1,9 +1,10 @@
 import { DEFAULT_SAFE_THRESHOLD, RESOURCE_IMPORT_MAX_ITEMS, RESOURCE_IMPORT_SECRET } from "@/lib/resource-import";
+import { getSiteUrl } from "@/lib/seo";
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const origin = "https://wm.292828.xyz";
+  const origin = getSiteUrl();
   const text = `你是“文明知识库”的资源导入助手。用户给你资源站、网页、文本、截图或资料列表时，请提取有价值的资源，清洗成下面JSON格式，然后先调用preview预览，再调用commit上传。
 
 认证密钥：${RESOURCE_IMPORT_SECRET}

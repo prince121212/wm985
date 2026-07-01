@@ -3,6 +3,7 @@ import ResourceUploadForm from "@/components/blocks/resource-upload-form";
 import { createPageMetadata, PAGE_TITLES, PAGE_DESCRIPTIONS } from "@/lib/metadata";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { absoluteUrl } from "@/lib/seo";
 
 export default async function UploadPage() {
 
@@ -77,12 +78,18 @@ function UploadFormSkeleton() {
   );
 }
 
-export async function generateMetadata() {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+
   return createPageMetadata({
     title: PAGE_TITLES.UPLOAD,
     description: PAGE_DESCRIPTIONS.UPLOAD,
     keywords: "资源上传,文件分享,资源分享,文明资源",
-    url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/upload`,
-    locale: 'zh_CN',
+    url: absoluteUrl("/upload", locale),
+    locale: locale === "en" ? "en_US" : "zh_CN",
   });
 }

@@ -13,6 +13,12 @@ import PopularResources from "@/components/blocks/popular-resources";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { getLandingPage } from "@/services/page";
+import {
+  SITE_NAME,
+  absoluteUrl,
+  getSiteUrl,
+  localizedPath,
+} from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -20,15 +26,16 @@ export async function generateMetadata({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  let canonicalUrl = `${process.env.NEXT_PUBLIC_WEB_URL}`;
-
-  if (locale !== "en") {
-    canonicalUrl = `${process.env.NEXT_PUBLIC_WEB_URL}/${locale}`;
-  }
+  const canonicalUrl = absoluteUrl("/", locale);
 
   return {
     alternates: {
       canonical: canonicalUrl,
+      languages: {
+        zh: absoluteUrl("/"),
+        en: absoluteUrl("/", "en"),
+        "x-default": absoluteUrl("/"),
+      },
     },
   };
 }
@@ -40,9 +47,38 @@ export default async function LandingPage({
 }) {
   const { locale } = await params;
   const page = await getLandingPage(locale);
+  const baseUrl = getSiteUrl();
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: SITE_NAME,
+      alternateName: "文明",
+      url: baseUrl,
+      inLanguage: locale === "en" ? "en" : "zh-CN",
+      potentialAction: {
+        "@type": "SearchAction",
+        target: `${baseUrl}${localizedPath("/resources", locale)}?search={search_term_string}`,
+        "query-input": "required name=search_term_string",
+      },
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: baseUrl,
+      logo: `${baseUrl}/logo.png`,
+      description:
+        "文明知识库是一个开放的文明资源共享平台，聚合历史、文化、文明史、纪录片、电子书、课件和文档资料。",
+    },
+  ];
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       {page.hero && <Hero hero={page.hero} />}
 
       {/* 新增：资源分类导航 */}

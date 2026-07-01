@@ -2,6 +2,7 @@ import { getUserInfo } from "@/services/user";
 import { redirect } from "next/navigation";
 import MyFavoritesList from "@/components/blocks/my-favorites-list";
 import { createPageMetadata, PAGE_TITLES, PAGE_DESCRIPTIONS } from "@/lib/metadata";
+import { absoluteUrl } from "@/lib/seo";
 
 export default async function MyFavoritesPage() {
   const userInfo = await getUserInfo();
@@ -26,12 +27,22 @@ export default async function MyFavoritesPage() {
   );
 }
 
-export async function generateMetadata() {
-  return createPageMetadata({
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  const metadata = createPageMetadata({
     title: PAGE_TITLES.MY_FAVORITES,
     description: PAGE_DESCRIPTIONS.MY_FAVORITES,
     keywords: "我的收藏,收藏管理,收藏资源,个人收藏",
-    url: `${process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.com'}/my-favorites`,
-    locale: 'zh_CN',
+    url: absoluteUrl("/my-favorites", locale),
+    locale: locale === "en" ? "en_US" : "zh_CN",
   });
+
+  return {
+    ...metadata,
+    robots: { index: false, follow: false },
+  };
 }

@@ -9,6 +9,7 @@ import { NextAuthSessionProvider } from "@/auth/session";
 import { NextIntlClientProvider } from "next-intl";
 import { ThemeProvider } from "@/providers/theme";
 import { cn } from "@/lib/utils";
+import { SITE_NAME, absoluteUrl, getSiteUrl } from "@/lib/seo";
 
 
 const fontSans = FontSans({
@@ -25,25 +26,34 @@ export async function generateMetadata({
   const t = await getTranslations();
 
   return {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_WEB_URL || 'https://wm985.top'),
+    metadataBase: new URL(getSiteUrl()),
     title: {
       template: `%s`,
       default: t("metadata.title") || "",
     },
     description: t("metadata.description") || "",
     keywords: t("metadata.keywords") || "",
+    alternates: {
+      canonical: locale === "en" ? absoluteUrl("/", "en") : absoluteUrl("/"),
+      languages: {
+        zh: absoluteUrl("/"),
+        en: absoluteUrl("/", "en"),
+        "x-default": absoluteUrl("/"),
+      },
+    },
     openGraph: {
       title: t("metadata.title") || "",
       description: t("metadata.description") || "",
       type: 'website',
       locale: locale === 'zh' ? 'zh_CN' : 'en_US',
-      siteName: '文明',
+      siteName: SITE_NAME,
+      url: locale === "en" ? absoluteUrl("/", "en") : absoluteUrl("/"),
       images: [
         {
           url: '/og-image.jpg',
           width: 1200,
           height: 630,
-          alt: '文明 - 优质资源分享平台',
+          alt: `${SITE_NAME} - 优质资源分享平台`,
         },
       ],
     },

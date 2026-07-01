@@ -2,6 +2,7 @@ import { PostStatus, findPostBySlug } from "@/models/post";
 
 import BlogDetail from "@/components/blocks/blog-detail";
 import Empty from "@/components/blocks/empty";
+import { absoluteUrl } from "@/lib/seo";
 
 export async function generateMetadata({
   params,
@@ -11,12 +12,7 @@ export async function generateMetadata({
   const { locale, slug } = await params;
 
   const post = await findPostBySlug(slug, locale);
-
-  let canonicalUrl = `${process.env.NEXT_PUBLIC_WEB_URL}/posts/${slug}`;
-
-  if (locale !== "en") {
-    canonicalUrl = `${process.env.NEXT_PUBLIC_WEB_URL}/${locale}/posts/${slug}`;
-  }
+  const canonicalUrl = absoluteUrl(`/posts/${slug}`, locale);
 
   return {
     title: post?.title,

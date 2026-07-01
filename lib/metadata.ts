@@ -1,4 +1,10 @@
 import { Metadata } from "next";
+import {
+  SITE_NAME,
+  absoluteUrl,
+  createSeoTitle,
+  getSiteUrl,
+} from "@/lib/seo";
 
 /**
  * 创建页面标题
@@ -6,7 +12,7 @@ import { Metadata } from "next";
  * @returns 格式化的标题
  */
 export const createPageTitle = (pageTitle?: string): string => {
-  return pageTitle ? `文明 - ${pageTitle}` : '文明';
+  return pageTitle ? `${pageTitle} - ${SITE_NAME}` : createSeoTitle();
 };
 
 /**
@@ -45,14 +51,17 @@ export const createPageMetadata = (options: PageMetadataOptions): Metadata => {
         url: '/og-image.jpg',
         width: 1200,
         height: 630,
-        alt: '文明 - 优质资源分享平台',
+        alt: `${SITE_NAME} - 优质资源分享平台`,
       },
     ],
   } = options;
 
   const formattedTitle = createPageTitle(title);
+  const metadataBase = new URL(getSiteUrl());
+  const canonicalUrl = url || absoluteUrl("/");
 
   return {
+    metadataBase,
     title: formattedTitle,
     description,
     keywords,
@@ -61,8 +70,8 @@ export const createPageMetadata = (options: PageMetadataOptions): Metadata => {
       description,
       type,
       locale,
-      url,
-      siteName: '文明',
+      url: canonicalUrl,
+      siteName: SITE_NAME,
       images,
     },
     twitter: {
@@ -73,7 +82,7 @@ export const createPageMetadata = (options: PageMetadataOptions): Metadata => {
     },
     ...(url && {
       alternates: {
-        canonical: url,
+        canonical: canonicalUrl,
       },
     }),
   };
@@ -107,7 +116,7 @@ export const createMultilingualMetadata = (
   return {
     ...metadata,
     alternates: {
-      canonical: options.url,
+      canonical: options.url || absoluteUrl("/"),
       languages,
     },
   };
@@ -166,10 +175,10 @@ export const PAGE_TITLES = {
  * 常用页面描述常量
  */
 export const PAGE_DESCRIPTIONS = {
-  HOME: '文明知识库是一个开放的资源共享平台，提供各种文明相关的资源下载和分享服务。',
-  RESOURCES: '发现和访问各种优质资源，包括设计素材、开发工具、文档模板、音频视频素材等。',
-  CATEGORIES: '浏览不同类别的资源，包括设计素材、开发工具、文档模板等',
-  TAGS: '通过标签快速找到相关资源，浏览热门标签和主题',
+  HOME: '文明知识库是一个开放的文明资源共享平台，聚合历史、文化、文明史、纪录片、电子书、课件和文档资料，帮助学习者、教师和创作者高效发现优质资源。',
+  RESOURCES: '发现和访问各类优质文明资源，包括历史文化资料、纪录片、电子书、课程课件、文档模板、音频视频素材等。',
+  CATEGORIES: '按分类浏览文明知识库资源，快速查找历史、文化、文明史、课程资料、纪录片和文档模板等内容。',
+  TAGS: '通过标签快速找到相关文明资源，浏览热门主题、学习资料、纪录片、电子书和文化研究内容。',
   UPLOAD: '上传和分享您的优质资源，帮助更多人获得价值',
   USER_CENTER: '管理您的个人信息、上传资源、收藏内容等',
   MY_FAVORITES: '管理您收藏的资源，快速访问感兴趣的内容',

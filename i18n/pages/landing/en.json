@@ -542,13 +542,13 @@
     "buttons": [
       {
         "title": "Get ShipAny",
-        "url": "https://shipany.ai",
+        "url": "https://wm.292828.xyz",
         "target": "_blank",
         "icon": "GoArrowUpRight"
       },
       {
         "title": "Read Document",
-        "url": "https://docs.shipany.ai",
+        "url": "https://wm.292828.xyz/posts",
         "target": "_blank",
         "variant": "outline"
       }
@@ -588,7 +588,7 @@
           "children": [
             {
               "title": "Civilization Knowledge Base",
-              "url": "https://wm985.top",
+              "url": "https://wm.292828.xyz",
               "target": "_blank"
             }
           ]
@@ -598,7 +598,7 @@
           "children": [
             {
               "title": "Civilization Knowledge Base",
-              "url": "https://wm985.top",
+              "url": "https://wm.292828.xyz",
               "target": "_blank"
             }
           ]
