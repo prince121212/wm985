@@ -99,9 +99,9 @@
     </view>
 
     <view class="bottom-bar">
-      <view class="ghost-btn" bindtap="toggleFavorite">{{favorited ? '已收藏' : '收藏'}}</view>
-      <button class="ghost-btn share-inline" open-type="share">分享</button>
-      <button class="primary-btn access-button" bindtap="copyResourceLink" disabled="{{accessing}}" loading="{{accessing}}">{{accessing ? accessLabel : (copyReady ? '重新复制链接' : '访问资源')}}</button>
+      <button class="ghost-btn bottom-action" bindtap="toggleFavorite">{{favorited ? '已收藏' : '收藏'}}</button>
+      <button class="ghost-btn bottom-action share-inline" open-type="share">分享</button>
+      <button class="primary-btn bottom-action access-button" bindtap="copyResourceLink" disabled="{{accessing}}" loading="{{accessing}}"><text class="access-label">{{accessing ? accessLabel : (copyReady ? '重新复制链接' : '访问资源')}}</text></button>
     </view>
   </block>
   <view wx:else class="empty">资源不存在</view>
