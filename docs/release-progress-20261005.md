@@ -6,7 +6,10 @@
 - 数据库迁移已成功执行：mp_resource_ad_sessions_20261005，迁移版本20261005062820。
 - 已只读验证新表开启RLS，anon/authenticated无SELECT权限，service_role具有所需访问权限。
 - 发布前发现线上旧小程序依赖详情中的file_url，已加入新旧协议兼容。新版携带X-MP-Resource-Access-Version: 1，继续强制广告流程；旧版暂保留原行为。
-- 兼容修复通过96项测试、TypeScript检查。首次上传的1.6.1缺少版本头，需要重新上传修复后的代码包。
+- 兼容修复通过96项测试、TypeScript检查。修复后的开发版1.6.2已由官方CLI上传成功，包102,660字节；替代首次上传且缺少版本头的1.6.1。
+- 已用原有后端service_role凭据只读查询新表（limit=0），HTTP 200。
+- 代码提交94c0eda已推送release/mp-rewarded-ads-20261005分支，触发Vercel预览构建，尚未更新生产master。
+- GitHub只读配置检查运行37273089618显示现有Vercel Token能访问API，但配置的项目身份与wm985-production不一致，正在核对准确项目；未向不匹配的项目部署。
 - 后端尚未上线、微信尚未提审；接下来核对Vercel生产环境配置并部署。
 
 ## 微信端

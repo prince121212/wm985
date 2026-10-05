@@ -43,6 +43,7 @@ jobs:
       - name: Inspect project and production environment variable names
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_INSPECT_ONLY: ${{ inputs.mode == 'inspect' }}
         run: node scripts/inspect-vercel-deployment.mjs
 
       - name: Install pnpm

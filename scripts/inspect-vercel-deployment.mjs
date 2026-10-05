@@ -12,11 +12,26 @@ if (missingCredentials.length) {
 const projectId = process.env.VERCEL_PROJECT_ID.trim();
 const orgId = process.env.VERCEL_ORG_ID.trim();
 const expectedName = process.env.VERCEL_EXPECTED_PROJECT_NAME || 'wm985-production';
+const inspectOnly = process.env.VERCEL_INSPECT_ONLY === 'true';
+const expectedTeamSlug = '16088400qq-9609s-projects';
+
+function reportIdentity(project, label) {
+  const matches = {
+    id: project?.id === projectId,
+    owner: project?.accountId === orgId,
+    name: project?.name === expectedName,
+  };
+  const safeName = typeof project?.name === 'string' && /^[a-z0-9][a-z0-9-]{0,99}$/.test(project.name)
+    ? project.name : '(invalid project name)';
+  console.log(`${label}: ${safeName}`);
+  console.log(`Configured identity matches: id=${matches.id}, owner=${matches.owner}, name=${matches.name}`);
+  return matches;
+}
 
 async function getVercel(path, label, query = {}) {
   const url = new URL(path, 'https://api.vercel.com');
   // Personal account IDs are not team IDs; project ownership is verified below.
-  if (orgId.startsWith('team_')) url.searchParams.set('teamId', orgId);
+  if (!query.slug && orgId.startsWith('team_')) url.searchParams.set('teamId', orgId);
   for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
   let response;
   try {
@@ -31,7 +46,7 @@ async function getVercel(path, label, query = {}) {
   }
   if (!response.ok) {
     // Error bodies may contain credentials or private metadata. Only print status.
-    throw new Error(`${label}: Vercel returned HTTP ${response.status}.`);
+    throw Object.assign(new Error(`${label}: Vercel returned HTTP ${response.status}.`), { status: response.status });
   }
   try {
     return await response.json();
@@ -41,16 +56,41 @@ async function getVercel(path, label, query = {}) {
 }
 
 try {
-  const project = await getVercel(`/v9/projects/${encodeURIComponent(projectId)}`, 'Project lookup');
-  if (project.id !== projectId || project.accountId !== orgId || project.name !== expectedName) {
+  let targetScope = {};
+  let project = await getVercel(`/v9/projects/${encodeURIComponent(projectId)}`, 'Project lookup');
+  const matches = reportIdentity(project, 'Configured Vercel project');
+  const configuredIdentityMatches = matches.id && matches.owner && matches.name;
+  if (!configuredIdentityMatches && !inspectOnly) {
     throw new Error('Project identity does not match the expected project and configured owner.');
+  }
+  if (!matches.name) {
+    try {
+      project = await getVercel(`/v9/projects/${encodeURIComponent(expectedName)}`, 'Expected project lookup');
+    } catch (error) {
+      if (!inspectOnly || ![403, 404].includes(error.status)) throw error;
+      // This exact team slug was observed in the repository's Vercel deployment status.
+      // Do not enumerate unrelated teams or projects when existing secrets point elsewhere.
+      targetScope = { slug: expectedTeamSlug };
+      console.log('Expected project unavailable in configured scope; inspecting the known deployment team.');
+      project = await getVercel(`/v9/projects/${encodeURIComponent(expectedName)}`, 'Known team project lookup', targetScope);
+    }
+    reportIdentity(project, 'Expected Vercel project');
+  }
+  const repositoryMatches = project?.link?.org === 'prince121212' && project?.link?.repo === 'wm985';
+  console.log(`Expected GitHub repository matches: ${repositoryMatches}`);
+  if (project?.name !== expectedName || !repositoryMatches || typeof project?.id !== 'string') {
+    throw new Error('Expected project name or linked GitHub repository could not be verified.');
+  }
+  if (!configuredIdentityMatches) {
+    console.log('Read-only inspection found the target project. Configured project/owner secrets still require correction before production deployment.');
+    process.exitCode = 1;
   }
   console.log(`Verified Vercel project: ${project.name}`);
 
   const result = await getVercel(
-    `/v10/projects/${encodeURIComponent(projectId)}/env`,
+    `/v10/projects/${encodeURIComponent(project.id)}/env`,
     'Environment variable lookup',
-    { decrypt: 'false' },
+    { ...targetScope, decrypt: 'false' },
   );
   const envs = Array.isArray(result) ? result : result.envs;
   if (!Array.isArray(envs)) throw new Error('Unexpected environment variable list format.');
