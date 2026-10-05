@@ -1,5 +1,9 @@
 .detail-hero { border-radius: 34rpx; padding: 30rpx; color:#fff; background: linear-gradient(135deg,#2f2a24,#e9672e); }
-.back { width: 64rpx; height: 64rpx; line-height: 58rpx; border-radius: 50%; background: rgba(255,255,255,.18); color:#fff; font-size: 48rpx; padding: 0; }
+.back { flex: 0 0 64rpx; width: 64rpx; min-width: 64rpx; height: 64rpx; box-sizing: border-box; margin: 0; padding: 0; display: flex; align-items: center; justify-content: center; line-height: 1; border: 0; border-radius: 50%; background: rgba(255,255,255,.18); }
+.back::after { border: 0; }
+.back-chevron { width: 18rpx; height: 18rpx; border-left: 4rpx solid #fff; border-bottom: 4rpx solid #fff; transform: translateX(4rpx) rotate(45deg); }
+.back-pressed { background: rgba(255,255,255,.3); }
+.hero-actions .share-btn { flex: none; margin: 0; }
 .light { background: rgba(255,255,255,.16); color:#fff; margin-top: 32rpx; }
 .hero-title { font-size: 44rpx; font-weight: 900; line-height: 1.25; margin-top: 16rpx; }
 .hero-desc { opacity: .78; line-height: 1.6; margin-top: 14rpx; }

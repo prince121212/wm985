@@ -2,8 +2,8 @@
   <view wx:if="{{loading}}" class="empty">加载中...</view>
   <block wx:elif="{{resource}}">
     <view class="detail-hero">
-      <view class="between">
-        <button class="back" bindtap="goBack">‹</button>
+      <view class="between hero-actions">
+        <button class="back" bindtap="goBack" aria-label="返回上一页" hover-class="back-pressed"><view class="back-chevron"></view></button>
         <button class="share-btn" open-type="share">分享资源</button>
       </view>
       <view class="badge light">{{resource.category_name}}</view>
@@ -101,7 +101,7 @@
     <view class="bottom-bar">
       <view class="ghost-btn" bindtap="toggleFavorite">{{favorited ? '已收藏' : '收藏'}}</view>
       <button class="ghost-btn share-inline" open-type="share">分享</button>
-      <button class="primary-btn access-button" bindtap="copyResourceLink" disabled="{{accessing}}" loading="{{accessing}}">{{accessing ? accessLabel : (copyReady ? '重新复制链接' : (resource.is_paid ? '积分获取资源' : '看广告免费获取'))}}</button>
+      <button class="primary-btn access-button" bindtap="copyResourceLink" disabled="{{accessing}}" loading="{{accessing}}">{{accessing ? accessLabel : (copyReady ? '重新复制链接' : '访问资源')}}</button>
     </view>
   </block>
   <view wx:else class="empty">资源不存在</view>
