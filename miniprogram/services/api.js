@@ -11,7 +11,9 @@ function resources(params = {}) {
   return request({ url: `/api/mp/resources${query ? `?${query}` : ''}`, auth: false });
 }
 function resourceDetail(id) { return request({ url: `/api/mp/resources/${id}`, auth: false }); }
-function accessResource(id) { return request({ url: `/api/mp/resources/${id}/access`, method: 'POST' }); }
+function adConfig() { return request({ url: '/api/mp/ads/config', auth: false }); }
+function createResourceAdSession(id) { return request({ url: `/api/mp/resources/${id}/ad-session`, method: 'POST' }); }
+function accessResource(id, data = {}) { return request({ url: `/api/mp/resources/${id}/access`, method: 'POST', data }); }
 function resourceComments(id, params = {}) {
   const query = Object.keys(params).filter(k => params[k] !== undefined && params[k] !== '').map(k => `${encodeURIComponent(k)}=${encodeURIComponent(params[k])}`).join('&');
   return request({ url: `/api/mp/resources/${id}/comments${query ? `?${query}` : ''}`, auth: false });
@@ -72,6 +74,8 @@ module.exports = {
   tags,
   resources,
   resourceDetail,
+  adConfig,
+  createResourceAdSession,
   accessResource,
   resourceComments,
   addResourceComment,

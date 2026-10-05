@@ -4,7 +4,10 @@ function request(options) {
   const token = wx.getStorageSync('mp_token');
   const header = Object.assign({
     'content-type': 'application/json'
-  }, options.header || {});
+  }, options.header || {}, {
+    // The new protocol never falls back to legacy access after a failed request.
+    'X-MP-Resource-Access-Version': '1'
+  });
 
   if (token && options.auth !== false) {
     header.Authorization = `Bearer ${token}`;
@@ -22,7 +25,10 @@ function request(options) {
           resolve(body.data);
         } else {
           const message = body.message || `请求失败 (${res.statusCode})`;
-          reject(new Error(message));
+          const error = new Error(message);
+          error.statusCode = res.statusCode;
+          error.code = body.code;
+          reject(error);
         }
       },
       fail(err) {

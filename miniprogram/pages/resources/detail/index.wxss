@@ -12,7 +12,7 @@
 .avatar { width: 84rpx; height: 84rpx; border-radius: 50%; background:#f7eadc; }
 .reward-card { background: linear-gradient(135deg,#fff7ed,#fff); }
 .share-action { margin-top: 20rpx; }
-.bottom-bar { position: sticky; bottom: 20rpx; display:grid; grid-template-columns: 1fr 1fr 1.35fr; gap: 14rpx; margin-top: 28rpx; }
+.bottom-bar { position: sticky; bottom: 20rpx; display:grid; grid-template-columns: .8fr .8fr 1.8fr; gap: 14rpx; margin-top: 28rpx; }
 .share-inline { padding: 0; }
 .hero-meta { display:flex; flex-wrap:wrap; gap: 16rpx; margin-top: 18rpx; font-size: 24rpx; opacity:.9; }
 .content-text { white-space: pre-wrap; }
@@ -37,3 +37,6 @@
 .reply-item { margin-bottom: 8rpx; }
 
 .price-num { font-size: 28rpx; }
+.access-button { width:100%; padding:0 14rpx; font-size:26rpx; }
+.access-button[disabled] { opacity:.65; color:#fff; }
+.ad-access-note { line-height:1.6; padding:18rpx 0; }

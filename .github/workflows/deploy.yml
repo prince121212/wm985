@@ -1,40 +1,83 @@
-name: Deploy to Vercel
+name: Inspect or deploy to Vercel
 
 on:
-  # 暂停自动部署 - 取消注释下面的行来重新启用
-  # push:
-  #   branches: [ master ]
-  workflow_dispatch: # 允许手动触发
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: Inspect production configuration, or build and deploy production
+        required: true
+        default: inspect
+        type: choice
+        options:
+          - inspect
+          - production
+
+permissions:
+  contents: read
+
+concurrency:
+  group: vercel-${{ inputs.mode }}
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  vercel:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_EXPECTED_PROJECT_NAME: wm985-production
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
-    - name: Install pnpm
-      uses: pnpm/action-setup@v2
-      with:
-        version: 8
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'pnpm'
+      # The default mode stops here: GET requests only; no decrypted values or artifacts.
+      - name: Inspect project and production environment variable names
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: node scripts/inspect-vercel-deployment.mjs
 
-    - name: Install dependencies
-      run: pnpm install
+      - name: Install pnpm
+        if: inputs.mode == 'production'
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+          run_install: false
 
-    - name: Build project
-      run: pnpm build
+      - name: Install Vercel CLI
+        if: inputs.mode == 'production'
+        run: npm install --global vercel@latest
 
-    - name: Deploy to Vercel
-      uses: amondnet/vercel-action@v25
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-        vercel-args: '--prod'
+      - name: Pull production project configuration
+        if: inputs.mode == 'production'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Install dependencies
+        if: inputs.mode == 'production'
+        run: pnpm install --frozen-lockfile
+
+      - name: Check mini-program advertisement access
+        if: inputs.mode == 'production'
+        run: pnpm test:mp-ads
+
+      - name: Build production artifacts
+        if: inputs.mode == 'production'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy production artifacts
+        if: inputs.mode == 'production'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"

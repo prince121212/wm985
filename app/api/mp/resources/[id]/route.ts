@@ -4,6 +4,7 @@ import { deleteResource, findResourceByUuid, incrementResourceViews } from "@/mo
 import { decrementTagUsage, getResourceTags } from "@/models/tag";
 import { getSupabaseClient, withRetry } from "@/models/db";
 import { log } from "@/lib/logger";
+import { publicMpResource } from '@/lib/mp-resource-access-policy';
 
 export const dynamic = 'force-dynamic';
 
@@ -60,7 +61,10 @@ export async function GET(req: Request, { params }: RouteParams) {
       });
     }
 
-    return respData({ resource, author_stats: authorStats });
+    const response = respData({ resource: publicMpResource(resource, req), author_stats: authorStats });
+    response.headers.set('Cache-Control', 'no-store');
+    response.headers.set('Vary', 'X-MP-Resource-Access-Version');
+    return response;
   } catch (error) {
     log.error("获取小程序资源详情失败", error as Error);
     return respErr("获取资源详情失败");

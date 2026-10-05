@@ -5,6 +5,7 @@ import { findCategoryByName } from "@/models/category";
 import { addResourceTags } from "@/models/tag";
 import { getUuid } from "@/lib/hash";
 import { log } from "@/lib/logger";
+import { publicMpResource } from '@/lib/mp-resource-access-policy';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,7 +57,10 @@ export async function GET(req: Request) {
       }),
     ]);
 
-    return respData({ resources, total, offset, limit });
+    const response = respData({ resources: resources.map(resource => publicMpResource(resource, req)), total, offset, limit });
+    response.headers.set('Cache-Control', 'no-store');
+    response.headers.set('Vary', 'X-MP-Resource-Access-Version');
+    return response;
   } catch (error) {
     log.error("获取小程序资源列表失败", error as Error);
     return respErr("获取资源列表失败");

@@ -51,6 +51,7 @@
       <view class="h2">资源信息</view>
       <view class="info-row"><text class="muted">分类</text><text>{{resource.category_name}}</text></view>
       <view class="info-row"><text class="muted">访问消耗</text><text>{{resource.price_text}}</text></view>
+      <view wx:if="{{!resource.is_paid}}" class="muted small ad-access-note">完整观看一次视频广告后，即可免费复制资源链接；中途关闭不会领取。</view>
       <view class="info-row"><text class="muted">发布时间</text><text>{{resource.created_text}}</text></view>
       <view class="info-row"><text class="muted">浏览次数</text><text>{{resource.view_count || 0}}</text></view>
       <view class="info-row"><text class="muted">访问次数</text><text>{{resource.access_count || 0}}</text></view>
@@ -100,7 +101,7 @@
     <view class="bottom-bar">
       <view class="ghost-btn" bindtap="toggleFavorite">{{favorited ? '已收藏' : '收藏'}}</view>
       <button class="ghost-btn share-inline" open-type="share">分享</button>
-      <view class="primary-btn" bindtap="copyResourceLink">访问资源</view>
+      <button class="primary-btn access-button" bindtap="copyResourceLink" disabled="{{accessing}}" loading="{{accessing}}">{{accessing ? accessLabel : (copyReady ? '重新复制链接' : (resource.is_paid ? '积分获取资源' : '看广告免费获取'))}}</button>
     </view>
   </block>
   <view wx:else class="empty">资源不存在</view>
