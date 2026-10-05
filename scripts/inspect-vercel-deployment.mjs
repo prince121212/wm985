@@ -2,6 +2,8 @@
 // https://vercel.com/docs/rest-api/projects/find-a-project-by-id-or-name
 // https://vercel.com/docs/rest-api/projects/retrieve-the-environment-variables-of-a-project-by-id-or-name
 
+import { appendFileSync } from 'node:fs';
+
 const requiredCredentials = ['VERCEL_TOKEN', 'VERCEL_ORG_ID', 'VERCEL_PROJECT_ID'];
 const missingCredentials = requiredCredentials.filter((key) => !process.env[key]?.trim());
 if (missingCredentials.length) {
@@ -28,10 +30,10 @@ function reportIdentity(project, label) {
   return matches;
 }
 
-async function getVercel(path, label, query = {}) {
+async function getVercel(path, label, query = {}, scopeOrgId = orgId) {
   const url = new URL(path, 'https://api.vercel.com');
   // Personal account IDs are not team IDs; project ownership is verified below.
-  if (!query.slug && orgId.startsWith('team_')) url.searchParams.set('teamId', orgId);
+  if (!query.slug && scopeOrgId.startsWith('team_')) url.searchParams.set('teamId', scopeOrgId);
   for (const [key, value] of Object.entries(query)) url.searchParams.set(key, value);
   let response;
   try {
@@ -59,9 +61,8 @@ try {
   let targetScope = {};
   let project = await getVercel(`/v9/projects/${encodeURIComponent(projectId)}`, 'Project lookup');
   const matches = reportIdentity(project, 'Configured Vercel project');
-  const configuredIdentityMatches = matches.id && matches.owner && matches.name;
-  if (!configuredIdentityMatches && !inspectOnly) {
-    throw new Error('Project identity does not match the expected project and configured owner.');
+  if ((!matches.id || !matches.name) && !inspectOnly) {
+    throw new Error('Project ID or name does not match the expected project.');
   }
   if (!matches.name) {
     try {
@@ -81,9 +82,16 @@ try {
   if (project?.name !== expectedName || !repositoryMatches || typeof project?.id !== 'string') {
     throw new Error('Expected project name or linked GitHub repository could not be verified.');
   }
-  if (!configuredIdentityMatches) {
-    console.log('Read-only inspection found the target project. Configured project/owner secrets still require correction before production deployment.');
+  if (typeof project.accountId !== 'string' || !/^(?:team_|user_)?[A-Za-z0-9]{8,80}$/.test(project.accountId)) {
+    throw new Error('Verified project returned an invalid owner ID format.');
+  }
+  const exactProjectVerified = project.id === projectId;
+  const resolvedOrgId = exactProjectVerified ? project.accountId : orgId;
+  if (!exactProjectVerified) {
+    console.log('Read-only inspection found the target project. Configured project ID still requires correction before production deployment.');
     process.exitCode = 1;
+  } else if (resolvedOrgId !== orgId) {
+    console.log('Owner ID resolved from the verified project ID, name, and GitHub repository.');
   }
   console.log(`Verified Vercel project: ${project.name}`);
 
@@ -91,6 +99,7 @@ try {
     `/v10/projects/${encodeURIComponent(project.id)}/env`,
     'Environment variable lookup',
     { ...targetScope, decrypt: 'false' },
+    resolvedOrgId,
   );
   const envs = Array.isArray(result) ? result : result.envs;
   if (!Array.isArray(envs)) throw new Error('Unexpected environment variable list format.');
@@ -113,6 +122,11 @@ try {
     throw new Error(`Missing required production environment variables: ${missing.join(', ')}. Local or previously committed .env files do not count as Vercel configuration.`);
   }
   console.log('Required production variable names are present. Values and external connectivity have not been verified.');
+  if (!inspectOnly && exactProjectVerified && resolvedOrgId !== orgId) {
+    if (!process.env.GITHUB_ENV) throw new Error('GITHUB_ENV is required to pass the verified owner to deployment steps.');
+    appendFileSync(process.env.GITHUB_ENV, `VERCEL_ORG_ID=${resolvedOrgId}\n`, { encoding: 'utf8' });
+    console.log('Verified owner ID configured for subsequent deployment steps; GitHub secrets remain unchanged.');
+  }
   console.log('Read-only inspection complete. No project settings changed and no deployment created.');
 } catch (error) {
   console.error(error.message);
